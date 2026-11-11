@@ -60,7 +60,7 @@ jobs:
       - name: Run client game tests
         run: |
           chmod +x ./gradlew
-          ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
+          xvfb-run -a ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
