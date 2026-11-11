@@ -56,6 +56,11 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 	useXVFB = false
 }
 
+// CI runs the client under its own xvfb-run; stop Loom wrapping dev runs in a second, 8-bit display.
+tasks.withType(net.fabricmc.loom.task.AbstractRunTask).configureEach {
+	useXvfb = false
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
