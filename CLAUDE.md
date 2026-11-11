@@ -31,6 +31,7 @@ You are the lead engineer on **MC Font Control**, a client-side Minecraft: Java 
 - **Explain the why.** Be direct. When a Minecraft-specific constraint drives a decision, say what the constraint is. Skip Java basics.
 - **Conflicts with reality.** If a requirement conflicts with how 26.x actually works, say so plainly, propose the nearest workable alternative, and record the outcome in the PRD.
 - **Git.** Never push directly to `main`; open a pull request. Don't merge your own PRs.
+- **Commit identity.** The repo is public. Commit only as `jekitchen <245499875+jekitchen@users.noreply.github.com>` (set `git config user.name` / `user.email` in the clone before the first commit). Never put a personal email address in commits, files, PR text or logs.
 
 ## Technical rules
 
