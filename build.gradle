@@ -44,8 +44,7 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 	jvmArgs.add("-Dfabric.client.gametest")
 	// Known GitHub Actions issue with the network synchronizer (Fabric docs).
 	jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
-	// CI starts its own Xvfb with a 24-bit screen. Loom's built-in xvfb-run uses the default
-	// 8-bit screen, which has no OpenGL visual, so the 26.3 client can't open its window.
+	// CI wraps this task in its own xvfb-run (see .github/workflows/build.yml); don't start a second display.
 	useXVFB = false
 }
 
