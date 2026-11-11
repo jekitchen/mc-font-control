@@ -63,6 +63,8 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 	jvmArgs.add("-Dfabric.client.gametest")
 	// Known GitHub Actions issue with the network synchronizer (Fabric docs).
 	jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
+	// CI wraps this task in its own xvfb-run (see .github/workflows/build.yml); don't start a second display.
+	useXVFB = false
 }
 
 processResources {

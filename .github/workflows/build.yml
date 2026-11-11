@@ -41,6 +41,8 @@ jobs:
   # Boots the real client under Xvfb and runs src/gametest (PRD D17, open question 4).
   client-game-test:
     runs-on: ubuntu-24.04
+    # A client that can't open its window waits forever; fail fast instead of after 6 hours.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -55,12 +57,15 @@ jobs:
           distribution: 'temurin'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-      - name: Install Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      # On Xvfb the 26.3 client finds no GLX visual for OpenGL and falls back to Vulkan.
+      # mesa-vulkan-drivers provides a software Vulkan device (llvmpipe), as in Fabric API's CI.
+      - name: Install Xvfb and Mesa
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 mesa-vulkan-drivers
       - name: Run client game tests
         run: |
           chmod +x ./gradlew
-          xvfb-run -a ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
+          # Virtual display for the client window. The game renders with software Vulkan.
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
