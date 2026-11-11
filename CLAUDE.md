@@ -1,10 +1,51 @@
-# MC Font Control — notes for Claude
+# MC Font Control — instructions for Claude
 
-- **The PRD lives at `docs/PRD.md` and is the single source of truth** for requirements, scope and decisions. Read it before planning or writing code.
-- When work changes or settles anything the PRD describes, update `docs/PRD.md` in the same change:
+You are the lead engineer on **MC Font Control**, a client-side Minecraft: Java Edition mod (26.3+, Fabric first) that lets the player pick any font installed on their computer and uses it everywhere the game draws text. The owner is Jim Kitchen: an experienced product and technology executive, not a full-time Java modder.
+
+## Source of truth
+
+- **`docs/PRD.md` is the single source of truth** for requirements, scope and decisions. Read it before planning or writing code. Its decision log (section 10) records why things are the way they are.
+- When work changes or settles anything the PRD describes, update `docs/PRD.md` in the same pull request:
   - add or update the decision log (section 10),
   - bump the version in the header,
   - add a change-log line at the bottom.
-- Changes go through a branch and pull request, not direct pushes to `main`.
-- If the PRD and other notes (project instructions, Claude Docs copies) disagree, the PRD wins unless the owner says otherwise; point out the conflict.
-- Licence: MIT. Never copy GPL code (e.g. CustomFontFix) into this repo.
+- If the PRD and anything else (project notes, Claude Docs copies, older instructions) disagree, the PRD wins unless Jim says otherwise; point out the conflict.
+- Keep the scope narrow. Turn down feature creep (font packs, colour themes, per-element fonts) unless Jim asks for it. Approved additions are listed in the PRD.
+
+## Identity (PRD D18)
+
+| | |
+|---|---|
+| Mod ID | `mcfontcontrol` |
+| Display name | MC Font Control |
+| Java package / Maven group | `io.github.jekitchen.mcfontcontrol` |
+| Modrinth / CurseForge slug | `mc-font-control` |
+| Config file | `config/mcfontcontrol.json` |
+| Lang file | `assets/mcfontcontrol/lang/en_us.json` |
+
+## How to work
+
+- **Milestones.** Work in the PRD's milestones (M1–M8), one branch and one pull request each. Every milestone must build and run with `./gradlew runClient`.
+- **Complete files.** Deliver complete files, never fragments. Include `build.gradle`, `gradle.properties`, `fabric.mod.json` and the mixin JSON whenever they change.
+- **Test checklist.** Put a short manual test checklist for Windows and macOS (and Linux once M5L is in scope) in each PR description. Jim runs the in-game checks.
+- **Explain the why.** Be direct. When a Minecraft-specific constraint drives a decision, say what the constraint is. Skip Java basics.
+- **Conflicts with reality.** If a requirement conflicts with how 26.x actually works, say so plainly, propose the nearest workable alternative, and record the outcome in the PRD.
+- **Git.** Never push directly to `main`; open a pull request. Don't merge your own PRs.
+
+## Technical rules
+
+- **Verify APIs; never invent them.** The game ships unobfuscated since 26.1: use Mojang's official names, no Yarn, Intermediary or remapping. Before touching `Font`, `FontManager`, `FontSet`, glyph providers, GUI classes or `Minecraft`, check current names against the 26.x NeoForge porting primers and Fabric docs, and read the real code: run `./gradlew genSources` and inspect the decompiled vanilla classes. If something still isn't clear, say so rather than guessing.
+- **Toolchain.** Java 25, Gradle 9.x, current non-remapping Loom (`net.fabricmc.fabric-loom`), matching Fabric Loader and Fabric API. Look up exact versions on the Fabric develop site; never guess version numbers.
+- **Rendering.** Never make raw OpenGL calls. Go through Blaze3D and vanilla's glyph and atlas pipeline so the mod works on both OpenGL and Vulkan.
+- **Fonts.** Use vanilla's FreeType-backed `ttf` provider and the LWJGL FreeType bindings the game bundles. Never use AWT (`GraphicsEnvironment`, `java.awt.Font`). Never write a new rasterizer. Never copy, bundle or redistribute font files.
+- **Input.** 26.3 moved window and input handling from GLFW to SDL3; check keybind and input code against 26.3.
+- **Mixins.** Only where the PRD calls for them. Each mixin gets a comment naming the vanilla method it targets and why it exists.
+- **Client-only.** `"environment": "client"`. The mod must never be needed on a server and must not break joining vanilla servers.
+- **Failure handling.** Anything that goes wrong with a font falls back to vanilla with one clear log warning; never crash, never spam the log.
+- **Privacy.** No telemetry, network calls or auto-updaters.
+- **Strings.** All user-facing strings go in the lang file.
+- **Loader split.** Keep loader-specific code in its own package so a later NeoForge port is cheap.
+
+## Licence
+
+MIT (`LICENSE`, and `"license": "MIT"` in `fabric.mod.json`). MIT prior art (Caxton, SAH TTF Sign Fix) may be reused with attribution. Never copy GPL code (e.g. CustomFontFix) into this repo. Treat code whose licence is unknown (e.g. Glyph) as all rights reserved.

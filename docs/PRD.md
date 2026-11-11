@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.6 |
+| **Status** | Draft v0.7 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -15,7 +15,7 @@ The mod is deliberately narrow. It does one thing — swap the game's font for a
 
 | | |
 |---|---|
-| **Product** | MC Font Control |
+| **Product** | MC Font Control (mod ID `mcfontcontrol`) |
 | **Type** | Client-only Minecraft mod (`"environment": "client"`) |
 | **Baseline** | Minecraft Java 26.3.x, Java 25 |
 | **Version support** | Latest Minecraft release only, best effort (D15) |
@@ -58,11 +58,14 @@ Any of these can be revisited only by explicit owner decision.
 
 | Project | What it does | Where MC Font Control differs |
 |---|---|---|
-| **Font** (Modrinth) | Client-side mod (Fabric, Forge, NeoForge; 26.2 and 26.3 snapshots) that replaces the default font with a `.ttf` / `.otf` file the player supplies; auto-disables a font that is deleted or unreadable. | No automatic system-font list or `.ttc` collection support documented. We discover installed fonts and add a live preview. |
+| **Font** (Modrinth) | Client-side mod (Fabric, Forge, NeoForge; 26.2 and 26.3 snapshots). The player drops `.ttf` / `.otf` files into a folder inside the game directory; it has a font manager (F7) with preview, size and bold toggles, and auto-disables a font that is deleted or unreadable. | Closest competitor. Fonts must be copied into its folder; no system-font discovery, `.ttc` collections or variable-font weights documented, and no auto-revert. |
+| **FontSwap** (Modrinth, CurseForge) | Forge / NeoForge mod (up to 26.1.x) that imports a font file and restyles all text, with size, vertical offset, line spacing, faux bold and text-shadow controls. | Forge / NeoForge only and not yet on 26.3; imports font files rather than listing installed fonts. Some of its controls (line spacing, shadow colour) are out of our scope by design. |
 | **Caxton** (MIT) | MSDF TrueType/OpenType rendering through a native library; real bold and italic; fonts added via resource packs. | Heavier: custom renderer and native library, and MSDF in-world text doesn't render under Iris. We stay on vanilla's renderer and pick from system fonts. |
 | **Glyph** | Generates a resource pack from an imported TTF; the player enables the pack manually. | Copies the font into a pack and needs a manual step. We never copy fonts and apply in one click. |
+| **Smooth Font** (CurseForge) | Older Forge mod that redraws all fonts smoothly and can use fonts from a folder in the game directory or installed on the computer. | Legacy Forge versions only; a full renderer replacement rather than vanilla's pipeline. |
+| **Modern UI** (CurseForge) | Large UI framework with its own text layout engine, including BiDi text and sharper font atlases. | A whole UI overhaul, not a focused font picker; useful reference for what complex shaping would take (a non-goal for us). |
 
-**Positioning:** pick any font already on your computer, including macOS collection faces, preview it live, and apply it in one click, without copying font files and on the game's own renderer.
+**Positioning:** pick any font already on your computer — including macOS collection faces and variable-font weights — preview it live, and apply it in one click with an automatic safety revert, without copying font files and on the game's own renderer.
 
 ## 3. Users and use cases
 
@@ -368,6 +371,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D15 | Support and distribution | Best-effort support for the latest Minecraft release only. Semantic versioning with the Minecraft version as build metadata. Publish to Modrinth (primary home) and CurseForge. | Listings in M7. |
 | D16 | Config file | `configVersion` field with migration on load; corrupt or too-new files are backed up to `.bak` and replaced with defaults; default is disabled. | Build in M5. |
 | D17 | Testing and CI | GitHub Actions build on every PR; unit tests for discovery, classification, config and system fingerprint; Fabric client game tests if viable on 26.3. | Set up in M1. |
+| D18 | Identity | Mod ID `mcfontcontrol`; display name MC Font Control; Java package and Maven group `io.github.jekitchen.mcfontcontrol`; Modrinth and CurseForge slug `mc-font-control`. | Claim both slugs before M1 if possible; the search found no existing project with this name. |
 
 ### Still open
 
@@ -394,3 +398,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.4 | 2026-11-11 | Moved to `docs/PRD.md` as source of truth (D10). Aligned AP-1/5/6, risks, performance, milestones and critical path with decisions D1–D4; SDL3 input note; UI-9; pixel font in test matrix. |
 | v0.5 | 2026-11-11 | Gap review: server-pack glyph protection (AP-11, D11); variable-font named instances (FD-12); hidden symbol/colour fonts with Show hidden fonts toggle (FD-13, UI-10); keep-or-revert safety valve with 30 s auto-revert (section 5.7, D13); new-computer detection and config reset (section 5.6, D12); other-font-mod detection (AP-12); performance and memory targets (D14); latest-version-only support, semantic versioning, Modrinth primary + CurseForge (D15); config versioning and corrupt-file handling (D16); testing and CI (D17); complex shaping and colour emoji as non-goals; new user stories, risks, milestone exit criteria and test-matrix rows. |
 | v0.6 | 2026-11-11 | New-system detection simplified: fingerprint is a hash of OS family + user home path stored in the config (no machine-ID file, no host name); silent reset with one WARN log line instead of a notice (UI-12 removed); section 5.6 adds a catches / doesn't-catch table. |
+| v0.7 | 2026-11-11 | Identity decided (D18: mod ID, package, slug). Competitive landscape corrected and expanded: Font does have a preview; added FontSwap, Smooth Font and Modern UI. |
