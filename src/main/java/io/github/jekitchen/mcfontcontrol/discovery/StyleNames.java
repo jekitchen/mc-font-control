@@ -22,6 +22,18 @@ final class StyleNames {
 		return boldFlag ? 700 : 400;
 	}
 
+	/**
+	 * 0 for plain names ("Regular", "Book"), 1 for other upright names, 2 for width variants
+	 * ("Narrow", "Condensed"), so a family's default style is its ordinary face.
+	 */
+	static int plainness(String style) {
+		String s = style == null ? "" : style.toLowerCase(Locale.ROOT).strip();
+		if (s.equals("regular") || s.equals("normal") || s.equals("book") || s.equals("roman") || s.equals("plain")) return 0;
+		if (s.contains("narrow") || s.contains("condensed") || s.contains("compressed") || s.contains("expanded")
+			|| s.contains("extended") || s.contains("wide") || s.contains("display") || s.contains("caption")) return 2;
+		return 1;
+	}
+
 	static boolean isItalic(String style, boolean italicFlag) {
 		String s = style == null ? "" : style.toLowerCase(Locale.ROOT);
 		return italicFlag || s.contains("italic") || s.contains("oblique");

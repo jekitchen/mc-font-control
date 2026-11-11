@@ -15,6 +15,7 @@ import java.util.Optional;
 public record FontFamily(String name, List<FaceInfo> styles) {
 	private static final Comparator<FaceInfo> STYLE_ORDER = Comparator
 		.comparing((FaceInfo f) -> f.italic())
+		.thenComparingInt(f -> StyleNames.plainness(f.style()) == 2 ? 1 : 0)
 		.thenComparingInt(FaceInfo::weight)
 		.thenComparing(f -> f.style().toLowerCase(Locale.ROOT));
 
@@ -49,13 +50,16 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 	}
 
 	private Optional<FaceInfo> exact(boolean italic, int weight) {
-		return styles.stream().filter(f -> f.italic() == italic && f.weight() == weight).findFirst();
+		return styles.stream().filter(f -> f.italic() == italic && f.weight() == weight)
+			.min(Comparator.comparingInt(f -> StyleNames.plainness(f.style())));
 	}
 
 	private Optional<FaceInfo> closest(boolean italic, int weight) {
 		return styles.stream()
 			.filter(f -> f.italic() == italic)
-			.min(Comparator.comparingInt((FaceInfo f) -> Math.abs(f.weight() - weight)).thenComparing(STYLE_ORDER));
+			.min(Comparator.comparingInt((FaceInfo f) -> Math.abs(f.weight() - weight))
+				.thenComparingInt(f -> StyleNames.plainness(f.style()))
+				.thenComparing(STYLE_ORDER));
 	}
 
 	/**

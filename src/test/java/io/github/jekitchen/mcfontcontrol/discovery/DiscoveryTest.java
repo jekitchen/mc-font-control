@@ -110,6 +110,18 @@ class DiscoveryTest {
 	}
 
 	@Test
+	void plainRegularBeatsWidthVariants() {
+		FontFamily arial = FontFamily.group(List.of(
+			face("Arial", "Narrow", false, false, Visibility.VISIBLE),
+			face("Arial", "Narrow Bold", true, false, Visibility.VISIBLE),
+			face("Arial", "Regular", false, false, Visibility.VISIBLE),
+			face("Arial", "Bold", true, false, Visibility.VISIBLE)), false).getFirst();
+		assertEquals("Regular", arial.defaultStyle().style());
+		assertEquals("Bold", arial.bold().orElseThrow().style());
+		assertEquals(List.of("Regular", "Bold", "Narrow", "Narrow Bold"), arial.styles().stream().map(FaceInfo::style).toList());
+	}
+
+	@Test
 	void weightsFromStyleNames() {
 		assertEquals(600, StyleNames.weight("SemiBold", true));
 		assertEquals(600, StyleNames.weight("Demi Bold", false));
