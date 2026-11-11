@@ -6,14 +6,17 @@ import io.github.jekitchen.mcfontcontrol.config.FontSettings;
 import io.github.jekitchen.mcfontcontrol.discovery.FaceInfo;
 import io.github.jekitchen.mcfontcontrol.discovery.FontFamily;
 import io.github.jekitchen.mcfontcontrol.discovery.OsFamily;
+import io.github.jekitchen.mcfontcontrol.discovery.StyledFaces;
 import io.github.jekitchen.mcfontcontrol.discovery.SystemFontIndex;
 import io.github.jekitchen.mcfontcontrol.discovery.Visibility;
+import io.github.jekitchen.mcfontcontrol.pack.FontStyleSlot;
 import io.github.jekitchen.mcfontcontrol.pack.PackContents;
 import io.github.jekitchen.mcfontcontrol.pack.RuntimeFontPackSource;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -331,6 +334,8 @@ public final class FontConfigScreen extends Screen {
 		graphics.text(pf, Component.translatable("mcfontcontrol.preview.pangram"), x, y, 0xFFFFFFFF, true);
 		y += line;
 		graphics.text(pf, Component.translatable("mcfontcontrol.preview.digits"), x, y, 0xFFD0D0D0, true);
+		y += line;
+		graphics.text(pf, styleSample(), x, y, 0xFFFFFFFF, true);
 		y += line + 3;
 		// Chat line
 		graphics.fill(x - 2, y - 2, x + w, y + line - 2, 0x80000000);
@@ -347,7 +352,36 @@ public final class FontConfigScreen extends Screen {
 		int sw = Math.min(x + w - sx, pf.width(sign) + 12);
 		graphics.fill(sx, y - 3, sx + sw, y + line - 1, 0xFFA2824E);
 		graphics.text(pf, sign, sx + 6, y, 0xFF000000, false);
+		// Which faces bold and italic use, when the panel has room below the samples.
+		int labelY = y + line + 3;
+		if (labelY + font.lineHeight <= previewY1 - 2) {
+			current.styles().ifPresent(styles -> graphics.text(font, facesLabel(current, styles), x, labelY, 0xFFA0A0A0, false));
+		}
 		graphics.disableScissor();
+	}
+
+	/** "Bold text  Italic text  Bold italic", each in its style (AP-8). */
+	private static Component styleSample() {
+		return Component.empty()
+			.append(Component.translatable("mcfontcontrol.preview.bold").withStyle(ChatFormatting.BOLD))
+			.append(Component.translatable("mcfontcontrol.preview.separator"))
+			.append(Component.translatable("mcfontcontrol.preview.italic").withStyle(ChatFormatting.ITALIC))
+			.append(Component.translatable("mcfontcontrol.preview.separator"))
+			.append(Component.translatable("mcfontcontrol.preview.bold_italic").withStyle(ChatFormatting.BOLD, ChatFormatting.ITALIC));
+	}
+
+	/** Which faces bold and italic text use, e.g. "Bold: Bold · Italic: Italic" (AP-8, D24). */
+	private static Component facesLabel(PreviewFont preview, StyledFaces styles) {
+		Component bold = preview.hasStyledFace(FontStyleSlot.BOLD) ? faceName(styles.bold()) : Component.translatable("mcfontcontrol.preview.face.simulated");
+		Component italic = preview.hasStyledFace(FontStyleSlot.ITALIC) && styles.italic().isPresent()
+			? faceName(styles.italic().get())
+			: Component.translatable("mcfontcontrol.preview.face.slanted");
+		return Component.translatable("mcfontcontrol.preview.faces", bold, italic);
+	}
+
+	private static Component faceName(StyledFaces.Variant variant) {
+		Component style = Component.literal(variant.face().style());
+		return variant.syntheticBold() ? Component.translatable("mcfontcontrol.preview.face.emboldened", style) : style;
 	}
 
 	private Component status() {

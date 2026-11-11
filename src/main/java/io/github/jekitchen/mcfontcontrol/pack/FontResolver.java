@@ -18,8 +18,12 @@ import java.util.function.Supplier;
  * a single reason for the caller to log (PRD AP-7, section 5.6).
  */
 public final class FontResolver {
-	/** A loadable face. */
-	public record Resolved(Path path, int faceIndex, String family, String style, boolean moved) {
+	/**
+	 * A loadable face.
+	 *
+	 * @param face the face as FreeType reads it now, with {@code path} as its path
+	 */
+	public record Resolved(Path path, int faceIndex, String family, String style, boolean moved, FaceInfo face) {
 	}
 
 	/** Either a face to load or the reason there is none. */
@@ -72,7 +76,7 @@ public final class FontResolver {
 			if (!face.get().visibility().isShown(true)) {
 				return Result.fail("The font " + label + " cannot be drawn by Minecraft (" + face.get().visibility().name().toLowerCase() + "); using the vanilla font.");
 			}
-			return Result.ok(new Resolved(path, faceIndex, face.get().family(), face.get().style(), moved));
+			return Result.ok(new Resolved(path, faceIndex, face.get().family(), face.get().style(), moved, face.get()));
 		} catch (IOException | RuntimeException | LinkageError e) {
 			return Result.fail("The font " + label + " could not be read (" + e.getClass().getSimpleName() + "); using the vanilla font.");
 		}

@@ -38,7 +38,7 @@ abstract class TrueTypeGlyphProviderDefinitionMixin {
 	 */
 	@ModifyArg(method = "load", at = @At(value = "INVOKE", target = "Lorg/lwjgl/util/freetype/FreeType;FT_New_Memory_Face(JLjava/nio/ByteBuffer;JLorg/lwjgl/PointerBuffer;)I"), index = 2)
 	private long mcfontcontrol$faceIndex(long faceIndex) {
-		return PackContents.isSystemFont(location) ? PackContents.faceIndexFor(location) : faceIndex;
+		return PackContents.isSystemFont(location) ? PackContents.specFor(location).faceIndex() : faceIndex;
 	}
 
 	/**
@@ -51,16 +51,17 @@ abstract class TrueTypeGlyphProviderDefinitionMixin {
 	}
 
 	/**
-	 * Hides private-use characters so server-pack glyphs always win (AP-11), and registers the
-	 * face so {@link NativeImageMixin} can render it safely.
+	 * Hides private-use characters so server-pack glyphs always win (AP-11), registers the face
+	 * so {@link NativeImageMixin} can render it safely, and for bold and italic faces switches
+	 * off vanilla's simulated styles (AP-8, D24).
 	 */
 	@ModifyReturnValue(method = "load", at = @At("RETURN"))
 	private GlyphProvider mcfontcontrol$filterPrivateUse(GlyphProvider provider) {
 		if (!PackContents.isSystemFont(location)) {
 			return provider;
 		}
-		PackContents.markProviderLoaded();
+		PackContents.markProviderLoaded(location);
 		FT_Face face = provider instanceof TrueTypeGlyphProviderAccessor accessor ? accessor.mcfontcontrol$face() : null;
-		return new PrivateUseFilteringProvider(provider, face);
+		return new PrivateUseFilteringProvider(provider, face, PackContents.specFor(location));
 	}
 }

@@ -34,6 +34,27 @@ final class StyleNames {
 		return 1;
 	}
 
+	/** Weight and slope words, longest first so "semibold" is removed before "bold". */
+	private static final String[] WEIGHT_AND_SLOPE_WORDS = {
+		"extralight", "ultralight", "semilight", "demilight", "extrabold", "ultrabold", "semibold", "demibold",
+		"hairline", "regular", "oblique", "italic", "medium", "normal", "black", "heavy", "light", "roman",
+		"plain", "bold", "book", "thin", "demi",
+	};
+
+	/**
+	 * The style name without weight and slope words: the width or optical-size part, such as
+	 * {@code "condensed"} for "Condensed Bold" or {@code "display"} for "Display Semibold".
+	 * Faces with the same residue belong to the same sub-family ({@code ""} for Regular, Bold,
+	 * Italic and Bold Italic).
+	 */
+	static String residue(String style) {
+		String s = style == null ? "" : style.toLowerCase(Locale.ROOT).replaceAll("[\\s_-]", "");
+		for (String word : WEIGHT_AND_SLOPE_WORDS) {
+			s = s.replace(word, "");
+		}
+		return s;
+	}
+
 	static boolean isItalic(String style, boolean italicFlag) {
 		String s = style == null ? "" : style.toLowerCase(Locale.ROOT);
 		return italicFlag || s.contains("italic") || s.contains("oblique");
