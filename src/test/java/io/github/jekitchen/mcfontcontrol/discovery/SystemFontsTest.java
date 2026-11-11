@@ -89,6 +89,18 @@ class SystemFontsTest {
 		assertEquals(Visibility.VISIBLE, faces.getFirst().visibility());
 	}
 
+	/** D25: the built-in SF Pro is listed as "System Font" and as "SF Pro", with the same styles. */
+	@Test
+	void macBuiltInSfProListedUnderBothNames() throws IOException {
+		List<FaceInfo> faces = new java.util.ArrayList<>(read(macFont("SFNS.ttf")));
+		faces.addAll(read(macFont("SFNSItalic.ttf")));
+		List<FontFamily> families = FontFamily.group(faces, false);
+		FontFamily system = families.stream().filter(f -> f.name().equals("System Font")).findFirst().orElseThrow();
+		FontFamily sfPro = families.stream().filter(f -> f.name().equals("SF Pro")).findFirst().orElseThrow();
+		assertEquals(system.styles().size(), sfPro.styles().size());
+		assertEquals("Regular", sfPro.defaultStyle().style());
+	}
+
 	@Test
 	void macBitmapColourEmojiIsNeverListed() throws IOException {
 		List<FaceInfo> faces = read(macFont("Apple Color Emoji.ttc"));

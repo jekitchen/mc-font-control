@@ -41,7 +41,7 @@ Settings are stored in `config/mcfontcontrol.json`. The font list cache is `conf
 
 - **Complex scripts** such as Arabic and Devanagari don't render correctly. Minecraft doesn't join or reorder glyphs, whatever font is used.
 - **Colour emoji** fonts can't be used. Minecraft's text renderer is greyscale. Colour fonts are hidden unless you turn on **Show hidden fonts**, and then only their outline glyphs are drawn.
-- **macOS system font names:** the copy of SF Pro built into macOS is listed as **System Font**, the name it carries in the font file; search "system" to find it. Apple's private system fonts (names starting with a dot, such as `.SF Arabic` or `.LastResort`) and Apple Color Emoji are never listed.
+- **macOS system font names:** the copy of SF Pro built into macOS calls itself **System Font**. It is listed under that name and also as **SF Pro**; both are the same font. If you have installed SF Pro from Apple, that one is listed as SF Pro instead. Apple's private system fonts (names starting with a dot, such as `.SF Arabic` or `.LastResort`) and Apple Color Emoji are never listed.
 - **Classic Symbol fonts** (Wingdings, Webdings) are never listed. They have no Unicode character map, so Minecraft can't draw them.
 - **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.
 - **Text far away in the world** (signs, name tags) can look thin or broken at a distance. Minecraft's glyph atlas has no mipmaps; built-in TrueType fonts behave the same.

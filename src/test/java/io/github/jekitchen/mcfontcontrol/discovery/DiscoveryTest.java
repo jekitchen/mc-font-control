@@ -210,4 +210,33 @@ class DiscoveryTest {
 		assertTrue(FontIndex.load(cache).files().isEmpty());
 		assertTrue(FontIndex.load(dir.resolve("missing.json")).files().isEmpty());
 	}
+
+	private static FaceInfo at(String path, String family, String style) {
+		return new FaceInfo(path, 0, family, style, false, false, "TrueType", Visibility.VISIBLE);
+	}
+
+	/** D25: the built-in SF Pro is listed as both "System Font" and "SF Pro". */
+	@Test
+	void builtInSfProAlsoListedAsSfPro() {
+		List<FaceInfo> faces = List.of(
+			at("/System/Library/Fonts/SFNS.ttf", "System Font", "Regular"),
+			at("/System/Library/Fonts/SFNSItalic.ttf", "System Font", "Regular Italic"),
+			at("/Library/Fonts/Other.ttf", "System Font", "Bold"));
+		List<FontFamily> families = FontFamily.group(faces, false);
+		FontFamily system = families.stream().filter(f -> f.name().equals("System Font")).findFirst().orElseThrow();
+		FontFamily sfPro = families.stream().filter(f -> f.name().equals("SF Pro")).findFirst().orElseThrow();
+		assertEquals(3, system.styles().size());
+		assertEquals(2, sfPro.styles().size(), "only the built-in SFNS files are aliased");
+		assertTrue(sfPro.styles().stream().allMatch(f -> f.family().equals("SF Pro") && f.path().startsWith("/System/Library/Fonts/SFNS")));
+	}
+
+	/** D25: an installed SF Pro keeps its name; the built-in copy stays "System Font" only. */
+	@Test
+	void installedSfProIsNotMergedWithTheBuiltInCopy() {
+		List<FaceInfo> faces = List.of(
+			at("/System/Library/Fonts/SFNS.ttf", "System Font", "Regular"),
+			at("/Library/Fonts/SF-Pro.ttf", "SF Pro", "Regular"));
+		FontFamily sfPro = FontFamily.group(faces, false).stream().filter(f -> f.name().equals("SF Pro")).findFirst().orElseThrow();
+		assertEquals(List.of("/Library/Fonts/SF-Pro.ttf"), sfPro.styles().stream().map(FaceInfo::path).toList());
+	}
 }
