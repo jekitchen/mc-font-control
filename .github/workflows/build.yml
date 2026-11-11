@@ -41,6 +41,8 @@ jobs:
   # Boots the real client under Xvfb and runs src/gametest (PRD D17, open question 4).
   client-game-test:
     runs-on: ubuntu-24.04
+    # A client that can't open its window waits forever; fail fast instead of after 6 hours.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -51,12 +53,13 @@ jobs:
           distribution: 'temurin'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-      - name: Install Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Install Xvfb and Mesa
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1
       - name: Run client game tests
         run: |
           chmod +x ./gradlew
-          ./gradlew runProductionClientGameTest
+          # 24-bit screen: the default 8-bit Xvfb screen has no OpenGL visual.
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runProductionClientGameTest
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
