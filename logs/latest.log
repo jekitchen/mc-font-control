@@ -1,3 +1,0 @@
-[04:05:46] [Test worker/WARN]: [MC Font Control] Config was written on a different system (OS family or user profile changed: macOS -> Windows); backed up to mcfontcontrol.json.bak and reset to defaults.
-[04:05:46] [Test worker/WARN]: [MC Font Control] Caxton is installed and also replaces the game font; MC Font Control is leaving the font alone. Remove one of the two mods to choose.
-[04:05:46] [Test worker/INFO]: [MC Font Control] The last font change was never confirmed; restored the previous font.
