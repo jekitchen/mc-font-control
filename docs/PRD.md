@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.10 |
+| **Status** | Draft v0.11 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -269,7 +269,7 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 - **Memory (D14).** FreeType needs the whole font file in memory while it is in use. Extra heap at steady state is at most the size of the applied font file(s) plus 10 MB. While the config screen is open, the preview font may add one more font's worth, released when the screen closes. The font index never holds font bytes, only metadata.
 - **Robustness.** The mod must survive a resource-pack reload, a GUI-scale change and a fullscreen toggle. A selected font that later disappears produces vanilla text and one warning, never an error loop. A corrupt config falls back to defaults (D16).
 - **Compatibility.** Works on both the OpenGL and Vulkan backends. Joining vanilla servers is unaffected, and server resource packs keep their custom glyphs (AP-11). Tested with and without Sodium and Iris. Linux is best effort: supported, but tested on a single distro family.
-- **Minimal invasiveness.** Mixins only for the face-index and `.otf` gaps, runtime pack registration, a reload hook (if needed), in-world rendering fixes and (M8) crisp-mode rasterization. Each mixin carries a comment naming its target vanilla method and why it exists.
+- **Minimal invasiveness.** Mixins only for the face-index and `.otf` gaps, runtime pack registration, a reload hook (if needed), the embedded-bitmap render fix (D20), read-only accessors for the preview (D4), in-world rendering fixes and (M8) crisp-mode rasterization. Each mixin carries a comment naming its target vanilla method and why it exists.
 - **Clean uninstall.** Removing the mod leaves the game fully vanilla; the runtime pack lives outside `resourcepacks/`, so nothing lingers in the user's pack list.
 - **Privacy.** No telemetry, network calls or auto-updaters. The font index stores only local paths and metadata. The system fingerprint is a one-way hash stored only in the local config, and the log never records the raw home path.
 - **Licensing.** Font files are read in place and never copied, bundled or redistributed. The mod is MIT-licensed. Code from prior art is used only after its licence is checked: MIT projects (Caxton, SAH TTF Sign Fix) may be reused with attribution; GPL code (CustomFontFix) is reference-only and never copied; Glyph is treated as all rights reserved until its licence is confirmed.
@@ -354,7 +354,7 @@ No telemetry, so success is read from public signals: download and follower grow
 
 | # | Topic | Decision | Verify / when |
 |---|---|---|---|
-| D1 | `.ttc` face index, variable fonts and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` (including named-instance bits) to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | **Target confirmed in M1 (26.3 source):** `TrueTypeGlyphProviderDefinition.load(ResourceManager)`. It calls `FT_New_Memory_Face(library, fontData, 0L, face)` with face index hard-coded to `0`, then throws unless `FT_Get_Font_Format(face)` is `"TrueType"`, so CFF `.otf` files are rejected. The record has no spare field, so the mixin looks the face index up by the provider's `file` identifier (which our runtime pack controls), changes the `0L` argument, and accepts `"CFF"` in the format check. Built in M4. |
+| D1 | `.ttc` face index, variable fonts and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` (including named-instance bits) to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | **Target confirmed in M1 (26.3 source):** `TrueTypeGlyphProviderDefinition.load(ResourceManager)`. It calls `FT_New_Memory_Face(library, fontData, 0L, face)` with face index hard-coded to `0`, then throws unless `FT_Get_Font_Format(face)` is `"TrueType"`, so CFF `.otf` files are rejected. The record has no spare field, so the mixin looks the face index up by the provider's `file` identifier (which our runtime pack controls), changes the `0L` argument, and accepts `"CFF"` in the format check. **Built in M4:** `TrueTypeGlyphProviderDefinitionMixin` changes the face-index argument and accepts `"CFF"`, only for files served by our pack. Verified on Windows with a `.ttc` face (MS PGothic, face 2), Inter variable instances (Thin `0x10000`, Bold `0x70000`) and a CFF `.otf` (Source Han Sans JP). |
 | D2 | Applying changes | Full resource reload on Apply. Add a font-only reload mixin only if Apply misses the D14 target. | Measure in M5. |
 | D3 | Runtime pack | Mixin that adds our own pack source to the game's pack list; pack is required and ordered per D11. | **Settled in M3:** Fabric API 0.166 has no hook for dynamic pack sources (its resource loader only registers packs stored in a mod jar). `MinecraftMixin` wraps the `new PackRepository(...)` call in `Minecraft.<init>` and appends our source. The pack is built fresh on every reload from the current config, so Apply needs no other hook. |
 | D4 | Live preview | Private `Font` backed by its own `FontSet`, drawn through the 26.x prepared-text path and closed with the screen. Fallback: apply temporarily and roll back on Cancel. | Spike at the start of M5. |
@@ -373,6 +373,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D17 | Testing and CI | GitHub Actions build on every PR; unit tests for discovery, classification, config and system fingerprint; Fabric client game tests if viable on 26.3. | Set up in M1. |
 | D18 | Identity | Mod ID `mcfontcontrol`; display name MC Font Control; Java package and Maven group `io.github.jekitchen.mcfontcontrol`; Modrinth and CurseForge slug `mc-font-control`. | Claim both slugs before M1 if possible; the search found no existing project with this name. |
 | D19 | Symbol-map fonts | Fonts with no Unicode character map (classic Symbol fonts such as Wingdings) are never listed, even with Show hidden fonts on. Vanilla's provider requires a Unicode map, and these fonts place their glyphs in the private-use range that AP-11 skips, so they could never render. Fonts without Latin coverage and colour fonts with outlines stay revealable as FD-13 says. | Decided in M2. |
+| D20 | Fonts with embedded bitmaps | `NativeImageMixin` adds `FT_LOAD_NO_BITMAP` when vanilla renders a glyph from one of our faces. Vanilla measures glyphs with that flag but renders without it, so fonts with embedded bitmap strikes (MS Gothic, SimSun, many CJK fonts) return a 1-bit bitmap and the game crashes with "Rendered glyph was not 8-bit grayscale". Found by the M4 game test; scoped to faces MC Font Control opened. | Decided in M4. |
 
 ### Still open
 
@@ -403,3 +404,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.8 | 2026-11-11 | M1: exact toolchain versions recorded (D7, open question 1 closed); D1 mixin target confirmed against 26.3 source; `skip` performance finding for the private-use planes; client game test working locally. |
 | v0.9 | 2026-11-11 | M2: D19 (symbol-map fonts never listed); D14 scan measured on Windows. |
 | v0.10 | 2026-11-11 | M3: runtime pack settled (D3, D11); AP-2 met by vanilla's pack merge; private-use filtering by wrapper provider (open question 3 resolved); Apply measured. |
+| v0.11 | 2026-11-11 | M4: D1 built and verified (collection face, variable instances, CFF `.otf`); D20 embedded-bitmap crash fix; mixin list updated. |

@@ -29,6 +29,7 @@ public final class PackContents {
 	}
 
 	private static volatile Loaded loaded = new Loaded(false, 0, 0, false);
+	private static volatile boolean providerLoaded;
 	private static final Set<String> warned = new HashSet<>();
 
 	private PackContents() {
@@ -36,6 +37,16 @@ public final class PackContents {
 
 	public static Loaded loaded() {
 		return loaded;
+	}
+
+	/** True once vanilla has loaded our font provider since the last pack build. */
+	public static boolean providerLoaded() {
+		return providerLoaded;
+	}
+
+	/** Called by the provider mixin when vanilla finishes loading one of our fonts. */
+	public static void markProviderLoaded() {
+		providerLoaded = true;
 	}
 
 	/** True for the font files our pack serves; mixins only touch these (D1). */
@@ -55,6 +66,7 @@ public final class PackContents {
 	 * @param guiScale  current GUI scale, used when oversample is automatic
 	 */
 	public static void build(RuntimeFontPack.Builder pack, FontSettings settings, boolean stepAside, int guiScale, Supplier<FontIndex> index) {
+		providerLoaded = false;
 		pack.json(VANILLA_JSON, FontDefinitions.vanillaCopy());
 		if (stepAside || !settings.isActive()) {
 			loaded = new Loaded(false, 0, guiScale, false);

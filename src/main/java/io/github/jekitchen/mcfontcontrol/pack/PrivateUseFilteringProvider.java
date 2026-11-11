@@ -5,6 +5,7 @@ import com.mojang.blaze3d.font.UnbakedGlyph;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.jspecify.annotations.Nullable;
+import org.lwjgl.util.freetype.FT_Face;
 
 /**
  * Hides the system font's private-use characters, so server resource packs' custom HUD glyphs
@@ -16,10 +17,17 @@ import org.jspecify.annotations.Nullable;
  */
 public final class PrivateUseFilteringProvider implements GlyphProvider {
 	private final GlyphProvider delegate;
+	private final FT_Face face;
 	private IntSet supported;
 
-	public PrivateUseFilteringProvider(GlyphProvider delegate) {
+	/**
+	 * @param face the delegate's FreeType face, registered with {@link SystemFaces} until this
+	 *             provider closes; may be null
+	 */
+	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face) {
 		this.delegate = delegate;
+		this.face = face;
+		SystemFaces.add(face);
 	}
 
 	/** U+E000–U+F8FF, plus the supplementary private-use planes 15 and 16. */
@@ -50,6 +58,9 @@ public final class PrivateUseFilteringProvider implements GlyphProvider {
 
 	@Override
 	public void close() {
+		if (face != null) {
+			SystemFaces.remove(face.address());
+		}
 		delegate.close();
 	}
 }
