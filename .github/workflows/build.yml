@@ -53,14 +53,17 @@ jobs:
           distribution: 'temurin'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-      # On Xvfb the 26.3 client finds no GLX visual for OpenGL and falls back to Vulkan.
-      # mesa-vulkan-drivers provides a software Vulkan device (llvmpipe), as in Fabric API's CI.
+      # Software OpenGL (llvmpipe) and, as in Fabric API's CI, software Vulkan.
       - name: Install Xvfb and Mesa
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1 mesa-vulkan-drivers
       - name: Run client game tests
+        env:
+          # 26.3 asks SDL for an sRGB-capable OpenGL framebuffer. Xvfb's GLX offers no sRGB visuals,
+          # so OpenGL fails there; EGL handles sRGB per surface instead. Sodium and Iris need OpenGL.
+          SDL_VIDEO_FORCE_EGL: '1'
         run: |
           chmod +x ./gradlew
-          # Virtual display for the client window. The game renders with software Vulkan.
+          # Virtual display for the client window.
           xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runProductionClientGameTest
       - name: Upload screenshots and logs
         if: always()
