@@ -23,10 +23,10 @@ public class FaceSelectionGameTest implements FabricClientGameTest {
 		GameTestFonts.pick(context);
 		List<FaceInfo> faces = McFontControl.fontIndex().families(false).stream().flatMap(f -> f.styles().stream()).toList();
 
-		check(context, "collection-face", faces, f -> (f.faceIndex() & 0xFFFF) > 0 && f.path().toLowerCase().matches(".*\\.(ttc|otc)$"),
+		check(context, "collection-face", faces, f -> (f.faceIndex() & 0xFFFF) > 0 && f.weight() >= 400 && f.path().toLowerCase().matches(".*\\.(ttc|otc)$"),
 			"MS PGothic", "Avenir Next", "Helvetica Neue");
-		check(context, "variable-light", faces, f -> f.isNamedInstance() && f.weight() <= 300, "Inter", "Segoe UI Variable", "SF Pro");
-		check(context, "variable-bold", faces, f -> f.isNamedInstance() && f.weight() >= 700, "Inter", "Segoe UI Variable", "SF Pro");
+		check(context, "variable-light", faces, f -> f.isNamedInstance() && f.weight() <= 300, "Inter", "Segoe UI Variable", "SF Pro", "System Font");
+		check(context, "variable-bold", faces, f -> f.isNamedInstance() && f.weight() >= 700, "Inter", "Segoe UI Variable", "SF Pro", "System Font");
 		check(context, "otf-cff", faces, f -> "CFF".equals(f.format()), "Source Han Sans JP", "Source Sans Pro");
 
 		GameTestFonts.apply(context, FontSettings.DEFAULTS);

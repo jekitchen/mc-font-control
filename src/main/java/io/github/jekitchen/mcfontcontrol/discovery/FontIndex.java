@@ -20,7 +20,8 @@ import java.util.Map;
  * path + modification time + size (PRD FD-6). Holds metadata only, never font bytes (D14).
  */
 public record FontIndex(int version, List<FileEntry> files) {
-	public static final int VERSION = 1;
+	// 2: macOS system-private fonts and bitmap-only colour fonts reclassified (D25).
+	public static final int VERSION = 2;
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
 	/**

@@ -27,6 +27,7 @@
 	"mcfontcontrol.hidden.no_latin": "no Latin",
 	"mcfontcontrol.hidden.color": "colour",
 	"mcfontcontrol.hidden.unsupported": "unsupported",
+	"mcfontcontrol.hidden.system_private": "system",
 
 	"mcfontcontrol.preview.empty": "Pick a font on the left to preview it here.",
 	"mcfontcontrol.preview.loading": "Loading preview…",

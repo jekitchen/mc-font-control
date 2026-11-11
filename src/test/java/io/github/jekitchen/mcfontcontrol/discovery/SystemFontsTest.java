@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -65,11 +66,64 @@ class SystemFontsTest {
 		assertEquals(Visibility.COLOR, faces.getFirst().visibility());
 	}
 
+	private static Path macFont(String name) {
+		return Path.of("/System/Library/Fonts", name);
+	}
+
 	@Test
-	void macCollectionAndVariableFonts() throws IOException {
-		Path helvetica = Path.of("/System/Library/Fonts/Helvetica.ttc");
-		List<FaceInfo> faces = read(helvetica);
-		assertTrue(faces.size() >= 4);
+	void macReadsEveryFaceInACollection() throws IOException {
+		List<FaceInfo> faces = read(macFont("Helvetica.ttc"));
+		assertEquals(6, faces.size());
+		assertEquals("Bold", faces.get(1).style());
+		assertEquals(1, faces.get(1).faceIndex());
+		assertTrue(faces.stream().allMatch(f -> f.visibility() == Visibility.VISIBLE));
+	}
+
+	/** SF Pro's system copy has 369 named instances (widths x weights); none may be dropped. */
+	@Test
+	void macListsEveryVariableFontNamedInstance() throws IOException {
+		List<FaceInfo> faces = read(macFont("SFNS.ttf"));
+		assertTrue(faces.size() > 256, "expected every SF Pro instance, got " + faces.size());
+		assertTrue(faces.stream().allMatch(FaceInfo::isNamedInstance));
+		assertTrue(faces.stream().anyMatch(f -> f.style().equals("Semibold")));
+		assertEquals(Visibility.VISIBLE, faces.getFirst().visibility());
+	}
+
+	@Test
+	void macBitmapColourEmojiIsNeverListed() throws IOException {
+		List<FaceInfo> faces = read(macFont("Apple Color Emoji.ttc"));
+		assertTrue(faces.stream().noneMatch(f -> f.visibility().isShown(true)));
+	}
+
+	@Test
+	void macSystemPrivateFontsAreNeverListed() throws IOException {
+		FaceInfo lastResort = read(macFont("LastResort.otf")).getFirst();
+		assertEquals(Visibility.SYSTEM_PRIVATE, lastResort.visibility());
+		assertFalse(lastResort.visibility().isShown(true));
+	}
+
+	@Test
+	void macSymbolFonts() throws IOException {
+		assertFalse(read(macFont("Supplemental/Wingdings.ttf")).getFirst().visibility().isShown(true));
+		assertEquals(Visibility.NO_LATIN, read(macFont("Symbol.ttf")).getFirst().visibility());
+	}
+
+	@Test
+	void macReadsCffOpenType() throws IOException {
+		FaceInfo stix = read(macFont("Supplemental/STIXGeneral.otf")).getFirst();
+		assertEquals("CFF", stix.format());
+		assertEquals(Visibility.VISIBLE, stix.visibility());
+	}
+
+	/** Avenir Next's FreeType bold flags disagree with its style names; the names must win. */
+	@Test
+	void macAvenirNextStyleSlots() throws IOException {
+		FontFamily avenir = FontFamily.group(read(macFont("Avenir Next.ttc")), false).getFirst();
+		assertEquals("Regular", avenir.defaultStyle().style());
+		StyledFaces styles = StyledFaces.of(Optional.of(avenir), avenir.defaultStyle());
+		assertEquals("Bold", styles.bold().face().style());
+		assertEquals("Italic", styles.italic().orElseThrow().face().style());
+		assertEquals("Bold Italic", styles.boldItalic().face().style());
 	}
 
 	/** Full scan of this machine's font folders, timed against the D14 target (< 5 s cold). */
