@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.8 |
+| **Status** | Draft v0.9 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -367,11 +367,12 @@ No telemetry, so success is read from public signals: download and follower grow
 | D11 | Server resource packs | Our pack ranks above the player's own packs but below server-provided packs, and our font provider skips the private-use ranges (AP-11). Server UI glyphs always win. | Confirm pack ordering and `skip` range support in M3. |
 | D12 | Copied configs | Fingerprint = hash of OS family + user home path, stored in the config (no host name, nothing written outside the game folder). On mismatch: back up the config, reset to defaults, rescan, and log one WARN line; no dialog (section 5.6). | Build in M5. |
 | D13 | Safety valve | Every change to the applied font needs confirmation within 30 s (Enter / Keep changes), otherwise it reverts; survives crashes via `pending` (section 5.7). Symbol and colour fonts are hidden unless the player turns on Show hidden fonts (FD-13, UI-10). | Build in M5; confirm the dialog can render in the vanilla font. |
-| D14 | Performance and memory | Targets in section 6: scan < 5 s, cached startup < 0.5 s, Apply < 3 s, steady-state heap ≤ font size + 10 MB. | Measure in M2 (scan) and M5 (Apply, memory). |
+| D14 | Performance and memory | Targets in section 6: scan < 5 s, cached startup < 0.5 s, Apply < 3 s, steady-state heap ≤ font size + 10 MB. | **M2, Windows 11:** 359 font files, 467 faces, 189 families; cold scan 101 ms, cached rescan 33 ms (unit test `SystemFontsTest.fullScanMeetsTarget`, report in `build/reports/measurements/`). Apply and memory in M5. |
 | D15 | Support and distribution | Best-effort support for the latest Minecraft release only. Semantic versioning with the Minecraft version as build metadata. Publish to Modrinth (primary home) and CurseForge. | Listings in M7. |
 | D16 | Config file | `configVersion` field with migration on load; corrupt or too-new files are backed up to `.bak` and replaced with defaults; default is disabled. | Build in M5. |
 | D17 | Testing and CI | GitHub Actions build on every PR; unit tests for discovery, classification, config and system fingerprint; Fabric client game tests if viable on 26.3. | Set up in M1. |
 | D18 | Identity | Mod ID `mcfontcontrol`; display name MC Font Control; Java package and Maven group `io.github.jekitchen.mcfontcontrol`; Modrinth and CurseForge slug `mc-font-control`. | Claim both slugs before M1 if possible; the search found no existing project with this name. |
+| D19 | Symbol-map fonts | Fonts with no Unicode character map (classic Symbol fonts such as Wingdings) are never listed, even with Show hidden fonts on. Vanilla's provider requires a Unicode map, and these fonts place their glyphs in the private-use range that AP-11 skips, so they could never render. Fonts without Latin coverage and colour fonts with outlines stay revealable as FD-13 says. | Decided in M2. |
 
 ### Still open
 
@@ -399,3 +400,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.6 | 2026-11-11 | New-system detection simplified: fingerprint is a hash of OS family + user home path stored in the config (no machine-ID file, no host name); silent reset with one WARN log line instead of a notice (UI-12 removed); section 5.6 adds a catches / doesn't-catch table. |
 | v0.7 | 2026-11-11 | Identity decided (D18: mod ID, package, slug). Competitive landscape corrected and expanded: Font does have a preview; added FontSwap, Smooth Font and Modern UI. |
 | v0.8 | 2026-11-11 | M1: exact toolchain versions recorded (D7, open question 1 closed); D1 mixin target confirmed against 26.3 source; `skip` performance finding for the private-use planes; client game test working locally. |
+| v0.9 | 2026-11-11 | M2: D19 (symbol-map fonts never listed); D14 scan measured on Windows. |

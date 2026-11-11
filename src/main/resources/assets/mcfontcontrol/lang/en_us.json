@@ -1,4 +1,9 @@
 {
 	"modmenu.nameTranslation.mcfontcontrol": "MC Font Control",
-	"modmenu.descriptionTranslation.mcfontcontrol": "Use any font installed on your computer for all in-game text."
+	"modmenu.descriptionTranslation.mcfontcontrol": "Use any font installed on your computer for all in-game text.",
+
+	"mcfontcontrol.status.scanning": "Scanning your fonts…",
+	"mcfontcontrol.command.rescan": "Rescanning font folders…",
+	"mcfontcontrol.command.fonts.header": "%s matching families (%s shown in the font list):",
+	"mcfontcontrol.command.fonts.more": "…and %s more. Add a filter to narrow the list."
 }

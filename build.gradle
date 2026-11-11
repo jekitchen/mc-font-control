@@ -68,6 +68,9 @@ java {
 
 test {
 	useJUnitPlatform()
+	// LWJGL loads FreeType natives in the discovery tests.
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
+	testLogging.showStandardStreams = true
 }
 
 jar {
