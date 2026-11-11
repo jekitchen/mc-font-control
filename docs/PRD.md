@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.12 |
+| **Status** | Draft v0.13 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -407,3 +407,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.10 | 2026-11-11 | M3: runtime pack settled (D3, D11); AP-2 met by vanilla's pack merge; private-use filtering by wrapper provider (open question 3 resolved); Apply measured. |
 | v0.11 | 2026-11-11 | M4: D1 built and verified (collection face, variable instances, CFF `.otf`); D20 embedded-bitmap crash fix; mixin list updated. |
 | v0.12 | 2026-11-11 | M5: config screen, live preview (D4), keep-or-revert (D13), new-system detection (D12), Apply timing (D2, D14); D21 pack ID and UI label. |
+| v0.13 | 2026-11-11 | M5L: Linux folders (FD-9 incl. `XDG_DATA_HOME`), Flatpak host fonts and message (FD-10) built; FD-11 (fontconfig) not built, per open question 1. Awaits testing on a Linux VM. |

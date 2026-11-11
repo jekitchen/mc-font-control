@@ -22,6 +22,7 @@
 	"mcfontcontrol.screen.apply": "Apply",
 	"mcfontcontrol.screen.reset": "Reset to vanilla",
 	"mcfontcontrol.screen.rescan": "Rescan fonts",
+	"mcfontcontrol.screen.no_match": "No fonts match \"%s\".",
 
 	"mcfontcontrol.hidden.no_latin": "no Latin",
 	"mcfontcontrol.hidden.color": "colour",
@@ -43,6 +44,7 @@
 
 	"mcfontcontrol.status.scanning": "Scanning your fonts…",
 	"mcfontcontrol.status.no_fonts": "No fonts were found on this computer.",
+	"mcfontcontrol.status.flatpak": "No fonts found: this launcher runs in a Flatpak sandbox that hides your system fonts. Give it access to /usr/share/fonts and ~/.local/share/fonts (for example with Flatseal).",
 	"mcfontcontrol.status.unsupported_os": "Font discovery isn't supported on this operating system.",
 	"mcfontcontrol.status.conflict": "%s is installed and also changes the game font, so MC Font Control is turned off.",
 	"mcfontcontrol.status.current": "Current font: %s",
