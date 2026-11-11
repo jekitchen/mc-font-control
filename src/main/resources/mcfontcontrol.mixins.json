@@ -3,6 +3,9 @@
 	"package": "io.github.jekitchen.mcfontcontrol.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"FontManagerAccessor",
+		"FontSetAccessor",
+		"MinecraftAccessor",
 		"MinecraftMixin",
 		"NativeImageMixin",
 		"TrueTypeGlyphProviderAccessor",

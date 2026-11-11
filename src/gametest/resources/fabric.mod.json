@@ -9,7 +9,9 @@
 		"fabric-client-gametest": [
 			"io.github.jekitchen.mcfontcontrol.gametest.TitleScreenGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.RuntimePackGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.FaceSelectionGameTest"
+			"io.github.jekitchen.mcfontcontrol.gametest.FaceSelectionGameTest",
+			"io.github.jekitchen.mcfontcontrol.gametest.ConfigScreenGameTest",
+			"io.github.jekitchen.mcfontcontrol.gametest.RobustnessGameTest"
 		]
 	},
 	"depends": {

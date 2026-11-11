@@ -27,7 +27,8 @@ import net.minecraft.world.flag.FeatureFlagSet;
  * ({@code DownloadedPackSource}). Server UI glyphs therefore always win.
  */
 public final class RuntimeFontPackSource implements RepositorySource {
-	public static final String PACK_ID = McFontControl.MOD_ID;
+	/** Must differ from the mod ID: Fabric already uses that ID for the mod's own resource pack. */
+	public static final String PACK_ID = McFontControl.MOD_ID + "_runtime";
 	private static final PackSelectionConfig SELECTION = new PackSelectionConfig(true, Pack.Position.TOP, false);
 
 	private final Supplier<FontSettings> settings;
