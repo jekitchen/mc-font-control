@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.4 |
+| **Status** | Draft v0.5 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -18,9 +18,10 @@ The mod is deliberately narrow. It does one thing — swap the game's font for a
 | **Product** | MC Font Control |
 | **Type** | Client-only Minecraft mod (`"environment": "client"`) |
 | **Baseline** | Minecraft Java 26.3.x, Java 25 |
+| **Version support** | Latest Minecraft release only, best effort (D15) |
 | **Loaders** | Fabric (primary); NeoForge (later, optional) |
 | **Platforms** | Windows 11, macOS; Linux best effort (P2) |
-| **Distribution** | Modrinth |
+| **Distribution** | Modrinth (primary home), CurseForge |
 | **License** | MIT |
 
 ## 2. Problem, goals and non-goals
@@ -31,12 +32,13 @@ Minecraft draws all text in its 8px bitmap font. Players who want a different lo
 
 ### Goals
 
-1. **Pick any installed font.** Discover every font on the system, including faces inside `.ttc` / `.otc` collections (most macOS system fonts).
+1. **Pick any installed font.** Discover every font on the system, including faces inside `.ttc` / `.otc` collections (most macOS system fonts) and the named weights of variable fonts (SF Pro, Segoe UI Variable).
 2. **Apply it everywhere text is drawn**, immediately, with no restart.
 3. **Preview before committing**, without touching the live game font.
-4. **Never break the game.** Missing, corrupt or unsupported fonts fall back to vanilla with one log warning.
+4. **Never break the game.** Missing, corrupt, unreadable or unsupported fonts fall back to vanilla with one log warning, and every font change can be reverted automatically if the player can't read the result.
 5. **Stay renderer-agnostic.** Work on both the OpenGL and the experimental Vulkan backend by going through vanilla's glyph and atlas pipeline.
 6. **Survive the 26.x release train** with a thin mixin surface that is cheap to re-verify each snapshot.
+7. **Respect servers.** Never break server resource packs that use custom glyphs for their UI.
 
 ### Non-goals
 
@@ -45,6 +47,9 @@ Minecraft draws all text in its 8px bitmap font. Players who want a different lo
 - Server-side behaviour or any requirement for the server to have the mod.
 - Full Linux support at v1.0. Linux ships best effort (P2): discovery and rendering are implemented, but testing is lighter than on Windows and macOS.
 - A custom rasterizer or MSDF renderer.
+- **Complex text shaping.** Vanilla doesn't join or reorder glyphs, so scripts such as Arabic or Devanagari won't render correctly even with a system font that covers them.
+- **Colour emoji.** Vanilla's glyph atlas is grayscale; colour glyphs are not supported.
+- **Older Minecraft versions.** Only the latest release is supported (D15).
 - Telemetry, network calls or auto-updaters.
 
 Any of these can be revisited only by explicit owner decision.
@@ -68,16 +73,19 @@ Any of these can be revisited only by explicit owner decision.
 - **Content creators and server players** who want a distinctive look in recordings without asking a server to install anything.
 - **CJK and multilingual players** who want a native system font rather than vanilla's fallback glyphs.
 - **Pixel-font fans** who want crisp, hard-edged text (crisp mode, P2).
+- **Modpack players**, who receive the mod pre-installed with someone else's config.
 
 ### User stories
 
 1. As a player, I open the mod's settings from Mod Menu, search "Avenir", pick *Avenir Next – Medium*, and see a live preview before I apply it.
 2. As a player, I press **Apply** and immediately see the new font on the title screen, menus, HUD, chat, tooltips, books and signs — no restart.
-3. As a player, I adjust size, oversample and baseline shift until text looks crisp at my GUI scale.
-4. As a player, I press **Reset to vanilla** and everything returns to the default font.
-5. As a player, I install a new font in my OS, press **Rescan fonts**, and it appears in the list.
-6. As a player, I uninstall a font I had selected; on next launch the game uses vanilla text and logs one warning — no crash, no error spam.
-7. As a player, I join a vanilla server with the mod installed and nothing breaks.
+3. As a player, I accidentally apply a font I can't read; I do nothing, and after 30 seconds the game reverts to my previous font on its own.
+4. As a player, I adjust size, oversample and baseline shift until text looks crisp at my GUI scale.
+5. As a player, I press **Reset to vanilla** and everything returns to the default font.
+6. As a player, I install a new font in my OS, press **Rescan fonts**, and it appears in the list.
+7. As a player, I uninstall a font I had selected; on next launch the game uses vanilla text and logs one warning — no crash, no error spam.
+8. As a player, I join a server whose resource pack draws custom HUD icons, and they still look right with my font applied.
+9. As a modpack player, I install a pack that ships someone else's MC Font Control config; the mod notices this is a new computer, resets to vanilla and tells me, instead of failing to find their fonts.
 
 ## 4. Platform and technical constraints
 
@@ -117,39 +125,50 @@ Priority key: **P0** = required for v1.0 definition of done; **P1** = v1.0 if fe
 | FD-9 | Linux: recursively scan `/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts` and legacy `~/.fonts`, following symlinks safely (no loops, no duplicates). | P2 |
 | FD-10 | Linux: when running in a Flatpak launcher, also scan `/run/host/fonts`; if no host fonts are visible, say so in the UI and explain why. | P2 |
 | FD-11 | Linux (optional): read extra font folders from fontconfig config files. Standard folders alone are acceptable for the first Linux release. | P2 |
+| FD-12 | **Variable fonts:** list each named instance (e.g. SF Pro Light / Regular / Semibold / Bold) as a selectable style. FreeType addresses named instances through the upper bits of the face index (`faceIndex = (instance << 16) \| face`), so the same D1 mixin covers them. | P0 |
+| FD-13 | **Hidden by default:** symbol fonts (symbol `cmap` encoding or no Latin coverage, e.g. Wingdings, Webdings) and colour fonts. Symbol fonts and colour fonts that also carry outline glyphs can be revealed with the **Show hidden fonts** toggle (UI-10). Bitmap-only colour fonts (e.g. Apple Color Emoji) stay hidden always, because they can't render in vanilla's grayscale atlas. | P0 |
 
 ### 5.2 Applying the font (`RuntimeFontPack`)
 
 | ID | Requirement | Pri |
 |---|---|---|
-| AP-1 | Register a built-in, always-on-top runtime resource pack, in memory or generated under `config/` — never in the user's `resourcepacks/`. Registered through a small mixin on the game's pack list unless Fabric API offers a native hook (D3). | P0 |
+| AP-1 | Register a built-in runtime resource pack, in memory or generated under `config/` — never in the user's `resourcepacks/`. Registered through a small mixin on the game's pack list unless Fabric API offers a native hook (D3). It sits above the player's own packs but below server-provided packs (D11). | P0 |
 | AP-2 | Override `assets/minecraft/font/default.json` with the selected font first as a `ttf` provider, followed by the vanilla providers, so missing glyphs fall back to vanilla instead of tofu. | P0 |
 | AP-3 | Optionally override `uniform.json` when `applyToUniform` is on. | P1 |
 | AP-4 | Serve font bytes from the user's disk at load time. Never copy, bundle or redistribute font files. | P0 |
-| AP-5 | Support face selection inside `.ttc` / `.otc` collections. Vanilla's `ttf` provider has no face-index field, so one mixin passes the index to `FT_New_Memory_Face` (D1). | P0 |
+| AP-5 | Support face selection inside `.ttc` / `.otc` collections and variable-font named instances. Vanilla's `ttf` provider has no face-index field, so one mixin passes the index to `FT_New_Memory_Face` (D1). | P0 |
 | AP-6 | Apply changes with a full resource reload; add a font-only reload only if Apply is measured as too slow (D2). No restart. | P0 |
 | AP-7 | On any failure (missing file, FreeType error, corrupt font), fall back to vanilla and log exactly one clear warning. | P0 |
 | AP-8 | Prefer a family's real Bold face over vanilla's 1px-offset fake bold when one exists. | P1 |
 | AP-9 | Load `.otf` and other FreeType-supported formats through the `ttf` provider. If vanilla still rejects non-TrueType files, lift that check in the same mixin as AP-5 (D1). | P0 |
 | AP-10 | **Crisp mode for pixel-style fonts**: optional hard-edged (non-antialiased) glyph rendering. FreeType renders 1-bit monochrome glyphs, expanded to full on/off coverage in the existing grayscale atlas, with glyph size and positions snapped to whole pixels at the current GUI scale. Must work in GUI and in-world text, on both renderers. See section 5.5. | P2 |
+| AP-11 | **Protect server glyphs:** the system-font provider skips the Unicode private-use ranges (U+E000–U+F8FF, and the supplementary private-use planes if the provider's `skip` field can express them) so server packs' custom HUD glyphs and negative-space characters always come from the server pack or vanilla (D11). | P0 |
+| AP-12 | **Other font mods:** if Caxton, Font or another known font-replacement mod is loaded, show a one-time notice and leave the game font alone until the player resolves the conflict. Keep the list of known mods in one place. | P1 |
 
 ### 5.3 Configuration
 
-Stored in `config/mcfontcontrol.json`:
+Stored in `config/mcfontcontrol.json`. Defaults: disabled, vanilla font.
 
 | Field | Type | Purpose |
 |---|---|---|
-| `enabled` | bool | Master switch. |
+| `configVersion` | int | Schema version; migrate older files on load (D16). |
+| `machineId` | string | ID of the machine this config was written on; used to detect a copied config (section 5.6). |
+| `enabled` | bool | Master switch. Default `false`. |
 | `fontPath` | string | Absolute path to the font file. |
-| `faceIndex` | int | Face inside a collection file. |
+| `faceIndex` | int | Face inside a collection file, plus the named-instance bits for variable fonts. |
 | `familyName` | string | Display name; used to re-find the font if the path changes. |
+| `styleName` | string | Display name of the face or named instance. |
 | `size` | float | Glyph size; default derived from GUI scale. |
 | `oversample` | float | Rasterization oversampling; default derived from GUI scale. |
 | `shiftX`, `shiftY` | float | Baseline adjustments, clamped to usable ranges. |
 | `applyToUniform` | bool | Also replace the uniform font. |
+| `showHiddenFonts` | bool | Reveal hidden symbol and outline-colour fonts in the list (FD-13). Default `false`. |
+| `pending` | object or null | Previous settings while a keep-or-revert confirmation is open (UI-11). If the game starts with this set, the change was never confirmed: revert to it. |
 | `crispEdges` | bool | P2 (M8): hard-edged rendering for pixel-style fonts. Default off; ignored until the feature ships. |
 
 There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversample` controls smoothness (D5).
+
+**Robustness (D16).** If the file is unreadable or invalid JSON, rename it to `mcfontcontrol.json.bak`, start from defaults and log one warning. Unknown fields are ignored; missing fields take defaults; a newer `configVersion` than the mod understands is treated as unreadable.
 
 ### 5.4 Config screen
 
@@ -157,13 +176,16 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 |---|---|---|
 | UI-1 | Opens from Mod Menu (Fabric) and the mods list (NeoForge). | P0 |
 | UI-2 | Optional keybind to open the screen (unbound by default). | P1 |
-| UI-3 | Searchable list of font families and a style picker. | P0 |
+| UI-3 | Searchable list of font families and a style picker (faces and variable-font named instances). | P0 |
 | UI-4 | Size, oversample and baseline-shift sliders with clamped ranges. | P0 |
 | UI-5 | Live preview panel: pangram, digits, symbols, and samples styled as chat, tooltip and sign text. | P0 |
 | UI-6 | Preview renders with a private `Font` backed by a temporary `FontSet` before Apply, without touching the global font (D4). | P0 |
 | UI-7 | **Apply**, **Reset to vanilla** and **Rescan fonts** buttons. | P0 |
 | UI-8 | Vanilla widgets and screen conventions; all strings in `assets/mcfontcontrol/lang/en_us.json`. | P0 |
 | UI-9 | **Crisp edges** toggle under the sliders (M8). | P2 |
+| UI-10 | **Show hidden fonts** toggle on the font list. Revealed fonts are marked (e.g. "symbol") so the player knows why they were hidden. | P0 |
+| UI-11 | **Keep-or-revert confirmation** after any change that alters the applied font (Apply, or Reset if it changes anything). See section 5.7. | P0 |
+| UI-12 | **New-computer notice:** when a copied config is detected and reset (section 5.6), show a one-time toast or message explaining what happened and that the previous file was kept as a backup. | P0 |
 
 ### 5.5 Future: crisp mode for pixel-style fonts (P2)
 
@@ -188,16 +210,60 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 
 **Scope guard.** One global toggle only: no per-element crisp settings and no automatic switching.
 
+### 5.6 New-computer detection (D12)
+
+**Why.** Configs travel: modpacks ship them, players copy game folders between computers, launchers sync instances. A config written on another machine points at font files that don't exist here, possibly on another OS. Rather than half-working, the mod starts clean.
+
+**How.**
+
+- On first run, the mod creates a random ID (a UUID, no hardware or personal data) and stores it **outside the game folder**, in the per-user app-data location for the OS:
+  - Windows: `%APPDATA%\mcfontcontrol\machine-id`
+  - macOS: `~/Library/Application Support/mcfontcontrol/machine-id`
+  - Linux: `$XDG_CONFIG_HOME/mcfontcontrol/machine-id` (default `~/.config/...`)
+- Every config the mod writes records that ID (`machineId`) plus the OS family.
+- On startup, if the config's `machineId` or OS family doesn't match this machine (or the config has no `machineId`), the mod treats it as a **new system**: it renames the old file to `mcfontcontrol.json.bak`, resets to defaults (vanilla font), rescans fonts and shows the new-computer notice (UI-12).
+- Because the ID lives outside the game folder, every game instance on the same computer and user account shares it: copying an instance between launchers on one machine does **not** trigger a reset.
+- **Fallback:** if the app-data location can't be written (e.g. a sandboxed launcher), use a hash of OS family + user home path + host name instead, and log one info line. This is stored only in the local config and never leaves the machine.
+
+**Edge cases.** Reinstalling the OS or creating a new user account produces a new ID, so the config resets; that's intended. A player who wants to carry settings to a new machine can re-pick the font in a few seconds; there is no export/import (out of scope).
+
+### 5.7 Keep-or-revert confirmation (D13)
+
+**Why.** A font can turn out unreadable after it's applied: too large, the wrong face, a symbol font, or a rendering problem on this machine. The player may not be able to read the screen well enough to undo it.
+
+**Behaviour.**
+
+1. When a change to the applied font takes effect, the mod saves the previous settings in `pending` and shows a dialog: **"Keep this font?"** with a visible countdown from **30 seconds**, a **Keep changes** button and a **Revert** button.
+2. **Enter** or clicking **Keep changes** keeps the new font and clears `pending`.
+3. **Esc**, clicking **Revert**, or the countdown reaching zero restores the previous settings and reloads.
+4. The dialog itself renders in the **vanilla font** (using the same private-font technique as the preview, D4), so it stays readable whatever font was applied. If that turns out not to be possible, the timeout remains the safety net.
+5. If the game closes or crashes while the dialog is open, the next launch finds `pending` set and reverts before showing the title screen.
+6. The countdown keeps running when the game window loses focus, so a player who can't read the screen gets their old font back even if they click away.
+
+**Scope.** Applies to Apply, Reset to vanilla (when it changes the applied font), toggling crisp mode, and slider changes once applied. It does not apply to preview-only changes, which never touch the global font.
+
 ## 6. Non-functional requirements
 
-- **Performance.** Font scanning runs off-thread and uses the cache on subsequent launches. Glyphs rasterize lazily (vanilla's provider already does); the mod never pre-bakes a whole font, so large CJK fonts with tens of thousands of glyphs stay cheap. Apply uses a full resource reload (D2); if that is measurably slow on a typical machine, add a font-only reload.
-- **Robustness.** The mod must survive a resource-pack reload, a GUI-scale change and a fullscreen toggle. A selected font that later disappears produces vanilla text and one warning, never an error loop.
-- **Compatibility.** Works on both the OpenGL and Vulkan backends. Joining vanilla servers is unaffected. Tested with and without Sodium and Iris. Linux is best effort: supported, but tested on a single distro family.
+- **Performance targets (D14).** Measured on a typical mid-range machine:
+
+  | Measure | Target |
+  |---|---|
+  | First font scan, ~1,000 font files | < 5 s, off the render thread |
+  | Startup with a valid cache | < 0.5 s added to launch |
+  | Apply (full resource reload, vanilla packs) | < 3 s |
+  | Frame time with the applied font, after glyphs are cached | No measurable change vs. vanilla |
+
+  Glyphs rasterize lazily (vanilla's provider already does); the mod never pre-bakes a whole font, so large CJK fonts with tens of thousands of glyphs stay cheap.
+- **Memory (D14).** FreeType needs the whole font file in memory while it is in use. Extra heap at steady state is at most the size of the applied font file(s) plus 10 MB. While the config screen is open, the preview font may add one more font's worth, released when the screen closes. The font index never holds font bytes, only metadata.
+- **Robustness.** The mod must survive a resource-pack reload, a GUI-scale change and a fullscreen toggle. A selected font that later disappears produces vanilla text and one warning, never an error loop. A corrupt config falls back to defaults (D16).
+- **Compatibility.** Works on both the OpenGL and Vulkan backends. Joining vanilla servers is unaffected, and server resource packs keep their custom glyphs (AP-11). Tested with and without Sodium and Iris. Linux is best effort: supported, but tested on a single distro family.
 - **Minimal invasiveness.** Mixins only for the face-index and `.otf` gaps, runtime pack registration, a reload hook (if needed), in-world rendering fixes and (M8) crisp-mode rasterization. Each mixin carries a comment naming its target vanilla method and why it exists.
-- **Clean uninstall.** Removing the mod leaves the game fully vanilla; the runtime pack lives outside `resourcepacks/`, so nothing lingers in the user's pack list.
-- **Privacy.** No telemetry, network calls or auto-updaters. The font index stores only local paths and metadata.
+- **Clean uninstall.** Removing the mod leaves the game fully vanilla; the runtime pack lives outside `resourcepacks/`, so nothing lingers in the user's pack list. The only file outside the game folder is the small machine-ID file (section 5.6).
+- **Privacy.** No telemetry, network calls or auto-updaters. The font index stores only local paths and metadata. The machine ID is a random UUID with no hardware or personal data, and never leaves the computer.
 - **Licensing.** Font files are read in place and never copied, bundled or redistributed. The mod is MIT-licensed. Code from prior art is used only after its licence is checked: MIT projects (Caxton, SAH TTF Sign Fix) may be reused with attribution; GPL code (CustomFontFix) is reference-only and never copied; Glyph is treated as all rights reserved until its licence is confirmed.
 - **Localization.** All user-facing strings in lang files; `en_us` ships first.
+- **Quality and CI (D17).** Every pull request runs a GitHub Actions build. Font discovery, family grouping, hidden-font classification, config load/migrate/backup and machine-ID logic have unit tests that run without the game. Fabric's client game tests are used for in-game smoke tests and screenshot checks if they prove workable on 26.3 (verify in M1).
+- **Version support and release (D15).** Best-effort support for the latest Minecraft release only; older versions are not maintained. Mod versions follow semantic versioning with the Minecraft version as build metadata (e.g. `1.0.0+26.3`). Releases publish to Modrinth (primary home, linked from the README) and CurseForge.
 
 ## 7. Risks and hard problems
 
@@ -207,28 +273,32 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 | **Metrics mismatch** — line height, ascent and advances differ from the 8px bitmap font | Clipped text in buttons, chat box, scoreboards | Clamp size and shift ranges so menus stay usable; document known clipping in the README. |
 | **Fake bold and shadow** — vanilla's 1px offset looks wrong on vector glyphs | Muddy bold text | Use the family's real Bold face when available. |
 | **In-world text** — z-fighting and shader-pack issues on signs, glow ink, text displays and name tags, especially under Iris | Visible artifacts in the world | Dedicated milestone (M6); study CustomFontFix and SAH TTF Sign Fix; test with and without Iris and Sodium. |
-| **`.ttc` / `.otf` loading** — vanilla's `ttf` provider has no face-index field and may reject non-TrueType files | Most macOS system fonts unusable | One mixin (D1); confirm the target method against decompiled 26.3 source in M1. |
+| **`.ttc` / `.otf` / variable-font loading** — vanilla's `ttf` provider has no face-index field and may reject non-TrueType files | Most macOS system fonts, and the platform UI fonts, unusable | One mixin (D1) covering collection faces and named instances; confirm the target method against decompiled 26.3 source in M1. |
+| **Server resource packs** — servers draw HUDs and menus with custom glyphs in the default font | Broken server UIs; players blame the mod | Skip private-use ranges (AP-11); rank server packs above ours (D11); test against a custom-glyph server pack. |
+| **Unreadable font after Apply** | Player can't navigate back to settings | Keep-or-revert dialog with 30 s auto-revert, rendered in the vanilla font, surviving crashes (section 5.7). |
+| **Copied configs** (modpacks, synced instances) | Broken or missing font on another machine | New-computer detection and reset (section 5.6). |
+| **Other font mods** loaded at the same time | Conflicting overrides, confusing results | Detect and step aside with a notice (AP-12). |
 | **Release-to-release rendering churn** — ShaderC compilation, order-independent transparency, Vulkan path, grayscale glyph handling | Breakage on each release | Thin mixin surface; re-test glyph rendering on every snapshot and pre-release. |
 | **OpenGL removal** | Any GL-specific code breaks | No raw GL calls; Blaze3D only. |
 | **macOS threading** with AWT | Hangs or crashes on launch | No AWT; LWJGL FreeType only. |
 
 ## 8. Milestones
 
-Each milestone is runnable with `./gradlew runClient` and ships with complete files (including `build.gradle`, `gradle.properties`, `fabric.mod.json` and mixin JSON when they change) plus a manual test checklist for Windows and macOS (and Linux once M5L is in scope).
+Each milestone is delivered as a pull request, runnable with `./gradlew runClient`, with complete files (including `build.gradle`, `gradle.properties`, `fabric.mod.json` and mixin JSON when they change) and a manual test checklist for Windows and macOS (and Linux once M5L is in scope) in the PR description. Any milestone that settles or changes something here updates this PRD in the same PR.
 
 | # | Milestone | Exit criteria |
 |---|---|---|
-| M1 | Fabric skeleton on 26.3 | Builds and launches to the title screen; client-only metadata in place; exact toolchain versions recorded; D1 mixin target confirmed. |
-| M2 | Font discovery | Background scan, cache file, debug command lists families on Windows and macOS. |
-| M3 | Hard-coded font via runtime pack | A fixed `.ttf` renders across menus and HUD; vanilla fallback for missing glyphs and missing file. |
-| M4 | `.ttc` face-index and `.otf` support | Helvetica and Avenir faces on macOS, and an `.otf` font, select and render correctly. |
-| M5 | Config file and config screen | Search, style picker, sliders, live preview via temporary `FontSet`, Apply / Reset / Rescan all working. |
+| M1 | Fabric skeleton on 26.3 | Builds and launches to the title screen; client-only metadata in place; exact toolchain versions recorded; D1 mixin target confirmed; GitHub Actions build on every PR; client game test viability checked. |
+| M2 | Font discovery | Background scan, cache file, debug command lists families on Windows and macOS; variable-font named instances listed (FD-12); symbol and colour fonts classified and hidden (FD-13); unit tests for discovery and classification; scan meets the D14 targets. |
+| M3 | Hard-coded font via runtime pack | A fixed `.ttf` renders across menus and HUD; vanilla fallback for missing glyphs and missing file; private-use ranges skipped and pack ordered below server packs (AP-11, D11), checked with a custom-glyph server pack. |
+| M4 | `.ttc` face-index, variable-font and `.otf` support | Helvetica and Avenir faces, SF Pro named instances on macOS, Segoe UI Variable on Windows, and an `.otf` font all select and render correctly. |
+| M5 | Config file and config screen | Search, style picker, sliders, show-hidden toggle, live preview via temporary `FontSet`, Apply / Reset / Rescan all working; keep-or-revert dialog (section 5.7); new-computer detection (section 5.6); config versioning and backup (D16); Apply meets the D14 target. |
 | M5L | Linux best effort | FD-9 and FD-10 done; a font applies end to end on one Ubuntu/Debian-family distro with both a native and a Flatpak launcher. About 1–2 days. Not a v1.0 blocker. |
 | M6 | In-world text and Iris/Sodium | Signs, glow ink, text displays and name tags render without z-fighting, with and without Iris and Sodium. |
-| M7 | Polish and release | README with known limitations, Modrinth listing; then the NeoForge go / no-go decision (D8). |
+| M7 | Polish and release | Other-font-mod detection (AP-12); README with known limitations and Modrinth link; Modrinth (primary) and CurseForge listings; memory checked against D14; then the NeoForge go / no-go decision (D8). |
 | M8 | Crisp mode for pixel fonts (P2) | AP-10 and section 5.5 acceptance criteria met. Starts after M6, since it reuses the in-world rendering work. Not a v1.0 blocker. |
 
-**Critical path:** `.ttc` / `.otf` loading (D1) is the biggest technical unknown and gates macOS usefulness. Confirm the mixin target in M1 so the M4 approach is known before UI work starts.
+**Critical path:** `.ttc` / `.otf` / variable-font loading (D1) is the biggest technical unknown and gates macOS usefulness and the platform UI fonts. Confirm the mixin target in M1 so the M4 approach is known before UI work starts.
 
 ## 9. Success criteria
 
@@ -237,13 +307,15 @@ Each milestone is runnable with `./gradlew runClient` and ships with complete fi
 On a clean 26.3 Fabric install on **both Windows 11 and macOS**, a player can:
 
 1. Open the config screen.
-2. Search for and pick any installed font, including `.ttc` collection faces.
-3. Preview it, apply it, and see it immediately on the title screen, every menu, the HUD, chat, tooltips, books and signs.
+2. Search for and pick any installed font, including `.ttc` collection faces and variable-font weights.
+3. Preview it, apply it, confirm it (or let it auto-revert), and see it immediately on the title screen, every menu, the HUD, chat, tooltips, books and signs.
 4. Reset to vanilla.
 
 The mod also:
 
 - survives a resource-pack reload, a GUI-scale change and a fullscreen toggle;
+- keeps server resource packs' custom glyphs intact;
+- resets cleanly when its config is copied to another computer;
 - uninstalls cleanly;
 - logs no errors when the chosen font file later disappears (one warning only).
 
@@ -255,24 +327,24 @@ Linux and crisp mode are not part of the v1.0 bar.
 |---|---|
 | OS | Windows 11, macOS (Apple Silicon); Linux best effort (one Ubuntu/Debian-family distro, native + Flatpak launcher) |
 | Renderer | OpenGL, Vulkan (experimental) |
-| Mods | Vanilla Fabric; + Sodium; + Sodium + Iris with a shader pack |
-| Fonts | Single `.ttf`, `.otf`, `.ttc` face, large CJK font, font with no Bold face, pixel-style font (M8) |
+| Mods | Vanilla Fabric; + Sodium; + Sodium + Iris with a shader pack; + Caxton or Font (conflict notice) |
+| Fonts | Single `.ttf`, `.otf`, `.ttc` face, variable font (SF Pro / Segoe UI Variable), large CJK font, font with no Bold face, symbol font (hidden, then shown), pixel-style font (M8) |
 | GUI scale | 1, 2, 3, Auto |
-| Events | Resource reload (F3+T), GUI-scale change, fullscreen toggle, font file deleted between launches, vanilla server join |
+| Events | Resource reload (F3+T), GUI-scale change, fullscreen toggle, font file deleted between launches, vanilla server join, server with a custom-glyph resource pack, keep-or-revert (Enter, Keep, Esc, Revert, 30 s timeout, game killed during countdown), config copied from another machine / another OS, corrupt config file |
 
 ### Post-launch signals (Modrinth)
 
-No telemetry, so success is read from public signals: download and follower growth, crash reports filed per release, and the time to ship a compatible build after each Minecraft release.
+No telemetry, so success is read from public signals: download and follower growth on Modrinth and CurseForge, crash reports filed per release, and the time to ship a compatible build after each Minecraft release.
 
 ## 10. Decisions and open questions
 
-### Decisions (resolved 2026-11-11)
+### Decisions
 
 | # | Topic | Decision | Verify / when |
 |---|---|---|---|
-| D1 | `.ttc` face index and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | Confirm the target method against decompiled 26.3 source in M1. |
-| D2 | Applying changes | Full resource reload on Apply. Add a font-only reload mixin only if Apply is measured as too slow. | Measure in M5. |
-| D3 | Runtime pack | Mixin that adds our own pack source to the game's pack list; pack is required and pinned on top. | Check whether Fabric API for 26.3 offers a native hook (M3). |
+| D1 | `.ttc` face index, variable fonts and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` (including named-instance bits) to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | Confirm the target method against decompiled 26.3 source in M1. |
+| D2 | Applying changes | Full resource reload on Apply. Add a font-only reload mixin only if Apply misses the D14 target. | Measure in M5. |
+| D3 | Runtime pack | Mixin that adds our own pack source to the game's pack list; pack is required and ordered per D11. | Check whether Fabric API for 26.3 offers a native hook (M3). |
 | D4 | Live preview | Private `Font` backed by its own `FontSet`, drawn through the 26.x prepared-text path and closed with the screen. Fallback: apply temporarily and roll back on Cancel. | Spike at the start of M5. |
 | D5 | Antialias | No antialias toggle: vanilla always antialiases, and its font definition has no such option; `oversample` controls smoothness. The opposite case, hard edges for pixel-style fonts, is planned as crisp mode (AP-10, section 5.5, M8). | — |
 | D6 | Vulkan on macOS | No special code expected. OS × renderer row in the test matrix; re-test glyph rendering on every snapshot. | Ongoing. |
@@ -280,12 +352,21 @@ No telemetry, so success is read from public signals: download and follower grow
 | D8 | NeoForge | Loader-specific code isolated in its own package from M1. Port go / no-go after M7, based on Modrinth demand. | After M7. |
 | D9 | Licensing | MC Font Control is **MIT**. Caxton and SAH TTF Sign Fix are MIT (reuse with attribution). CustomFontFix is GPL-3.0-only (study only, never copy). Glyph's licence is unknown (treat as all rights reserved). | Confirm Glyph's licence before reading its code. |
 | D10 | PRD home | `docs/PRD.md` in this repository is the single source of truth. Changes land through pull requests. | — |
+| D11 | Server resource packs | Our pack ranks above the player's own packs but below server-provided packs, and our font provider skips the private-use ranges (AP-11). Server UI glyphs always win. | Confirm pack ordering and `skip` range support in M3. |
+| D12 | Copied configs | Detect a new computer with a random machine ID stored outside the game folder; on mismatch, back up the config, reset to defaults, rescan and notify (section 5.6). | Build in M5. |
+| D13 | Safety valve | Every change to the applied font needs confirmation within 30 s (Enter / Keep changes), otherwise it reverts; survives crashes via `pending` (section 5.7). Symbol and colour fonts are hidden unless the player turns on Show hidden fonts (FD-13, UI-10). | Build in M5; confirm the dialog can render in the vanilla font. |
+| D14 | Performance and memory | Targets in section 6: scan < 5 s, cached startup < 0.5 s, Apply < 3 s, steady-state heap ≤ font size + 10 MB. | Measure in M2 (scan) and M5 (Apply, memory). |
+| D15 | Support and distribution | Best-effort support for the latest Minecraft release only. Semantic versioning with the Minecraft version as build metadata. Publish to Modrinth (primary home) and CurseForge. | Listings in M7. |
+| D16 | Config file | `configVersion` field with migration on load; corrupt or too-new files are backed up to `.bak` and replaced with defaults; default is disabled. | Build in M5. |
+| D17 | Testing and CI | GitHub Actions build on every PR; unit tests for discovery, classification, config and machine ID; Fabric client game tests if viable on 26.3. | Set up in M1. |
 
 ### Still open
 
 1. **Toolchain versions:** exact Loom, Fabric Loader, Fabric API and Gradle versions for 26.3, from the Fabric develop site (first step of M1).
 2. **Linux font sources:** are standard folders plus the Flatpak path enough, or is FD-11 (fontconfig folders) needed? Decide from early Linux feedback.
 3. **Glyph licence:** confirm before using it as a reference.
+4. **Supplementary private-use planes:** can the `ttf` provider's `skip` field cover U+F0000–U+10FFFD efficiently, or does AP-11 need a small mixin for those planes? (M3)
+5. **Client game tests on 26.3:** do Fabric's client game tests and screenshot comparison work reliably enough to run in CI? (M1)
 
 ## Maintaining this document
 
@@ -302,3 +383,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.2 | 2026-11-11 | Linux best effort (P2); baseline moved to 26.3; MIT licence; open questions resolved into decisions D1–D9; competitive landscape; `antialias` field dropped; `.otf` requirement (AP-9). |
 | v0.3 | 2026-11-11 | Crisp mode for pixel-style fonts (AP-10, section 5.5, M8). |
 | v0.4 | 2026-11-11 | Moved to `docs/PRD.md` as source of truth (D10). Aligned AP-1/5/6, risks, performance, milestones and critical path with decisions D1–D4; SDL3 input note; UI-9; pixel font in test matrix. |
+| v0.5 | 2026-11-11 | Gap review: server-pack glyph protection (AP-11, D11); variable-font named instances (FD-12); hidden symbol/colour fonts with Show hidden fonts toggle (FD-13, UI-10); keep-or-revert safety valve with 30 s auto-revert (section 5.7, D13); new-computer detection and config reset (section 5.6, D12); other-font-mod detection (AP-12); performance and memory targets (D14); latest-version-only support, semantic versioning, Modrinth primary + CurseForge (D15); config versioning and corrupt-file handling (D16); testing and CI (D17); complex shaping and colour emoji as non-goals; new user stories, risks, milestone exit criteria and test-matrix rows. |
