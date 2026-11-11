@@ -11,7 +11,8 @@
 			"io.github.jekitchen.mcfontcontrol.gametest.RuntimePackGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.FaceSelectionGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.ConfigScreenGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.RobustnessGameTest"
+			"io.github.jekitchen.mcfontcontrol.gametest.RobustnessGameTest",
+			"io.github.jekitchen.mcfontcontrol.gametest.InWorldTextGameTest"
 		]
 	},
 	"depends": {

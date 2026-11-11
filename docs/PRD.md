@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.13 |
+| **Status** | Draft v0.14 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -375,6 +375,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D19 | Symbol-map fonts | Fonts with no Unicode character map (classic Symbol fonts such as Wingdings) are never listed, even with Show hidden fonts on. Vanilla's provider requires a Unicode map, and these fonts place their glyphs in the private-use range that AP-11 skips, so they could never render. Fonts without Latin coverage and colour fonts with outlines stay revealable as FD-13 says. | Decided in M2. |
 | D20 | Fonts with embedded bitmaps | `NativeImageMixin` adds `FT_LOAD_NO_BITMAP` when vanilla renders a glyph from one of our faces. Vanilla measures glyphs with that flag but renders without it, so fonts with embedded bitmap strikes (MS Gothic, SimSun, many CJK fonts) return a 1-bit bitmap and the game crashes with "Rendered glyph was not 8-bit grayscale". Found by the M4 game test; scoped to faces MC Font Control opened. | Decided in M4. |
 | D21 | Runtime pack ID | The runtime pack's ID is `mcfontcontrol_runtime`, not the mod ID. Fabric already registers each mod's built-in resources as a pack named after the mod ID, and a second pack with that ID replaced it, so the mod's own lang file stopped loading. Found by the M5 game test. The oversample slider is labelled "Sharpness" in the UI; the config field stays `oversample`. | Decided in M5. |
+| D22 | In-world text | No in-world mixins. The M6 game test shows signs, glowing signs, text displays and name tags in the system font with no z-fighting, on vanilla and with Sodium 0.9.2 + Iris 1.11.7 (shaders off). Thin strokes alias at a distance because the glyph atlas has no mipmaps; vanilla TTF fonts behave the same, so this is documented as a known limitation rather than fixed. Iris with a shader pack is a manual check. Sodium 0.9.3 betas are incompatible with Iris 1.11.7, so compatibility runs pin Sodium 0.9.2. | M6, Windows 11, OpenGL. Repeat on macOS and with a shader pack. |
 
 ### Still open
 
@@ -408,3 +409,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.11 | 2026-11-11 | M4: D1 built and verified (collection face, variable instances, CFF `.otf`); D20 embedded-bitmap crash fix; mixin list updated. |
 | v0.12 | 2026-11-11 | M5: config screen, live preview (D4), keep-or-revert (D13), new-system detection (D12), Apply timing (D2, D14); D21 pack ID and UI label. |
 | v0.13 | 2026-11-11 | M5L: Linux folders (FD-9 incl. `XDG_DATA_HOME`), Flatpak host fonts and message (FD-10) built; FD-11 (fontconfig) not built, per open question 1. Awaits testing on a Linux VM. |
+| v0.14 | 2026-11-11 | M6: in-world text verified without mixins, including with Sodium and Iris (D22); distance aliasing documented. |

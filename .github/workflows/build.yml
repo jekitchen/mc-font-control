@@ -41,6 +41,10 @@ jobs:
   # Boots the real client under Xvfb and runs src/gametest (PRD D17, open question 4).
   client-game-test:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mods: [vanilla, sodium-iris]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -56,14 +60,15 @@ jobs:
       - name: Run client game tests
         run: |
           chmod +x ./gradlew
-          ./gradlew runProductionClientGameTest
+          ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: client-game-test
+          name: client-game-test-${{ matrix.mods }}
           path: |
             build/run/clientGameTest/screenshots/
             build/run/clientGameTest/logs/
             build/run/clientGameTest/crash-reports/
+            build/run/clientGameTest/config/mcfontcontrol/
           if-no-files-found: ignore
