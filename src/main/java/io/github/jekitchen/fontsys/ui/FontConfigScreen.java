@@ -1,10 +1,12 @@
 package io.github.jekitchen.fontsys.ui;
 
+import com.mojang.blaze3d.Blaze3D;
 import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.apply.FontController;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
+import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.discovery.OsFamily;
 import io.github.jekitchen.fontsys.discovery.StyledFaces;
 import io.github.jekitchen.fontsys.discovery.SystemFontIndex;
@@ -13,9 +15,9 @@ import io.github.jekitchen.fontsys.pack.FontStyleSlot;
 import io.github.jekitchen.fontsys.pack.PackContents;
 import io.github.jekitchen.fontsys.pack.RuntimeFontPackSource;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -24,6 +26,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
@@ -68,6 +71,8 @@ public final class FontConfigScreen extends Screen {
 		super(Component.translatable("fontsys.screen.title"));
 		this.parent = parent;
 		this.draft = controller.appliedSettings();
+		// Pick up fonts added since the last scan, e.g. to the instance's fonts folder (FD-14).
+		index.scan();
 	}
 
 	@Override
@@ -129,15 +134,19 @@ public final class FontConfigScreen extends Screen {
 		previewX1 = rightX + rightWidth;
 		previewY1 = bottom - 16;
 
-		int buttonWidth = (width - 2 * MARGIN - 3 * 4) / 4;
+		int buttonWidth = (width - 2 * MARGIN - 4 * 4) / 5;
 		applyButton = addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.apply"), b -> apply())
 			.bounds(MARGIN, bottom + 4, buttonWidth, 20).build());
 		resetButton = addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.reset"), b -> resetToVanilla())
 			.bounds(MARGIN + (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
 		addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.rescan"), b -> index.scan())
 			.bounds(MARGIN + 2 * (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
+		addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.open_folder"), b -> openInstanceFolder())
+			.bounds(MARGIN + 3 * (buttonWidth + 4), bottom + 4, buttonWidth, 20)
+			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.open_folder.tooltip")))
+			.build());
 		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-			.bounds(MARGIN + 3 * (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
+			.bounds(MARGIN + 4 * (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
 
 		seenGeneration = -1;
 		refreshList();
@@ -161,7 +170,7 @@ public final class FontConfigScreen extends Screen {
 		List<FontFamily> families = index.families(controller.config().showHiddenFonts).stream()
 			.filter(f -> needle.isEmpty() || f.name().toLowerCase(Locale.ROOT).contains(needle))
 			.toList();
-		list.show(families, draft.familyName());
+		list.show(families, draft.familyName(), draft.fontPath());
 		updateButtons();
 	}
 
@@ -173,12 +182,34 @@ public final class FontConfigScreen extends Screen {
 		if (draft.familyName() == null) {
 			return null;
 		}
-		return index.families(true).stream().filter(f -> f.name().equalsIgnoreCase(draft.familyName())).findFirst().orElse(null);
+		return index.families(true).stream().filter(f -> f.holds(draft.familyName(), draft.fontPath())).findFirst().orElse(null);
+	}
+
+	/**
+	 * Creates the instance's {@code fonts/} folder if needed and opens it in the file manager,
+	 * as the resource-pack screen does for its folder (FD-14). The list rescans when the screen
+	 * is opened again or Rescan is pressed.
+	 */
+	private void openInstanceFolder() {
+		InstanceFonts.dir().ifPresent(dir -> {
+			try {
+				Files.createDirectories(dir);
+				Blaze3D.openPath(dir);
+			} catch (IOException | RuntimeException e) {
+				Fontsys.LOGGER.warn("[{}] Could not open the fonts folder {}: {}", Fontsys.DISPLAY_NAME, dir.getFileName(), e.toString());
+			}
+		});
+	}
+
+	/** The family highlighted in the list, if any; read by the game tests. */
+	public @Nullable FontFamily listSelection() {
+		FamilyList.Entry entry = list == null ? null : list.getSelected();
+		return entry == null ? null : entry.family;
 	}
 
 	public void selectFamily(FontFamily family) {
 		FaceInfo face = draft.styleName() == null ? family.defaultStyle() : family.findStyle(draft.styleName()).orElse(family.defaultStyle());
-		if (!family.name().equalsIgnoreCase(Objects.toString(draft.familyName(), ""))) {
+		if (!family.holds(draft.familyName(), draft.fontPath())) {
 			face = family.defaultStyle();
 		}
 		selectFace(face);
@@ -416,11 +447,11 @@ public final class FontConfigScreen extends Screen {
 			super(minecraft, width, height, y, 14);
 		}
 
-		void show(List<FontFamily> families, @Nullable String selectedName) {
+		void show(List<FontFamily> families, @Nullable String selectedName, @Nullable String selectedPath) {
 			Entry selected = null;
 			List<Entry> entries = families.stream().map(Entry::new).toList();
 			for (Entry e : entries) {
-				if (e.family.name().equalsIgnoreCase(Objects.toString(selectedName, ""))) {
+				if (e.family.holds(selectedName, selectedPath)) {
 					selected = e;
 				}
 			}
@@ -454,10 +485,17 @@ public final class FontConfigScreen extends Screen {
 			public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
 				int y = getContentYMiddle() - 4;
 				graphics.text(font, family.name(), getContentX() + 2, y, 0xFFFFFFFF, false);
+				int right = getContentX() + getContentWidth() - 2;
 				Visibility v = family.visibility();
 				if (v != Visibility.VISIBLE) {
 					Component tag = Component.translatable("fontsys.hidden." + v.name().toLowerCase(Locale.ROOT));
-					graphics.text(font, tag, getContentX() + getContentWidth() - font.width(tag) - 2, y, 0xFF909090, false);
+					right -= font.width(tag);
+					graphics.text(font, tag, right, y, 0xFF909090, false);
+					right -= 6;
+				}
+				if (family.instance()) {
+					Component tag = Component.translatable("fontsys.screen.instance_tag");
+					graphics.text(font, tag, right - font.width(tag), y, 0xFF78ECBA, false);
 				}
 			}
 
@@ -470,7 +508,10 @@ public final class FontConfigScreen extends Screen {
 
 			@Override
 			public Component getNarration() {
-				return Component.translatable("narrator.select", family.name());
+				Component name = family.instance()
+					? Component.translatable("fontsys.screen.instance_narration", family.name())
+					: Component.literal(family.name());
+				return Component.translatable("narrator.select", name);
 			}
 		}
 	}

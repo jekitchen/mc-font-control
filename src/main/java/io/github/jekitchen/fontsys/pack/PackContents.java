@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -142,7 +141,7 @@ public final class PackContents {
 		files.put(FONT_FILE, FaceSpec.plain(font.faceIndex()));
 		Map<FontStyleSlot, StyledFaces.Variant> styles = new EnumMap<>(FontStyleSlot.class);
 		Map<FontStyleSlot, FontStyleSlot> servedBy = new EnumMap<>(FontStyleSlot.class);
-		StyledFaces styled = StyledFaces.of(family(font.face().family(), index), font.face());
+		StyledFaces styled = StyledFaces.of(family(font.face(), index), font.face());
 		for (FontStyleSlot slot : FontStyleSlot.values()) {
 			Optional<StyledFaces.Variant> variant = slot.variant(styled);
 			if (variant.isEmpty() || !Files.isReadable(Path.of(variant.get().face().path()))) {
@@ -174,20 +173,19 @@ public final class PackContents {
 		return FontStyleSlot.BOLD.spec(variant).equals(slot.spec(variant)) ? FontStyleSlot.BOLD : null;
 	}
 
-	/** The selected face's family from the font index, for finding its bold and italic faces. */
-	public static Optional<FontFamily> family(String name, Supplier<FontIndex> index) {
-		if (name == null) {
-			return Optional.empty();
-		}
-		String wanted = name.toLowerCase(Locale.ROOT);
+	/**
+	 * The selected face's family from the font index, for finding its bold and italic faces.
+	 * Same name and same source, so an instance font never borrows a system font's bold (FD-14).
+	 */
+	public static Optional<FontFamily> family(FaceInfo face, Supplier<FontIndex> index) {
 		return FontFamily.group(index.get().allFaces(), true).stream()
-			.filter(f -> f.name().toLowerCase(Locale.ROOT).equals(wanted))
+			.filter(f -> f.holds(face.family(), face.path()))
 			.findFirst();
 	}
 
 	/** The styled faces for a selected face, as {@link #build} chooses them; used by the preview. */
 	public static StyledFaces styledFaces(FaceInfo face, Supplier<FontIndex> index) {
-		return StyledFaces.of(family(face.family(), index), face);
+		return StyledFaces.of(family(face, index), face);
 	}
 
 	/** One warning per problem per session, never log spam (AP-7). */

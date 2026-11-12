@@ -10,6 +10,14 @@ public interface Platform {
 	/** The game's {@code config/} folder. */
 	Path configDir();
 
+	/**
+	 * The game (instance) folder that holds {@code mods/}, {@code config/} and, for instance
+	 * fonts, {@code fonts/} (FD-14). Defaults to the parent of {@link #configDir()}.
+	 */
+	default Path gameDir() {
+		return configDir().toAbsolutePath().normalize().getParent();
+	}
+
 	/** Whether a mod with this ID is loaded. */
 	boolean isModLoaded(String modId);
 }

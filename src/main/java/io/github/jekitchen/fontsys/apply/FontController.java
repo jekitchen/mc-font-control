@@ -6,12 +6,14 @@ import io.github.jekitchen.fontsys.config.ConfigStore;
 import io.github.jekitchen.fontsys.config.FontConfig;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.config.SystemFingerprint;
+import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.pack.PackContents;
 import io.github.jekitchen.fontsys.pack.RuntimeFontPackSource;
 import io.github.jekitchen.fontsys.platform.Platform;
 import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -31,6 +33,7 @@ public final class FontController {
 	private final ConfigStore store;
 	private final Optional<KnownFontMods.KnownMod> conflict;
 	private final Supplier<String> fingerprint;
+	private final Path gameDir;
 	private FontConfig config;
 	private volatile long lastApplyMillis = -1;
 	/** System.nanoTime() when an unconfirmed change reverts; 0 when nothing is pending. */
@@ -46,6 +49,7 @@ public final class FontController {
 		this.store = store;
 		this.fingerprint = fingerprint;
 		this.conflict = KnownFontMods.firstLoaded(platform);
+		this.gameDir = platform.gameDir();
 		boolean existed = Files.exists(store.file());
 		ConfigStore.LoadResult result = store.load();
 		this.config = result.config();
@@ -61,10 +65,17 @@ public final class FontController {
 		conflict.ifPresent(m -> warn(m.name() + " is installed and also replaces the game font; Fontsys is leaving the font alone. Remove one of the two mods to choose."));
 	}
 
-	/** A config written on another OS or user account starts over from vanilla (5.6). */
+	/**
+	 * A config written on another OS or user account starts over from vanilla (5.6), unless its
+	 * font is in this instance's {@code fonts/} folder: that font travels with the instance, so
+	 * the choice still works (FD-14).
+	 */
 	private void checkSystem() {
 		Optional<String> mismatch = SystemFingerprint.mismatch(config.systemFingerprint, fingerprint.get());
-		if (mismatch.isPresent()) {
+		if (mismatch.isPresent() && usesPresentInstanceFont()) {
+			Fontsys.LOGGER.info("[{}] Config was written on a different system ({}); keeping it because its font is in this instance's fonts folder.",
+				Fontsys.DISPLAY_NAME, mismatch.get());
+		} else if (mismatch.isPresent()) {
 			String backup = store.backupFile().getFileName().toString();
 			store.backupAndReset(mismatch.get());
 			config = FontConfig.defaults();
@@ -73,6 +84,11 @@ public final class FontController {
 				Fontsys.fontIndex().scan();
 			}
 		}
+	}
+
+	private boolean usesPresentInstanceFont() {
+		String path = config.fontPath;
+		return gameDir != null && InstanceFonts.contains(path, gameDir) && Files.isRegularFile(Path.of(path));
 	}
 
 	/** The game closed or crashed during a keep-or-revert countdown: revert before the title screen (5.7). */

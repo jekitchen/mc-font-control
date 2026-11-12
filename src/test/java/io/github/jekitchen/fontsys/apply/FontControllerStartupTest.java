@@ -105,4 +105,56 @@ class FontControllerStartupTest {
 		new FontController(store, platform(), () -> HERE);
 		assertEquals(HERE, store.load().config().systemFingerprint);
 	}
+
+	private static Platform platformIn(Path gameDir) {
+		return new Platform() {
+			@Override
+			public Path configDir() {
+				return gameDir.resolve("config");
+			}
+
+			@Override
+			public Path gameDir() {
+				return gameDir;
+			}
+
+			@Override
+			public boolean isModLoaded(String id) {
+				return false;
+			}
+		};
+	}
+
+	@Test
+	void copiedInstanceKeepsItsInstanceFont(@TempDir Path game) throws IOException {
+		Path font = game.resolve("fonts").resolve("Pixel.ttf");
+		Files.createDirectories(font.getParent());
+		Files.writeString(font, "not really a font; only its presence matters here");
+		FontSettings pixel = FontSettings.DEFAULTS.withEnabled(true).withFont(font.toString(), 0, "Pixel", "Regular");
+		String mac = SystemFingerprint.of(OsFamily.MACOS, "/Users/alex");
+		ConfigStore store = new ConfigStore(game.resolve("config").resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.systemFingerprint = mac;
+		config.setSettings(pixel);
+		store.save(config);
+
+		FontController c = new FontController(store, platformIn(game), () -> HERE);
+		assertEquals(pixel, c.appliedSettings());
+		assertFalse(Files.exists(store.backupFile()));
+		assertEquals(HERE, store.load().config().systemFingerprint, "adopted by this system");
+	}
+
+	@Test
+	void copiedInstanceWithoutItsFontStillResets(@TempDir Path game) throws IOException {
+		FontSettings missing = FontSettings.DEFAULTS.withEnabled(true).withFont(game.resolve("fonts").resolve("Gone.ttf").toString(), 0, "Gone", "Regular");
+		ConfigStore store = new ConfigStore(game.resolve("config").resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.systemFingerprint = SystemFingerprint.of(OsFamily.MACOS, "/Users/alex");
+		config.setSettings(missing);
+		store.save(config);
+
+		FontController c = new FontController(store, platformIn(game), () -> HERE);
+		assertFalse(c.appliedSettings().isActive());
+		assertTrue(Files.exists(store.backupFile()));
+	}
 }

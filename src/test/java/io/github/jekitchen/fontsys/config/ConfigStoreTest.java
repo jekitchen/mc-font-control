@@ -102,4 +102,38 @@ class ConfigStoreTest {
 		// Two disabled configurations both render vanilla.
 		assertTrue(FontSettings.DEFAULTS.sameRendering(a.withEnabled(false)));
 	}
+
+	@Test
+	void instanceFontsAreSavedRelativeAndFollowTheInstance(@TempDir Path game, @TempDir Path moved) throws IOException {
+		String font = game.resolve("fonts").resolve("pixel").resolve("Pixel.otf").toString();
+		String previous = game.resolve("fonts").resolve("Comic.ttf").toString();
+		ConfigStore store = new ConfigStore(game.resolve("config").resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.setSettings(FontSettings.DEFAULTS.withEnabled(true).withFont(font, 0, "Pixel", "Regular"));
+		config.pending = FontSettings.DEFAULTS.withEnabled(true).withFont(previous, 0, "Comic", "Regular");
+		store.save(config);
+
+		String json = Files.readString(store.file());
+		assertTrue(json.contains("\"fontPath\": \"fonts/pixel/Pixel.otf\""), json);
+		assertTrue(json.contains("\"fontPath\": \"fonts/Comic.ttf\""), json);
+		assertFalse(json.contains(game.toString().replace("\\", "\\\\")), "no absolute instance path in the file");
+
+		// The same file read from a copy of the instance elsewhere.
+		Path copy = moved.resolve("config").resolve("fontsys.json");
+		Files.createDirectories(copy.getParent());
+		Files.copy(store.file(), copy);
+		FontConfig loaded = new ConfigStore(copy, moved).load().config();
+		assertEquals(moved.resolve("fonts").resolve("pixel").resolve("Pixel.otf").toString(), loaded.settings().fontPath());
+		assertEquals(moved.resolve("fonts").resolve("Comic.ttf").toString(), loaded.pending.fontPath());
+	}
+
+	@Test
+	void systemFontsStayAbsolute(@TempDir Path game) throws IOException {
+		String system = game.getRoot().resolve("Windows").resolve("Fonts").resolve("arial.ttf").toString();
+		ConfigStore store = new ConfigStore(game.resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.setSettings(FontSettings.DEFAULTS.withEnabled(true).withFont(system, 0, "Arial", "Regular"));
+		store.save(config);
+		assertEquals(system, store.load().config().settings().fontPath());
+	}
 }

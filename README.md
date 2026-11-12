@@ -11,13 +11,14 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 ## Features
 
 - Lists every font installed on your computer, including the faces inside `.ttc` collections (most macOS system fonts) and the named weights of variable fonts such as SF Pro, Segoe UI Variable and Inter.
+- Also lists fonts you put in the instance's own `fonts/` folder, for one-off fonts you don't want to install on your computer.
 - Uses the font's own Bold, Italic and Bold Italic faces for styled text, the way a word processor does, instead of Minecraft's simulated bold and slant.
 - Shows a live preview before anything changes, with bold and italic, chat, tooltip and sign samples.
 - Applies the font everywhere with one click, no restart.
 - Gives you 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
 - Adjusts size, sharpness and baseline offset.
 - Uses the game's own font renderer, so it works alongside Sodium and Iris.
-- Never copies or bundles font files: fonts are read from where your system keeps them.
+- Never copies or bundles font files: fonts are read from where your system keeps them, or from the instance's `fonts/` folder.
 - Is client-only. Servers don't need it, and server resource packs keep their custom HUD glyphs.
 
 ## Using it
@@ -26,6 +27,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
+5. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), creating it if needed. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 
@@ -49,7 +51,7 @@ Settings are stored in `config/fontsys.json`. The font list cache is `config/fon
 - **Text far away in the world** (signs, name tags) can look thin or broken at a distance. Minecraft's glyph atlas has no mipmaps; built-in TrueType fonts behave the same.
 - **Large text sizes** can be clipped in tight UI spots such as buttons and the scoreboard. Lower the size if that happens.
 - **Other font mods:** if Caxton, Font, FontSwap or Modern UI is installed, Fontsys turns itself off and tells you, rather than fighting over the font.
-- **Copied configs:** a config written on another computer, OS or user account is set aside as `fontsys.json.bak`, and the mod starts from the vanilla font.
+- **Copied configs:** a config written on another computer, OS or user account is set aside as `fontsys.json.bak`, and the mod starts from the vanilla font. The exception is a font from the instance's `fonts/` folder: it travels with the instance, so the config is kept.
 
 ## Building
 

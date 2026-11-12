@@ -54,6 +54,11 @@ public record FontSettings(
 			crispEdges);
 	}
 
+	/** The same settings with the font file at another path (instance fonts, FD-14). */
+	public FontSettings withFontPath(String path) {
+		return new FontSettings(enabled, path, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges);
+	}
+
 	/** The same font choice, with a new on/off state. */
 	public FontSettings withEnabled(boolean value) {
 		return new FontSettings(value, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges);

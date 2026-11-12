@@ -22,6 +22,10 @@
 	"fontsys.screen.apply": "Apply",
 	"fontsys.screen.reset": "Reset to vanilla",
 	"fontsys.screen.rescan": "Rescan fonts",
+	"fontsys.screen.open_folder": "Fonts folder",
+	"fontsys.screen.open_folder.tooltip": "Opens this instance's fonts folder. Fonts you put there are listed only in this instance, without installing them on your computer.",
+	"fontsys.screen.instance_tag": "Instance",
+	"fontsys.screen.instance_narration": "%s, from the instance fonts folder",
 	"fontsys.screen.no_match": "No fonts match \"%s\".",
 
 	"fontsys.hidden.no_latin": "no Latin",

@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -14,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Reads and writes {@code config/fontsys.json} (PRD 5.3, D16). Never throws on bad
@@ -28,9 +31,20 @@ public final class ConfigStore {
 	}
 
 	private final Path file;
+	private final @Nullable Path gameDir;
 
 	public ConfigStore(Path file) {
+		this(file, null);
+	}
+
+	/**
+	 * @param gameDir the game folder; fonts in its {@code fonts/} folder are saved as relative
+	 *                paths so the choice survives copying the instance (FD-14). Null: paths
+	 *                are saved as they are.
+	 */
+	public ConfigStore(Path file, @Nullable Path gameDir) {
 		this.file = file;
+		this.gameDir = gameDir;
 	}
 
 	public Path file() {
@@ -59,9 +73,10 @@ public final class ConfigStore {
 				} else {
 					FontConfig config = GSON.fromJson(migrate(obj, version), FontConfig.class);
 					config.configVersion = FontConfig.CURRENT_VERSION;
+					config.fontPath = InstanceFonts.toAbsolute(config.fontPath, gameDir);
 					config.setSettings(config.settings());
 					if (config.pending != null) {
-						config.pending = config.pending.sanitized();
+						config.pending = config.pending.withFontPath(InstanceFonts.toAbsolute(config.pending.fontPath(), gameDir)).sanitized();
 					}
 					return new LoadResult(config, warnings, false);
 				}
@@ -91,12 +106,24 @@ public final class ConfigStore {
 		}
 	}
 
+	/** Instance fonts are written relative to the game folder (FD-14). */
+	private void storeRelative(JsonObject obj) {
+		if (obj.get("fontPath") instanceof JsonPrimitive path && path.isString()) {
+			obj.addProperty("fontPath", InstanceFonts.toStored(path.getAsString(), gameDir));
+		}
+	}
+
 	/** Saves atomically: temp file, then move, so a crash never leaves half a file. */
 	public void save(FontConfig config) throws IOException {
 		Files.createDirectories(file.toAbsolutePath().getParent());
 		Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+		JsonObject json = GSON.toJsonTree(config).getAsJsonObject();
+		storeRelative(json);
+		if (json.get("pending") instanceof JsonObject pending) {
+			storeRelative(pending);
+		}
 		try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
-			GSON.toJson(config, writer);
+			GSON.toJson(json, writer);
 		}
 		try {
 			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

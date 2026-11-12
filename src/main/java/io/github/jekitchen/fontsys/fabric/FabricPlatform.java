@@ -11,6 +11,11 @@ final class FabricPlatform implements Platform {
 	}
 
 	@Override
+	public Path gameDir() {
+		return FabricLoader.getInstance().getGameDir();
+	}
+
+	@Override
 	public boolean isModLoaded(String modId) {
 		return FabricLoader.getInstance().isModLoaded(modId);
 	}
