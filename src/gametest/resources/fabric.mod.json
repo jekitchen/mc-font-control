@@ -8,7 +8,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"io.github.jekitchen.mcfontcontrol.gametest.TitleScreenGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.RuntimePackGameTest"
+			"io.github.jekitchen.mcfontcontrol.gametest.RuntimePackGameTest",
+			"io.github.jekitchen.mcfontcontrol.gametest.FaceSelectionGameTest"
 		]
 	},
 	"depends": {

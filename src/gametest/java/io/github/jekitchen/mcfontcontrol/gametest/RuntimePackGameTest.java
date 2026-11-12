@@ -36,7 +36,7 @@ public class RuntimePackGameTest implements FabricClientGameTest {
 		}
 
 		GameTestFonts.apply(context, GameTestFonts.settingsFor(face.get()));
-		if (!PackContents.loaded().active()) {
+		if (!PackContents.providerLoaded()) {
 			throw new AssertionError("system font was not loaded");
 		}
 		context.takeScreenshot("m3-system-font-title");
