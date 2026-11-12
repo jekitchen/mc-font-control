@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.25: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
+| **Status** | v0.26: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34) built for the release after 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-12 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -145,7 +145,7 @@ Priority key: **P0** = required for v1.0 definition of done; **P1** = v1.0 if fe
 | AP-7 | On any failure (missing file, FreeType error, corrupt font), fall back to vanilla and log exactly one clear warning. | P0 |
 | AP-8 | Draw bold, italic and bold-italic text with the family's real faces instead of vanilla's simulated styles (1-pixel double draw, shear). With no heavier face, FreeType emboldens the outline; with no italic face, vanilla's slant is kept (D24). | P0 |
 | AP-9 | Load `.otf` and other FreeType-supported formats through the `ttf` provider. If vanilla still rejects non-TrueType files, lift that check in the same mixin as AP-5 (D1). | P0 |
-| AP-10 | **Crisp mode for pixel-style fonts**: optional hard-edged (non-antialiased) glyph rendering. FreeType renders 1-bit monochrome glyphs, expanded to full on/off coverage in the existing grayscale atlas, with glyph size and positions snapped to whole pixels at the current GUI scale. Must work in GUI and in-world text, on both renderers. See section 5.5. | P2 |
+| AP-10 | **Crisp mode for pixel-style fonts**: optional hard-edged (non-antialiased) glyph rendering. FreeType renders 1-bit monochrome glyphs, expanded to full on/off coverage in the existing glyph atlas, with glyph pixels and positions snapped to whole screen pixels at the current GUI scale. Must work in GUI and in-world text, on both renderers. See section 5.5 and D34. | P2 |
 | AP-11 | **Protect server glyphs:** the system-font provider skips the Unicode private-use ranges (U+E000–U+F8FF, and the supplementary private-use planes if the provider's `skip` field can express them) so server packs' custom HUD glyphs and negative-space characters always come from the server pack or vanilla (D11). | P0 |
 | AP-12 | **Other font mods:** if Caxton, Font or another known font-replacement mod is loaded, show a one-time notice and leave the game font alone until the player resolves the conflict. Keep the list of known mods in one place. | P1 |
 
@@ -168,7 +168,7 @@ Stored in `config/fontsys.json`. Defaults: disabled, vanilla font.
 | `applyToUniform` | bool | Also replace the uniform font. |
 | `showHiddenFonts` | bool | Reveal hidden symbol and outline-colour fonts in the list (FD-13). Default `false`. |
 | `pending` | object or null | Previous settings while a keep-or-revert confirmation is open (UI-11). If the game starts with this set, the change was never confirmed: revert to it. |
-| `crispEdges` | bool | P2 (M8): hard-edged rendering for pixel-style fonts. Default off; ignored until the feature ships. |
+| `crispEdges` | bool | P2 (M8): hard-edged rendering for pixel-style fonts. Default off. While on, `oversample` is ignored and follows the GUI scale (D34). |
 
 There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversample` controls smoothness (D5).
 
@@ -186,23 +186,24 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 | UI-6 | Preview renders with a private `Font` backed by a temporary `FontSet` before Apply, without touching the global font (D4). | P0 |
 | UI-7 | **Apply**, **Reset to vanilla** and **Rescan fonts** buttons. | P0 |
 | UI-8 | Vanilla widgets and screen conventions; all strings in `assets/fontsys/lang/en_us.json`. | P0 |
-| UI-9 | **Crisp edges** toggle under the sliders (M8). | P2 |
+| UI-9 | **Crisp edges** toggle under the sliders (M8). While it's on, the Sharpness slider is disabled and reads "Crisp"; a pixel-style font gets a hint in the preview (5.5, D34). | P2 |
 | UI-10 | **Show hidden fonts** toggle on the font list. Revealed fonts are marked (e.g. "symbol") so the player knows why they were hidden. | P0 |
 | UI-11 | **Keep-or-revert confirmation** after any change that alters the applied font (Apply, or Reset if it changes anything). See section 5.7. | P0 |
 | UI-12 | **Fonts folder** button: creates and opens the instance's `fonts/` folder in the file manager (FD-14). The list rescans each time the screen opens. | P1 |
 
-### 5.5 Future: crisp mode for pixel-style fonts (P2)
+### 5.5 Crisp mode for pixel-style fonts (P2)
 
 **Why.** Vanilla always antialiases TTF glyphs. That suits most fonts, but pixel-style fonts (bitmap-look TTFs, Minecraft-style recreations) come out soft and fuzzy. Players who choose those fonts want hard, square pixel edges.
 
 **What the player gets.** A **Crisp edges** toggle in the config screen, shown under the size and oversample sliders. When it's on, the preview and the applied font use hard-edged glyphs. When the selected family looks like a pixel font (for example, it ships embedded bitmap strikes), the screen suggests turning it on, but never turns it on by itself.
 
-**How (expected, verify before building).**
+**How (as built, D34).**
 
-- **Rasterization:** a mixin on vanilla's TTF glyph rendering switches FreeType to monochrome output (`FT_LOAD_TARGET_MONO` / `FT_RENDER_MODE_MONO`) when crisp mode is on, and expands the 1-bit bitmap to 0 / 255 coverage so the existing grayscale atlas and render pipelines need no new texture format.
-- **Pixel snapping:** glyph size, oversample and baseline shift snap to whole-pixel multiples of the current GUI scale; otherwise hard edges land between pixels and look uneven. Recompute on GUI-scale change.
-- **Sampling:** confirm the glyph atlas is sampled without smoothing (nearest-neighbour) for crisp glyphs; if vanilla smooths it, crisp glyphs need their own atlas or sampler setting.
-- **In-world text:** test signs, glow ink, text displays and name tags, with and without Iris and Sodium, since in-world text uses separate pipelines.
+- **Rasterization:** for a crisp face, glyphs are measured and rendered with FreeType's monochrome target and renderer (`FT_LOAD_TARGET_MONO`, `FT_RENDER_MODE_MONO`). `TrueTypeGlyphProviderMixin` adds the target when measuring, so the bitmap is exactly the size vanilla allocates; `ColorAtlasGlyph` renders through `CrispGlyphs` and expands each bit to coverage 0 or 255 in the RGBA atlas (D30). No new texture format, pipeline or mixin.
+- **Pixel snapping:** while crisp mode is on, the oversample is the GUI scale whatever the Sharpness slider says, so one glyph pixel is one screen pixel. Hinted advances are whole pixels, and shifts round to whole screen pixels. A GUI-scale change reloads the font, as automatic sharpness already did.
+- **Sampling:** vanilla's glyph atlas is already sampled nearest-neighbour (`FontTexture`), so crisp glyphs need no sampler change.
+- **Pixel-font hint:** the preview checks the selected face (`PixelGrid`): outlines with no curves whose points all sit on a grid of 4 to 32 cells per em. It then suggests Crisp edges, and a size on that grid.
+- **In-world text:** signs, glow ink, text displays and name tags use the same atlas, so they need nothing extra; screenshotted with and without Iris and Sodium.
 
 **Acceptance criteria.**
 
@@ -390,6 +391,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D31 | Store publishing | Publishing a GitHub release runs `.github/workflows/publish.yml`, which uploads that release's jar to Modrinth and CurseForge with `Kir-Antipov/mc-publish` (v3.3.2, pinned to its commit). The draft review (D29) stays the gate. Version number `<mod_version>+<minecraft>`, release notes as changelog, game versions from `publish_game_versions`. Project IDs are repository variables and API tokens repository secrets; a store without an ID is skipped, and a manual run can retry one store. | 2026-11-12. Awaiting the owner's API tokens; 1.0.0 and 1.0.1 were uploaded by hand. |
 | D32 | Minecraft version support | One jar per Minecraft year when feasible: a single Fontsys jar covers every 26.x release it has been tested on (26.3, then 26.4, …), and 2027's 27.x releases get their own line. A version is added to the jar's range only after both game-test suites pass on it. If vanilla changes break one jar for the whole year, the fallback is a separate jar per Minecraft version from the same code, decided when it happens. Older 26.x versions stay supported as long as one jar can cover them without real growth in size or complexity. | 2026-11-12, owner's decision. First test: 26.4 (snapshots now; Sodium and Iris not yet on 26.4). |
 | D33 | Instance fonts folder | Approved addition (owner, 2026-11-12): `<game folder>/fonts/` is scanned with the system folders (FD-14, UI-12). Relative paths in the config make the choice survive copying or moving the instance, and a config from another system is **kept** when its font is in that folder and present (5.6), since the font travels with the instance; this also lets a modpack ship a font with a config that selects it (licensing the font is the pack author's responsibility; Fontsys still never bundles fonts). Instance families stay separate from system families of the same name, so a player can tell which copy they pick and an instance font never borrows a system font's bold. | 2026-11-12. Built; game test `InstanceFontsGameTest` copies an installed font into the test instance's folder, applies it and checks the relative path. |
+| D34 | Crisp mode | Built as section 5.5 describes. **Why the oversample follows the GUI scale:** a glyph pixel lands on whole screen pixels only if the oversample divides evenly into the GUI scale; using the GUI scale itself is the finest setting that always does, and it reuses the reload on GUI-scale change that automatic sharpness already has. Section 5.5's "snap size to whole-pixel multiples" is left to the player instead: the size slider is unchanged and the hint suggests a size on the font's grid, because a size that suits one pixel font is wrong for another. **Shifts** round to whole screen pixels, because the shift moves the outline before rasterizing. **Pixel-font signal:** outline geometry (no curves, a coarse grid), not embedded bitmap strikes: Fontsys renders outlines only (D20), and CJK system fonts such as MS Gothic carry strikes too. The hint never changes a setting by itself. **Bold:** FreeType's synthetic bold (D24) thickens the outline before the monochrome render. **Layout:** the Unicode checkbox now reads "Replace Unicode font", with the full wording in a tooltip, so Crisp edges fits beside it at 854×480; otherwise it wraps below. | 2026-11-12. Built after 1.1.0's scope was set (owner: keep building past 1.1.0). Windows 11: `CrispGlyphsTest` checks monochrome bitmaps match the measured size and have no grey (Arial plain and synthetic bold at 8, 16 and 30 px; with `FONTSYS_PIXEL_FONT`, Press Start 2P, Silkscreen and VT323, each detected as a pixel font, with even pixel runs at twice the grid). `CrispModeGameTest` screenshots white text on black: 0 grey pixels crisp, 3,236 with crisp off. `InWorldTextGameTest` adds a crisp close-up of signs, glow ink, a text display and a name tag. The full game-test suite passes vanilla and with Sodium and Iris. Not yet checked: Vulkan, macOS, Linux. |
 
 ### Still open
 
@@ -435,3 +437,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.23 | 2026-11-12 | Glyphs in the colour atlas (D30): fixes sign text with Iris shader packs; version 1.0.1. |
 | v0.24 | 2026-11-12 | Automatic Modrinth and CurseForge uploads (D31); one jar per Minecraft year (D32); GitHub issue templates. |
 | v0.25 | 2026-11-12 | Instance fonts folder (FD-14, UI-12, D33); 5.6 keeps configs whose font is in that folder. |
+| v0.26 | 2026-11-12 | Crisp mode built (M8, AP-10, UI-9, D34); section 5.5 describes it as built. |

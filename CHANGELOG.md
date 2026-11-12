@@ -2,6 +2,22 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
+## [1.2.0] - unreleased
+
+### Added
+
+- **Crisp edges** for pixel-style fonts: glyphs are drawn with hard, square pixels and no smoothing, in menus and in the world. While it's on, sharpness follows the GUI scale so every font pixel lands on whole screen pixels.
+- The preview recognises pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.
+
+### Changed
+
+- The **Also replace the Unicode font** checkbox is now **Replace Unicode font**, with the full explanation in its tooltip, to make room for Crisp edges.
+- Long font names in the list are shortened with "…" instead of running under the **Instance** and hidden-font tags.
+
+### Fixed
+
+- **Apply** now lights up as soon as you tick or untick **Replace Unicode font**; before, it waited for another change.
+
 ## [1.1.0] - unreleased
 
 ### Added

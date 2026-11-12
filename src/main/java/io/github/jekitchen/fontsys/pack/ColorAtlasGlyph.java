@@ -100,8 +100,8 @@ final class ColorAtlasGlyph implements UnbakedGlyph {
 
 		/**
 		 * Renders the glyph the way vanilla's {@code TrueTypeGlyphProvider} does
-		 * ({@code NativeImage.copyFromFont}, so {@code NativeImageMixin} still applies), then
-		 * expands it to RGBA. Locks the face as vanilla does while loading glyphs, because
+		 * ({@code NativeImage.copyFromFont}, so {@code NativeImageMixin} still applies), or in
+		 * crisp mode with hard edges ({@link CrispGlyphs}), then expands it to RGBA. Locks the face as vanilla does while loading glyphs, because
 		 * glyph metrics are loaded off the render thread.
 		 */
 		@Override
@@ -112,20 +112,34 @@ final class ColorAtlasGlyph implements UnbakedGlyph {
 				if (!SystemFaces.contains(face)) {
 					return; // provider closed by a reload; vanilla would throw here
 				}
-				try (NativeImage coverage = new NativeImage(NativeImage.Format.LUMINANCE, width, height, false);
-					 NativeImage rgba = new NativeImage(NativeImage.Format.RGBA, width, height, false)) {
-					if (!coverage.copyFromFont(face, glyphIndex)) {
-						return;
+				try (NativeImage rgba = new NativeImage(NativeImage.Format.RGBA, width, height, true)) {
+					boolean rendered = SystemFaces.isCrisp(face)
+						? CrispGlyphs.render(face, glyphIndex, SystemFaces.isSyntheticBold(face), width, height, (px, py, c) -> set(rgba, px, py, c))
+						: renderSmooth(rgba, width, height);
+					if (rendered) {
+						RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, rgba, 0, 0, x, y);
 					}
-					for (int py = 0; py < height; py++) {
-						for (int px = 0; px < width; px++) {
-							int c = coverage.getLuminanceOrAlpha(px, py) & 0xFF;
-							rgba.setPixelABGR(px, py, c << 24 | c << 16 | c << 8 | c);
-						}
-					}
-					RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, rgba, 0, 0, x, y);
 				}
 			}
+		}
+
+		/** Vanilla's antialiased rendering, expanded to RGBA. */
+		private boolean renderSmooth(NativeImage rgba, int width, int height) {
+			try (NativeImage coverage = new NativeImage(NativeImage.Format.LUMINANCE, width, height, false)) {
+				if (!coverage.copyFromFont(face, glyphIndex)) {
+					return false;
+				}
+				for (int py = 0; py < height; py++) {
+					for (int px = 0; px < width; px++) {
+						set(rgba, px, py, coverage.getLuminanceOrAlpha(px, py) & 0xFF);
+					}
+				}
+				return true;
+			}
+		}
+
+		private static void set(NativeImage rgba, int x, int y, int c) {
+			rgba.setPixelABGR(x, y, c << 24 | c << 16 | c << 8 | c);
 		}
 	}
 }

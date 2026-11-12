@@ -17,6 +17,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 - Applies the font everywhere with one click, no restart.
 - Gives you 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
 - Adjusts size, sharpness and baseline offset.
+- **Crisp edges** for pixel-style fonts: hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it, with a size that keeps every pixel square.
 - Uses the game's own font renderer, so it works alongside Sodium and Iris.
 - Never copies or bundles font files: fonts are read from where your system keeps them, or from the instance's `fonts/` folder.
 - Is client-only. Servers don't need it, and server resource packs keep their custom HUD glyphs.
@@ -27,7 +28,8 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
-5. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), creating it if needed. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
+5. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
+6. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), creating it if needed. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 

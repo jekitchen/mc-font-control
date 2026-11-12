@@ -11,7 +11,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 
 /**
  * M6: in-world text with a system font: a sign, a glowing sign, a text display and a name
- * tag, screenshotted in vanilla and with a system font for side-by-side review. Run with
+ * tag, screenshotted in vanilla and with a system font for side-by-side review, then up close
+ * in crisp mode (M8). Run with
  * {@code -PwithSodiumIris} to repeat it with Sodium and Iris installed.
  */
 @SuppressWarnings("UnstableApiUsage")
@@ -38,6 +39,11 @@ public class InWorldTextGameTest implements FabricClientGameTest {
 				world.getServer().runCommand("tp @a 0.5 -60 1.2 -25 10");
 				context.waitTicks(20);
 				context.takeScreenshot("m6-world-closeup" + suffix);
+				// Crisp mode (AP-10) on signs, glow ink, text displays and name tags.
+				GameTestFonts.apply(context, GameTestFonts.settingsFor(face.get()).withCrispEdges(true));
+				world.getConnection().waitForChunksRender();
+				context.waitTicks(20);
+				context.takeScreenshot("m8-world-crisp-closeup" + suffix);
 				GameTestFonts.apply(context, FontSettings.DEFAULTS);
 			}
 		}

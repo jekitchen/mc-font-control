@@ -7,6 +7,7 @@ import java.util.Objects;
  * nested under {@code pending} while a keep-or-revert confirmation is open (PRD 5.3, 5.7).
  *
  * @param oversample rasterization oversampling; {@code 0} means automatic (the current GUI scale)
+ * @param crispEdges hard-edged glyphs for pixel-style fonts (PRD AP-10, D34)
  */
 public record FontSettings(
 	boolean enabled,
@@ -74,6 +75,36 @@ public record FontSettings(
 
 	public FontSettings withApplyToUniform(boolean value) {
 		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, value, crispEdges);
+	}
+
+	public FontSettings withCrispEdges(boolean value) {
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, value);
+	}
+
+	/**
+	 * Whether the oversample follows the GUI scale: when set to automatic, and always in crisp
+	 * mode (D34), where one glyph pixel must be exactly one screen pixel.
+	 */
+	public boolean followsGuiScale() {
+		return oversample <= 0 || crispEdges;
+	}
+
+	/** The oversample glyphs are rendered with at this GUI scale. */
+	public float renderOversample(int guiScale) {
+		return followsGuiScale() ? Math.max(1, guiScale) : oversample;
+	}
+
+	/**
+	 * A shift as rendered. In crisp mode it is rounded to whole screen pixels, because the shift
+	 * moves the outline before it is rasterized: a fraction of a pixel would make the hard edges
+	 * of a pixel font uneven.
+	 */
+	public float renderShift(float shift, int guiScale) {
+		if (!crispEdges) {
+			return shift;
+		}
+		float pixels = renderOversample(guiScale);
+		return Math.round(shift * pixels) / pixels;
 	}
 
 	/** Whether two settings render the same text: anything that changes the applied font. */

@@ -23,7 +23,7 @@ public final class FontConfig {
 	public boolean showHiddenFonts;
 	/** Previous settings while a keep-or-revert confirmation is open; set means "not confirmed". */
 	public FontSettings pending;
-	/** Reserved for crisp mode (M8); ignored until that ships. */
+	/** Hard-edged glyphs for pixel-style fonts (PRD AP-10, D34). */
 	public boolean crispEdges;
 
 	public FontSettings settings() {

@@ -29,6 +29,11 @@ final class ValueSlider extends AbstractSliderButton {
 		return Mth.clamp(Math.round(raw / step) * step, min, max);
 	}
 
+	/** Redraws the label, for when it depends on more than this slider's value. */
+	void refreshMessage() {
+		updateMessage();
+	}
+
 	@Override
 	protected void updateMessage() {
 		setMessage(label.apply(current()));

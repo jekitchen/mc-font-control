@@ -44,11 +44,13 @@ public final class PackContents {
 	 * @param servedBy the font each styled slot is drawn with: itself, or {@link FontStyleSlot#BOLD}
 	 *                 when bold italic uses the same face as bold (then vanilla adds the slant)
 	 * @param uniform  true if {@code uniform.json} uses the system font too
+	 * @param autoOversample the oversample follows the GUI scale, so a GUI-scale change reloads the font
+	 * @param crisp    glyphs are rendered with hard edges (AP-10, D34)
 	 */
-	public record Loaded(boolean active, int faceIndex, int guiScale, boolean autoOversample, boolean uniform,
+	public record Loaded(boolean active, int faceIndex, int guiScale, boolean autoOversample, boolean uniform, boolean crisp,
 		Map<Identifier, FaceSpec> files, Map<FontStyleSlot, StyledFaces.Variant> styles, Map<FontStyleSlot, FontStyleSlot> servedBy) {
 		static Loaded inactive(int guiScale) {
-			return new Loaded(false, 0, guiScale, false, false, Map.of(), Map.of(), Map.of());
+			return new Loaded(false, 0, guiScale, false, false, false, Map.of(), Map.of(), Map.of());
 		}
 	}
 
@@ -128,9 +130,11 @@ public final class PackContents {
 		if (font.moved()) {
 			warnOnce("moved:" + font.path(), "The font '" + font.family() + " " + font.style() + "' moved; using it from its new location.");
 		}
-		boolean auto = settings.oversample() <= 0;
-		float oversample = auto ? Math.max(1, guiScale) : settings.oversample();
-		String json = FontDefinitions.ttf(FONT_FILE.toString(), settings.size(), oversample, settings.shiftX(), settings.shiftY());
+		boolean auto = settings.followsGuiScale();
+		float oversample = settings.renderOversample(guiScale);
+		float shiftX = settings.renderShift(settings.shiftX(), guiScale);
+		float shiftY = settings.renderShift(settings.shiftY(), guiScale);
+		String json = FontDefinitions.ttf(FONT_FILE.toString(), settings.size(), oversample, shiftX, shiftY);
 		pack.file(FONT_FILE_RESOURCE, font.path());
 		pack.json(DEFAULT_JSON, json);
 		if (settings.applyToUniform()) {
@@ -155,11 +159,11 @@ public final class PackContents {
 				continue;
 			}
 			pack.file(slot.fileResource(), Path.of(variant.get().face().path()));
-			pack.json(slot.jsonResource(), FontDefinitions.styled(slot.file().toString(), settings.size(), oversample, settings.shiftX(), settings.shiftY()));
+			pack.json(slot.jsonResource(), FontDefinitions.styled(slot.file().toString(), settings.size(), oversample, shiftX, shiftY));
 			files.put(slot.file(), slot.spec(variant.get()));
 			servedBy.put(slot, slot);
 		}
-		loaded = new Loaded(true, font.faceIndex(), guiScale, auto, settings.applyToUniform(), Map.copyOf(files), Map.copyOf(styles), Map.copyOf(servedBy));
+		loaded = new Loaded(true, font.faceIndex(), guiScale, auto, settings.applyToUniform(), settings.crispEdges(), Map.copyOf(files), Map.copyOf(styles), Map.copyOf(servedBy));
 	}
 
 	/**

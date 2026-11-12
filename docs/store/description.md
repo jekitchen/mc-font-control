@@ -9,6 +9,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 - **One click, no restart.** Apply the font and it's used everywhere straight away.
 - **Can't get stuck.** You have 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
 - **Fine-tuning.** Adjust size, sharpness and baseline offset.
+- **Crisp pixel fonts.** Turn on **Crisp edges** and pixel-style fonts get hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it.
 - **Works with Sodium and Iris.** Fontsys uses Minecraft's own font renderer, so it works alongside them and on both OpenGL and Vulkan.
 - **Client-only.** Servers don't need it. Server resource packs keep their custom HUD icons.
 - **Your fonts stay where they are.** Fontsys reads fonts from where your system keeps them. It never copies or bundles font files, and makes no network connections.

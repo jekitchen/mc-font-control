@@ -5,6 +5,7 @@ import com.mojang.blaze3d.font.TrueTypeGlyphProvider;
 import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
+import io.github.jekitchen.fontsys.discovery.PixelGrid;
 import io.github.jekitchen.fontsys.discovery.StyledFaces;
 import io.github.jekitchen.fontsys.mixin.FontManagerAccessor;
 import io.github.jekitchen.fontsys.mixin.FontSetAccessor;
@@ -25,6 +26,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.client.Minecraft;
@@ -57,13 +59,16 @@ public final class PreviewFont implements AutoCloseable {
 	private final Map<FontStyleSlot, FontSet> styledSets;
 	private final List<GlyphProvider> owned;
 	private final Optional<StyledFaces> styles;
+	private final OptionalInt pixelGrid;
 	private final Font font;
 
-	private PreviewFont(FontSet fontSet, Map<FontStyleSlot, FontSet> styledSets, List<GlyphProvider> owned, Optional<StyledFaces> styles) {
+	private PreviewFont(FontSet fontSet, Map<FontStyleSlot, FontSet> styledSets, List<GlyphProvider> owned, Optional<StyledFaces> styles,
+		OptionalInt pixelGrid) {
 		this.fontSet = fontSet;
 		this.styledSets = styledSets;
 		this.owned = owned;
 		this.styles = styles;
+		this.pixelGrid = pixelGrid;
 		this.font = new Font(new Provider());
 	}
 
@@ -74,6 +79,11 @@ public final class PreviewFont implements AutoCloseable {
 	/** The faces bold and italic text use, if the selected face is in the font index. */
 	public Optional<StyledFaces> styles() {
 		return styles;
+	}
+
+	/** Cells per em if the selected face looks like a pixel font ({@link PixelGrid}). */
+	public OptionalInt pixelGrid() {
+		return pixelGrid;
 	}
 
 	/** True if text in this slot is drawn with its own face rather than vanilla's simulated style. */
@@ -112,13 +122,13 @@ public final class PreviewFont implements AutoCloseable {
 	 */
 	public static PreviewFont create(FontSettings settings, int guiScale) throws IOException {
 		Minecraft mc = Minecraft.getInstance();
-		float oversample = settings.oversample() <= 0 ? Math.max(1, guiScale) : settings.oversample();
 		List<GlyphProvider.Conditional> vanilla = vanillaProviders(mc);
 		List<GlyphProvider> owned = new ArrayList<>();
 		Map<FontStyleSlot, FontSet> styledSets = new EnumMap<>(FontStyleSlot.class);
 		FontSet set = null;
 		try {
-			GlyphProvider ttf = openTrueType(Path.of(settings.fontPath()), FaceSpec.plain(settings.faceIndex()), settings, oversample);
+			Opened plain = openTrueType(Path.of(settings.fontPath()), FaceSpec.plain(settings.faceIndex()), settings, guiScale, true);
+			GlyphProvider ttf = plain.provider();
 			owned.add(ttf);
 			set = fontSet(mc, ttf, vanilla);
 
@@ -136,7 +146,7 @@ public final class PreviewFont implements AutoCloseable {
 						continue;
 					}
 					try {
-						GlyphProvider styled = openTrueType(Path.of(variant.get().face().path()), slot.spec(variant.get()), settings, oversample);
+						GlyphProvider styled = openTrueType(Path.of(variant.get().face().path()), slot.spec(variant.get()), settings, guiScale, false).provider();
 						owned.add(styled);
 						styledSets.put(slot, fontSet(mc, styled, vanilla));
 					} catch (IOException e) {
@@ -145,7 +155,7 @@ public final class PreviewFont implements AutoCloseable {
 					}
 				}
 			}
-			return new PreviewFont(set, styledSets, owned, styles);
+			return new PreviewFont(set, styledSets, owned, styles, plain.pixelGrid());
 		} catch (IOException | RuntimeException e) {
 			styledSets.values().stream().distinct().forEach(FontSet::close);
 			if (set != null) {
@@ -191,8 +201,16 @@ public final class PreviewFont implements AutoCloseable {
 		return options;
 	}
 
-	/** Same steps as vanilla's {@code TrueTypeGlyphProviderDefinition.load}, but with our face index and style handling. */
-	private static GlyphProvider openTrueType(Path path, FaceSpec spec, FontSettings settings, float oversample) throws IOException {
+	private record Opened(GlyphProvider provider, OptionalInt pixelGrid) {
+	}
+
+	/**
+	 * Same steps as vanilla's {@code TrueTypeGlyphProviderDefinition.load}, but with our face
+	 * index, style handling and crisp mode, laid out as Apply would at this GUI scale.
+	 *
+	 * @param detectGrid also check whether the face looks like a pixel font
+	 */
+	private static Opened openTrueType(Path path, FaceSpec spec, FontSettings settings, int guiScale, boolean detectGrid) throws IOException {
 		ByteBuffer data = readDirect(path);
 		FT_Face face = null;
 		try {
@@ -208,8 +226,11 @@ public final class PreviewFont implements AutoCloseable {
 				if (FreeType.FT_Select_Charmap(face, FreeType.FT_ENCODING_UNICODE) != 0) {
 					throw new IOException("No Unicode character map");
 				}
-				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(data, face, settings.size(), oversample, settings.shiftX(), settings.shiftY(), "");
-				return new PrivateUseFilteringProvider(ttf, face, spec);
+				// Before the provider sets a size and transform: the check loads unscaled outlines.
+				OptionalInt grid = detectGrid ? PixelGrid.detect(face) : OptionalInt.empty();
+				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(data, face, settings.size(), settings.renderOversample(guiScale),
+					settings.renderShift(settings.shiftX(), guiScale), settings.renderShift(settings.shiftY(), guiScale), "");
+				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid);
 			}
 		} catch (IOException | RuntimeException e) {
 			if (face != null) {
