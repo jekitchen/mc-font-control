@@ -16,6 +16,9 @@
 	"entrypoints": {
 		"client": [
 			"io.github.jekitchen.mcfontcontrol.fabric.McFontControlFabric"
+		],
+		"modmenu": [
+			"io.github.jekitchen.mcfontcontrol.fabric.McFontControlModMenu"
 		]
 	},
 	"mixins": [
@@ -26,5 +29,8 @@
 		"minecraft": "~26.3",
 		"java": ">=25",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }

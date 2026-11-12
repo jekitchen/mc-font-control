@@ -12,12 +12,20 @@ base {
 
 repositories {
 	mavenCentral()
+	maven {
+		name = 'TerraformersMC'
+		url = 'https://maven.terraformersmc.com/releases/'
+		content { includeGroup 'com.terraformersmc' }
+	}
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Mod Menu: optional at runtime, only its API is compiled against (UI-1).
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
 	// Plain JUnit tests that run without the game (PRD D17).
 	testImplementation platform("org.junit:junit-bom:${project.junit_version}")

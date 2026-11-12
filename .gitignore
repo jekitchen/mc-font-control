@@ -21,6 +21,8 @@ bin/
 
 # fabric dev runs
 run/
+# game log written to the project folder by unit tests that log through Minecraft's Log4j setup
+logs/
 
 # java crash and profiling output
 hs_err_*.log
