@@ -1,24 +1,24 @@
 {
 	"schemaVersion": 1,
-	"id": "mcfontcontrol-gametest",
+	"id": "fontsys-gametest",
 	"version": "1.0.0",
-	"name": "MC Font Control game tests",
+	"name": "Fontsys game tests",
 	"license": "MIT",
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"io.github.jekitchen.mcfontcontrol.gametest.TitleScreenGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.RuntimePackGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.FaceSelectionGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.ConfigScreenGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.RobustnessGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.InWorldTextGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.StyledTextGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.MemoryGameTest",
-			"io.github.jekitchen.mcfontcontrol.gametest.ModMenuGameTest"
+			"io.github.jekitchen.fontsys.gametest.TitleScreenGameTest",
+			"io.github.jekitchen.fontsys.gametest.RuntimePackGameTest",
+			"io.github.jekitchen.fontsys.gametest.FaceSelectionGameTest",
+			"io.github.jekitchen.fontsys.gametest.ConfigScreenGameTest",
+			"io.github.jekitchen.fontsys.gametest.RobustnessGameTest",
+			"io.github.jekitchen.fontsys.gametest.InWorldTextGameTest",
+			"io.github.jekitchen.fontsys.gametest.StyledTextGameTest",
+			"io.github.jekitchen.fontsys.gametest.MemoryGameTest",
+			"io.github.jekitchen.fontsys.gametest.ModMenuGameTest"
 		]
 	},
 	"depends": {
-		"mcfontcontrol": "*"
+		"fontsys": "*"
 	}
 }

@@ -27,7 +27,7 @@ jobs:
       - name: Upload mod jar
         uses: actions/upload-artifact@v7
         with:
-          name: mcfontcontrol-jar
+          name: fontsys-jar
           path: build/libs/
       - name: Upload test reports
         if: always()
@@ -78,5 +78,5 @@ jobs:
             build/run/clientGameTest/screenshots/
             build/run/clientGameTest/logs/
             build/run/clientGameTest/crash-reports/
-            build/run/clientGameTest/config/mcfontcontrol/
+            build/run/clientGameTest/config/fontsys/
           if-no-files-found: ignore

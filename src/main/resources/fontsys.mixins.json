@@ -1,0 +1,22 @@
+{
+	"required": true,
+	"package": "io.github.jekitchen.fontsys.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"FontManagerAccessor",
+		"FontMixin",
+		"FontSetAccessor",
+		"MinecraftAccessor",
+		"MinecraftMixin",
+		"NativeImageMixin",
+		"TrueTypeGlyphProviderAccessor",
+		"TrueTypeGlyphProviderDefinitionMixin",
+		"TrueTypeGlyphProviderMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

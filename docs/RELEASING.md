@@ -1,4 +1,4 @@
-# Releasing MC Font Control
+# Releasing Fontsys
 
 Checklist for a release (PRD D15, M7). Releases need the owner's go-ahead; nothing here is automated.
 
@@ -20,16 +20,16 @@ Checklist for a release (PRD D15, M7). Releases need the owner's go-ahead; nothi
 ./gradlew clean build
 ```
 
-The release jar is `build/libs/mcfontcontrol-<version>+26.3.jar`. Don't publish the `-sources` jar as the main file.
+The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-sources` jar as the main file.
 
 ## Publish
 
 1. Tag the commit `v<version>` and create a GitHub release with the jar attached.
-2. Modrinth (primary home), project slug `mc-font-control`:
+2. Modrinth (primary home), project slug `fontsys`:
    - Loader: Fabric. Game version: 26.3. Environment: client required, server unsupported.
    - Dependencies: Fabric API (required), Mod Menu (optional).
    - Link the Modrinth page from the README.
-3. CurseForge, slug `mc-font-control`, same metadata.
+3. CurseForge, slug `fontsys`, same metadata.
 
 ## Listing copy
 

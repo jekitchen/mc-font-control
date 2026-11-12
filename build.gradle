@@ -53,7 +53,7 @@ dependencies {
 fabricApi {
 	configureTests {
 		createSourceSet = true
-		modId = "mcfontcontrol-gametest"
+		modId = "fontsys-gametest"
 		enableGameTests = false
 		enableClientGameTests = true
 		eula = true
