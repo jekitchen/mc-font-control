@@ -6,7 +6,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 |---|---|
 | [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
-| [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. Read [Icon and logo](#icon-and-logo) before using it on Modrinth. |
+| [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. |
 | [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. |
 
 ## Project details
@@ -51,7 +51,7 @@ They use Inter and Georgia when installed (Inter is free under the SIL Open Font
 ## Disclosures and policies
 
 - **Modrinth: AI disclosure.** Modrinth's [content rules](https://modrinth.com/legal/rules#generative-ai) (section 6, since August 2026) require the "Contains AI-generated content" disclosure when "a substantial portion of the project's code is a product of AI output", or when the description relies on generative AI. Both apply to Fontsys: turn on the code and text disclosures in the project's **Disclosures** tab. The same section says projects "cannot be entirely or primarily comprised of content created or derived from generative AI output"; check with Modrinth support how that applies before submitting.
-- **Modrinth: images.** Icons, gallery images and images in the description may not be "created or derived from generative AI output". The gallery screenshots are real renders of the game. The icon is a separate decision (below).
+- **Modrinth: images.** Icons, gallery images and images in the description may not be "created or derived from generative AI output". The gallery screenshots are real renders of the game. The owner approved the icon and logo for Modrinth (below).
 - **Modrinth: other disclosures.** Fontsys sends no data anywhere (no telemetry, no network calls), so no telemetry disclosure applies.
 - **CurseForge.** Its moderation guidelines ask for an original project avatar (not a blank square, not a generic game graphic) and a disclaimer on AI-modified showcase images that could misrepresent the mod. The gallery screenshots are unmodified renders.
 
@@ -61,4 +61,4 @@ They use Inter and Georgia when installed (Inter is free under the SIL Open Font
 
 `scripts/make-icon.py` draws both (Pillow, with Inter installed) and writes every file; `--preview FILE` writes a review sheet without touching them.
 
-**Modrinth:** the script was written by an AI assistant, so the icon and logo very likely count as "created or derived from generative AI output", which Modrinth's rules bar from icons and description images. Use them on CurseForge, GitHub and in the mod. For Modrinth, have a person redraw the icon (the design and colours can stay) unless Modrinth confirms it is acceptable, and keep the logo out of the Modrinth description.
+**Both stores:** the owner reviewed the icon, logo and screenshots against Modrinth's rules (section 6) and approved them for Modrinth and CurseForge (PRD D28). The AI-content disclosures above still apply.
