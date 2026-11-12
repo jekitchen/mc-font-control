@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.util.freetype.FT_Face;
+import org.lwjgl.util.freetype.FreeType;
 
 /**
  * Wraps the {@code ttf} provider vanilla opens for one of our font files.
@@ -16,6 +17,8 @@ import org.lwjgl.util.freetype.FT_Face;
  *       (PRD AP-11, D11). Done here rather than with the provider's {@code skip} list: vanilla
  *       keeps {@code skip} in a linear-lookup set and checks it for every character the font
  *       maps, which is far too slow for the ~137,000 private-use code points.</li>
+ *   <li>Wraps each glyph in a {@link ColorAtlasGlyph}, so it draws with the same pipelines as
+ *       vanilla's own font and works with shader packs (D30).</li>
  *   <li>For bold and italic faces, wraps each glyph in a {@link StyledGlyph} so vanilla doesn't
  *       simulate the style on top (AP-8, D24).</li>
  * </ul>
@@ -51,7 +54,13 @@ public final class PrivateUseFilteringProvider implements GlyphProvider {
 			return null;
 		}
 		UnbakedGlyph glyph = delegate.getGlyph(codepoint);
-		return glyph != null && spec.replacesVanillaStyle() ? new StyledGlyph(glyph, spec.providesBold(), spec.providesItalic()) : glyph;
+		if (glyph == null) {
+			return null;
+		}
+		if (face != null) {
+			glyph = new ColorAtlasGlyph(glyph, face, (int) FreeType.FT_Get_Char_Index(face, codepoint));
+		}
+		return spec.replacesVanillaStyle() ? new StyledGlyph(glyph, spec.providesBold(), spec.providesItalic()) : glyph;
 	}
 
 	@Override

@@ -7,7 +7,7 @@ Checklist for a release (PRD D15, D29). Releases need the owner's go-ahead. Push
 1. Every milestone PR is merged into `main` and CI is green, including both client game test runs (vanilla and Sodium + Iris).
 2. The manual checks in the PRD test matrix (section 9) pass on Windows 11 and macOS. Key items:
    - OpenGL and Vulkan (Options → Video → Renderer).
-   - Iris with a shader pack: signs, glow ink, text displays, name tags.
+   - Iris with a shader pack: signs, glow ink, text displays, name tags. `FONTSYS_SHADERPACK=/path/to/pack.zip ./gradlew runClientGameTest -PwithSodiumIris` automates part of this check: it loads the pack, fails if Iris has no program for a pipeline Fontsys draws with, and saves `shaderpack-*` screenshots (PRD D30).
    - A server with a custom-glyph resource pack: its HUD glyphs still show.
    - A config copied from another computer: WARN line in the log, no dialog, vanilla font.
    - The game killed during the keep-or-revert countdown: the previous font is back at the next launch.
