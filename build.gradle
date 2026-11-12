@@ -37,10 +37,11 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// Compatibility runs (PRD M6): ./gradlew runClientGameTest -PwithSodiumIris
+	// Compatibility runs (PRD M6): ./gradlew runClientGameTest -PwithSodiumIris (also adds Mod Menu)
 	if (project.hasProperty('withSodiumIris')) {
 		runtimeOnly "maven.modrinth:sodium:${project.sodium_version}"
 		runtimeOnly "maven.modrinth:iris:${project.iris_version}"
+		runtimeOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 	}
 
 	// Mods present in the production-style game test run.
@@ -57,6 +58,11 @@ fabricApi {
 		enableClientGameTests = true
 		eula = true
 	}
+}
+
+// The gametest source set exists only after configureTests above.
+dependencies {
+	gametestCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
