@@ -138,6 +138,84 @@ class SystemFontsTest {
 		assertEquals("Bold Italic", styles.boldItalic().face().style());
 	}
 
+	private static Path linuxFont(String name) {
+		return Path.of("/usr/share/fonts", name);
+	}
+
+	private static FontFamily family(String name, String... files) throws IOException {
+		List<FaceInfo> faces = new java.util.ArrayList<>();
+		for (String file : files) {
+			faces.addAll(read(linuxFont(file)));
+		}
+		return FontFamily.group(faces, false).stream().filter(f -> f.name().equals(name)).findFirst().orElseThrow();
+	}
+
+	/** D27: DejaVu Sans calls its regular face "Book" and its italics "Oblique". */
+	@Test
+	void linuxDejaVuSansStyleSlots() throws IOException {
+		FontFamily dejaVu = family("DejaVu Sans", "truetype/dejavu/DejaVuSans.ttf", "truetype/dejavu/DejaVuSans-Bold.ttf",
+			"truetype/dejavu/DejaVuSans-Oblique.ttf", "truetype/dejavu/DejaVuSans-BoldOblique.ttf");
+		assertEquals("Book", dejaVu.defaultStyle().style());
+		StyledFaces styles = StyledFaces.of(Optional.of(dejaVu), dejaVu.defaultStyle());
+		assertEquals("Bold", styles.bold().face().style());
+		assertFalse(styles.bold().syntheticBold());
+		assertEquals("Oblique", styles.italic().orElseThrow().face().style());
+		assertEquals("Bold Oblique", styles.boldItalic().face().style());
+	}
+
+	@Test
+	void linuxLiberationSansStyleSlots() throws IOException {
+		FontFamily liberation = family("Liberation Sans", "truetype/liberation/LiberationSans-Regular.ttf",
+			"truetype/liberation/LiberationSans-Bold.ttf", "truetype/liberation/LiberationSans-Italic.ttf",
+			"truetype/liberation/LiberationSans-BoldItalic.ttf");
+		StyledFaces styles = StyledFaces.of(Optional.of(liberation), liberation.defaultStyle());
+		assertEquals("Regular", liberation.defaultStyle().style());
+		assertEquals("Bold", styles.bold().face().style());
+		assertEquals("Italic", styles.italic().orElseThrow().face().style());
+		assertEquals("Bold Italic", styles.boldItalic().face().style());
+	}
+
+	/**
+	 * D27: Ubuntu ships static files and a variable font with the same style names. Each style is
+	 * listed once, and bold comes from a real face either way.
+	 */
+	@Test
+	void linuxUbuntuStaticAndVariableFacesListedOnce() throws IOException {
+		FontFamily ubuntu = family("Ubuntu", "truetype/ubuntu/Ubuntu-R.ttf", "truetype/ubuntu/Ubuntu-B.ttf",
+			"truetype/ubuntu/Ubuntu[wdth,wght].ttf");
+		assertEquals(1, ubuntu.styles().stream().filter(f -> f.style().equals("Regular")).count());
+		assertEquals(1, ubuntu.styles().stream().filter(f -> f.style().equals("Bold")).count());
+		StyledFaces styles = StyledFaces.of(Optional.of(ubuntu), ubuntu.defaultStyle());
+		assertEquals("Bold", styles.bold().face().style());
+		assertFalse(styles.bold().syntheticBold());
+	}
+
+	/** Noto Sans CJK's collection holds ten families (five regions, proportional and mono). */
+	@Test
+	void linuxReadsEveryFaceInNotoCjk() throws IOException {
+		List<FaceInfo> faces = read(linuxFont("opentype/noto/NotoSansCJK-Regular.ttc"));
+		assertEquals(10, faces.size());
+		assertTrue(faces.stream().anyMatch(f -> f.family().equals("Noto Sans CJK JP") && f.faceIndex() == 0));
+		assertTrue(faces.stream().allMatch(f -> f.visibility() == Visibility.VISIBLE));
+	}
+
+	/**
+	 * D27: URW's dingbats and Greek symbol fonts map ASCII to symbols while claiming Latin. They
+	 * are hidden as "no Latin"; URW's text fonts stay listed.
+	 */
+	@Test
+	void linuxUrwSymbolFontsAreHidden() throws IOException {
+		assertEquals(Visibility.NO_LATIN, read(linuxFont("opentype/urw-base35/D050000L.otf")).getFirst().visibility());
+		assertEquals(Visibility.NO_LATIN, read(linuxFont("opentype/urw-base35/StandardSymbolsPS.otf")).getFirst().visibility());
+		assertEquals(Visibility.VISIBLE, read(linuxFont("opentype/urw-base35/NimbusSans-Regular.otf")).getFirst().visibility());
+	}
+
+	@Test
+	void linuxColourEmojiIsHidden() throws IOException {
+		FaceInfo emoji = read(linuxFont("truetype/noto/NotoColorEmoji.ttf")).getFirst();
+		assertFalse(emoji.visibility().isShown(false));
+	}
+
 	/** Full scan of this machine's font folders, timed against the D14 target (< 5 s cold). */
 	@Test
 	void fullScanMeetsTarget() throws IOException {

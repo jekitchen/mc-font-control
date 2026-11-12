@@ -40,6 +40,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 - `./gradlew runClient` launches the game with the mod.
 - `./gradlew runClientGameTest` boots the real client and runs the game tests in `src/gametest` (screenshots land in `build/run/clientGameTest/screenshots`). Add `-PwithSodiumIris` to repeat them with Sodium and Iris. CI runs both under `xvfb-run`.
 - Measurements (font scan, memory) are written to `build/reports/measurements/`, which the worktree cleanup keeps.
+- `scripts/linux-vm.sh test` runs the build and both game-test runs in an Ubuntu VM through Multipass (Windows or macOS host); results land in `build/reports/linux-vm/`. `up`, `stop` and `down` manage the VM (PRD D27).
 - `./gradlew genSources` decompiles vanilla for API checks; the sources jar lands under `.gradle/loom-cache/minecraftMaven/`.
 
 ## Worktrees
