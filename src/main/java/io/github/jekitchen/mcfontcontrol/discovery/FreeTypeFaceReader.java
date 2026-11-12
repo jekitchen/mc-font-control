@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -23,7 +24,11 @@ import org.lwjgl.util.freetype.FreeType;
  */
 public final class FreeTypeFaceReader implements AutoCloseable {
 	private static final int MAX_FACES_PER_FILE = 256;
-	private static final int MAX_INSTANCES_PER_FACE = 256;
+	// FreeType counts named instances in 15 bits. macOS's SF Pro (SFNS.ttf) has 369 (widths x
+	// weights), so this cap only guards against corrupt files.
+	private static final int MAX_INSTANCES_PER_FACE = 1024;
+	/** How many mapped characters to sample when checking a colour font for real outlines. */
+	private static final int OUTLINE_SAMPLE = 128;
 
 	private final long library;
 
@@ -137,6 +142,11 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 		boolean italic = StyleNames.isItalic(style, (styleFlags & FreeType.FT_STYLE_FLAG_ITALIC) != 0);
 		boolean color = (faceFlags & FreeType.FT_FACE_FLAG_COLOR) != 0;
 		boolean outlines = hasTable(face, "glyf") || hasTable(face, "CFF ") || hasTable(face, "CFF2");
+		if (outlines && color && (hasTable(face, "sbix") || hasTable(face, "CBDT"))) {
+			// Bitmap colour fonts can carry a glyf table of empty placeholders (Apple Color Emoji's
+			// have two points each), so the table alone doesn't prove the font draws in grayscale.
+			outlines = hasDrawableOutlines(face);
+		}
 		String format = FreeType.FT_Get_Font_Format(face);
 		boolean renderable = "TrueType".equals(format) || "CFF".equals(format);
 
@@ -154,8 +164,43 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 			&& FreeType.FT_Get_Char_Index(face, 'a') != 0
 			&& FreeType.FT_Get_Char_Index(face, '0') != 0;
 
-		Visibility visibility = Visibility.classify(outlines, unicode, latin, color, renderable);
+		// macOS marks fonts meant only for the system with a leading dot (".SF Arabic",
+		// ".LastResort"); Font Book and the font menus never list them, and neither do we.
+		Visibility visibility = family.startsWith(".")
+			? Visibility.SYSTEM_PRIVATE
+			: Visibility.classify(outlines, unicode, latin, color, renderable);
 		return new FaceInfo(path.toString(), faceIndex, family, style, bold, italic, format == null ? "" : format, visibility);
+	}
+
+	/**
+	 * True if most of the first {@link #OUTLINE_SAMPLE} mapped, non-blank characters have an
+	 * outline that can enclose area (three or more points), ignoring embedded bitmaps. A majority
+	 * rather than any: Apple Color Emoji has real outlines only for its keycap bases (#, *, 0-9).
+	 */
+	private static boolean hasDrawableOutlines(FT_Face face) {
+		if (FreeType.FT_Select_Charmap(face, FreeType.FT_ENCODING_UNICODE) != 0) {
+			return false;
+		}
+		int drawn = 0;
+		int real = 0;
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+			IntBuffer glyph = stack.mallocInt(1);
+			long c = FreeType.FT_Get_First_Char(face, glyph);
+			for (int i = 0; i < OUTLINE_SAMPLE && glyph.get(0) != 0; i++) {
+				if (FreeType.FT_Load_Glyph(face, glyph.get(0), FreeType.FT_LOAD_NO_BITMAP | FreeType.FT_LOAD_NO_SCALE) == 0
+					&& face.glyph().format() == FreeType.FT_GLYPH_FORMAT_OUTLINE) {
+					int points = face.glyph().outline().n_points();
+					if (points > 0) {
+						drawn++;
+						if (points >= 3) {
+							real++;
+						}
+					}
+				}
+				c = FreeType.FT_Get_Next_Char(face, c, glyph);
+			}
+		}
+		return real * 2 > drawn;
 	}
 
 	private static boolean hasTable(FT_Face face, String tag) {

@@ -13,7 +13,12 @@ public enum Visibility {
 	 * Color Emoji), no Unicode character map (classic Symbol fonts such as Wingdings), or a
 	 * format FreeType can open but vanilla's provider cannot render.
 	 */
-	UNSUPPORTED(true, false);
+	UNSUPPORTED(true, false),
+	/**
+	 * Never listed: a macOS system-private font, marked by a family name starting with a dot
+	 * (".SF Arabic", ".LastResort"). macOS keeps these for its own UI and fallback.
+	 */
+	SYSTEM_PRIVATE(true, false);
 
 	private final boolean hiddenByDefault;
 	private final boolean revealable;

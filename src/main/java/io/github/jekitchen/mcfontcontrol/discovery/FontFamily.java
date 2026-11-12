@@ -65,6 +65,8 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 	/**
 	 * Groups faces into families, skipping faces that should not be shown. Duplicate
 	 * family/style pairs (the same font installed twice) keep the first one in path order.
+	 * Aliases ({@link FamilyAliases}) are added as extra families unless a real family already
+	 * has the alias's name.
 	 */
 	public static List<FontFamily> group(List<FaceInfo> faces, boolean showHidden) {
 		Map<String, Map<String, FaceInfo>> byFamily = new LinkedHashMap<>();
@@ -76,6 +78,23 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 			String key = face.family().toLowerCase(Locale.ROOT);
 			displayNames.putIfAbsent(key, face.family());
 			byFamily.computeIfAbsent(key, k -> new LinkedHashMap<>()).putIfAbsent(face.style().toLowerCase(Locale.ROOT), face);
+		}
+		for (FamilyAliases.Alias alias : FamilyAliases.ALIASES) {
+			String key = alias.alias().toLowerCase(Locale.ROOT);
+			Map<String, FaceInfo> source = byFamily.get(alias.family().toLowerCase(Locale.ROOT));
+			if (source == null || byFamily.containsKey(key)) {
+				continue;
+			}
+			Map<String, FaceInfo> aliased = new LinkedHashMap<>();
+			source.forEach((style, face) -> {
+				if (alias.matches(face)) {
+					aliased.put(style, new FaceInfo(face.path(), face.faceIndex(), alias.alias(), face.style(), face.bold(), face.italic(), face.format(), face.visibility()));
+				}
+			});
+			if (!aliased.isEmpty()) {
+				byFamily.put(key, aliased);
+				displayNames.put(key, alias.alias());
+			}
 		}
 		List<FontFamily> result = new ArrayList<>();
 		byFamily.forEach((key, styles) -> {
