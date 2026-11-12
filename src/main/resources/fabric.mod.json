@@ -8,8 +8,8 @@
 		"jekitchen"
 	],
 	"contact": {
-		"sources": "https://github.com/jekitchen/fontsys",
-		"issues": "https://github.com/jekitchen/fontsys/issues"
+		"sources": "https://github.com/jekitchen/mc-fontsys",
+		"issues": "https://github.com/jekitchen/mc-fontsys/issues"
 	},
 	"license": "MIT",
 	"environment": "client",

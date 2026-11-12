@@ -20,7 +20,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 | Display name | Fontsys |
 | Java package / Maven group | `io.github.jekitchen.fontsys` |
 | Modrinth / CurseForge slug | `fontsys` |
-| GitHub repository | `jekitchen/fontsys` (renamed from `mc-font-control`; PRD D26) |
+| GitHub repository | `jekitchen/mc-fontsys` (renamed from `mc-font-control`; PRD D26) |
 | Config file | `config/fontsys.json` |
 | Lang file | `assets/fontsys/lang/en_us.json` |
 
