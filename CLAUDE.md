@@ -1,6 +1,6 @@
-# MC Font Control — instructions for Claude
+# Fontsys — instructions for Claude
 
-You are the lead engineer on **MC Font Control**, a client-side Minecraft: Java Edition mod (26.3+, Fabric first) that lets the player pick any font installed on their computer and uses it everywhere the game draws text. The owner is Jim Kitchen: an experienced product and technology executive, not a full-time Java modder.
+You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition mod (26.3+, Fabric first) that lets the player pick any font installed on their computer and uses it everywhere the game draws text. The owner is Jim Kitchen: an experienced product and technology executive, not a full-time Java modder.
 
 ## Source of truth
 
@@ -16,12 +16,13 @@ You are the lead engineer on **MC Font Control**, a client-side Minecraft: Java 
 
 | | |
 |---|---|
-| Mod ID | `mcfontcontrol` |
-| Display name | MC Font Control |
-| Java package / Maven group | `io.github.jekitchen.mcfontcontrol` |
-| Modrinth / CurseForge slug | `mc-font-control` |
-| Config file | `config/mcfontcontrol.json` |
-| Lang file | `assets/mcfontcontrol/lang/en_us.json` |
+| Mod ID | `fontsys` |
+| Display name | Fontsys |
+| Java package / Maven group | `io.github.jekitchen.fontsys` |
+| Modrinth / CurseForge slug | `fontsys` |
+| GitHub repository | `jekitchen/mc-fontsys` (renamed from `mc-font-control`; PRD D26) |
+| Config file | `config/fontsys.json` |
+| Lang file | `assets/fontsys/lang/en_us.json` |
 
 ## How to work
 

@@ -1,28 +1,28 @@
 {
 	"schemaVersion": 1,
-	"id": "mcfontcontrol",
+	"id": "fontsys",
 	"version": "${version}",
-	"name": "MC Font Control",
+	"name": "Fontsys",
 	"description": "Use any font installed on your computer for all in-game text.",
 	"authors": [
 		"jekitchen"
 	],
 	"contact": {
-		"sources": "https://github.com/jekitchen/mc-font-control",
-		"issues": "https://github.com/jekitchen/mc-font-control/issues"
+		"sources": "https://github.com/jekitchen/mc-fontsys",
+		"issues": "https://github.com/jekitchen/mc-fontsys/issues"
 	},
 	"license": "MIT",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
-			"io.github.jekitchen.mcfontcontrol.fabric.McFontControlFabric"
+			"io.github.jekitchen.fontsys.fabric.FontsysFabric"
 		],
 		"modmenu": [
-			"io.github.jekitchen.mcfontcontrol.fabric.McFontControlModMenu"
+			"io.github.jekitchen.fontsys.fabric.FontsysModMenu"
 		]
 	},
 	"mixins": [
-		"mcfontcontrol.mixins.json"
+		"fontsys.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.20.1",

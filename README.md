@@ -1,4 +1,4 @@
-# MC Font Control
+# Fontsys
 
 A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any font installed on your computer and uses it everywhere the game draws text: menus, HUD, chat, tooltips, signs, books, name tags and text displays.
 
@@ -20,14 +20,14 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 
 ## Using it
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the MC Font Control jar into `mods/`.
-2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → MC Font Control.
+1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`.
+2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
 
-Debug commands: `/mcfontcontrol fonts [filter]` lists discovered families; `/mcfontcontrol rescan` rescans.
+Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 
-Settings are stored in `config/mcfontcontrol.json`. The font list cache is `config/mcfontcontrol/font-index.json`.
+Settings are stored in `config/fontsys.json`. The font list cache is `config/fontsys/font-index.json`.
 
 ## Supported systems
 
@@ -46,8 +46,8 @@ Settings are stored in `config/mcfontcontrol.json`. The font list cache is `conf
 - **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.
 - **Text far away in the world** (signs, name tags) can look thin or broken at a distance. Minecraft's glyph atlas has no mipmaps; built-in TrueType fonts behave the same.
 - **Large text sizes** can be clipped in tight UI spots such as buttons and the scoreboard. Lower the size if that happens.
-- **Other font mods:** if Caxton, Font, FontSwap or Modern UI is installed, MC Font Control turns itself off and tells you, rather than fighting over the font.
-- **Copied configs:** a config written on another computer, OS or user account is set aside as `mcfontcontrol.json.bak`, and the mod starts from the vanilla font.
+- **Other font mods:** if Caxton, Font, FontSwap or Modern UI is installed, Fontsys turns itself off and tells you, rather than fighting over the font.
+- **Copied configs:** a config written on another computer, OS or user account is set aside as `fontsys.json.bak`, and the mod starts from the vanilla font.
 
 ## Building
 
@@ -65,4 +65,4 @@ Game test screenshots land in `build/run/clientGameTest/screenshots/`. Performan
 
 ## Credits
 
-MC Font Control uses Minecraft's own FreeType-based font provider. Prior art studied for this project: Caxton and SAH TTF Sign Fix (MIT). No code from GPL projects is included.
+Fontsys uses Minecraft's own FreeType-based font provider. Prior art studied for this project: Caxton and SAH TTF Sign Fix (MIT). No code from GPL projects is included.
