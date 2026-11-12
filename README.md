@@ -4,8 +4,8 @@
 
 A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any font installed on your computer and uses it everywhere the game draws text: menus, HUD, chat, tooltips, signs, books, name tags and text displays.
 
-- **Status:** in development, not yet released. Requirements and decisions live in the [PRD](docs/PRD.md).
-- **Downloads:** Modrinth (primary) and CurseForge, once released.
+- **Status:** 1.0.0 for Minecraft 26.3. See the [changelog](CHANGELOG.md); requirements and decisions live in the [PRD](docs/PRD.md).
+- **Downloads:** [Modrinth](https://modrinth.com/mod/fontsys) (primary) and [CurseForge](https://www.curseforge.com/minecraft/mc-mods/fontsys).
 - **Licence:** [MIT](LICENSE).
 
 ## Features
