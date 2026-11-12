@@ -7,6 +7,7 @@ Writes:
   docs/store/icon/icon-512.png, icon-400.png (CurseForge avatar), icon-128.png
   src/main/resources/assets/fontsys/icon.png   (128 px, shown by Mod Menu)
   docs/store/logo/fontsys-logo.png             (1280x320, "Font" and "sys" side by side)
+  docs/store/logo/fontsys-social.png           (1280x640, GitHub social preview)
 With --preview, writes only FILE: the icon at 512, 128, 64 and 32 px above the logo.
 Needs Pillow and the Inter variable font (found in the usual font folders, or pass --inter).
 """
@@ -164,6 +165,34 @@ def draw_logo(font_path):
     return clip(img, mask).resize((1280, 320), Image.LANCZOS)
 
 
+SOCIAL_TAGLINE = "Any font on your computer, everywhere Minecraft draws text."
+SOCIAL_DETAILS = "Minecraft: Java Edition 26.3+  ·  Windows, macOS & Linux  ·  Fabric"
+SOCIAL_MUTED = (150, 164, 188)
+
+
+def draw_social(font_path):
+    """GitHub social preview, 1280x640: the logo's wordmark with a tagline, on a full-bleed
+    background (GitHub rounds and crops the corners itself). Everything that matters stays
+    inside GitHub's recommended 80 px safe border."""
+    s = SS
+    width, height = 1280 * s, 640 * s
+    img = vertical_gradient((width, height), *BACKGROUND).convert("RGBA")
+    cell = 24 * s
+    baseline = 316 * s
+    x_height = inter(font_path, 1000).getbbox("x", anchor="ls")
+    font = inter(font_path, round(5 * cell * 1000 / -x_height[1]))
+    left, _, right, _ = font.getbbox("sys", anchor="ls")
+    gap = 2 * cell
+    total = pixel_width(cell) + gap + (right - left)
+    x = (width - total) // 2
+    draw_pixel_font(img, x, baseline - ROWS * cell, cell)
+    draw_smooth(img, "sys", font, x + pixel_width(cell) + gap - left, baseline)
+    draw = ImageDraw.Draw(img)
+    draw.text((width // 2, 448 * s), SOCIAL_TAGLINE, font=inter(font_path, 38 * s, 600), fill=PIXEL_COLOUR, anchor="ms")
+    draw.text((width // 2, 506 * s), SOCIAL_DETAILS, font=inter(font_path, 28 * s, 500), fill=SOCIAL_MUTED, anchor="ms")
+    return img.resize((1280, 640), Image.LANCZOS)
+
+
 def preview(icon, logo, path):
     sheet = Image.new("RGBA", (1280, 512 + 40 + 320), (240, 240, 240, 255))
     sheet.paste(icon, (0, 0), icon)
@@ -184,6 +213,7 @@ def main():
     font_path = inter_path(args.inter)
     icon = draw_icon(font_path)
     logo = draw_logo(font_path)
+    social = draw_social(font_path)
     if args.preview:
         preview(icon, logo, args.preview)
         print("Wrote", args.preview)
@@ -196,6 +226,7 @@ def main():
     logos = ROOT / "docs/store/logo"
     logos.mkdir(parents=True, exist_ok=True)
     logo.save(logos / "fontsys-logo.png", optimize=True)
+    social.convert("RGB").save(logos / "fontsys-social.png", optimize=True)
     print("Wrote docs/store/icon, docs/store/logo and src/main/resources/assets/fontsys/icon.png")
 
 
