@@ -2,13 +2,6 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
-## [1.2.0] - unreleased
-
-### Changed
-
-- **Fuller, cleaner text.** The smooth edges of letters are now blended by how much of each pixel the letter covers. Before, edges were dimmed twice, so light text on dark backgrounds (most menus, chat and the HUD) looked thin and grey around the edges.
-- **Thinner text shadow.** With a smooth font, the drop shadow now sits half as far from the text, in whole screen pixels, so letters no longer look doubled at high GUI scales. Crisp edges keeps Minecraft's classic shadow. Glowing sign outlines get thinner in the same way.
-
 ## [1.1.0] - unreleased
 
 ### Added
@@ -21,6 +14,8 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 
 ### Changed
 
+- **Fuller, cleaner text.** The smooth edges of letters are now blended by how much of each pixel the letter covers. Before, edges were dimmed twice, so light text on dark backgrounds (most menus, chat and the HUD) looked thin and grey around the edges.
+- **Thinner text shadow.** With a smooth font, the drop shadow now sits half as far from the text, in whole screen pixels, so letters no longer look doubled at high GUI scales. Crisp edges keeps Minecraft's classic shadow. Glowing sign outlines get thinner in the same way.
 - A config copied from another computer is kept if its font is in the instance's `fonts/` folder, since that font travels with the instance. Other copied configs still reset to the vanilla font.
 - The **Also replace the Unicode font** checkbox is now **Replace Unicode font**, with the full explanation in its tooltip, to make room for Crisp edges.
 - Long font names in the list are shortened with "…" instead of running under the **Instance** and hidden-font tags.
