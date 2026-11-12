@@ -50,6 +50,8 @@ public final class FontConfigScreen extends Screen {
 
 	/** What Apply will apply. Starts as the applied settings. */
 	private FontSettings draft;
+	/** The draft when the screen opened or Apply / Reset was last pressed: Done asks about anything since (UI-13). */
+	private FontSettings baseline;
 	private String search = "";
 	private int seenGeneration = -1;
 
@@ -74,6 +76,7 @@ public final class FontConfigScreen extends Screen {
 		super(Component.translatable("fontsys.screen.title"));
 		this.parent = parent;
 		this.draft = controller.appliedSettings();
+		this.baseline = draft;
 		// Pick up fonts added since the last scan, e.g. to the instance's fonts folder (FD-14).
 		index.scan();
 	}
@@ -281,23 +284,48 @@ public final class FontConfigScreen extends Screen {
 			return;
 		}
 		closePreview();
+		baseline = draft;
 		controller.applyWithConfirmation(draft.withEnabled(true), this);
 	}
 
 	private void resetToVanilla() {
 		closePreview();
 		draft = draft.withEnabled(false);
+		baseline = draft;
 		controller.applyWithConfirmation(controller.appliedSettings().withEnabled(false), this);
+	}
+
+	/** Whether Apply would change the game's font. */
+	private boolean canApply() {
+		return draft.fontPath() != null && !controller.stepAside() && !controller.appliedSettings().sameRendering(draft.withEnabled(true));
+	}
+
+	/**
+	 * Whether closing the screen should ask first (UI-13): the settings changed since the screen
+	 * opened or Apply was last pressed, and Apply would change the font.
+	 */
+	public boolean hasUnappliedChanges() {
+		return !draft.equals(baseline) && canApply();
+	}
+
+	/** "Apply" in {@link UnappliedChangesScreen}: applies, and the keep-or-revert dialog then leaves the settings. */
+	void applyAndClose() {
+		closePreview();
+		baseline = draft;
+		controller.applyWithConfirmation(draft.withEnabled(true), parent);
+	}
+
+	/** "Discard changes" in {@link UnappliedChangesScreen}: leaves; the applied font is untouched. */
+	void discardAndClose() {
+		minecraft.gui.setScreen(parent);
 	}
 
 	private void updateButtons() {
 		if (applyButton == null) {
 			return;
 		}
-		boolean hasFont = draft.fontPath() != null;
-		FontSettings applied = controller.appliedSettings();
-		applyButton.active = hasFont && !controller.stepAside() && !applied.sameRendering(draft.withEnabled(true));
-		resetButton.active = applied.isActive();
+		applyButton.active = canApply();
+		resetButton.active = controller.appliedSettings().isActive();
 		FontFamily family = selectedFamily();
 		boolean manyStyles = family != null && family.styles().size() > 1;
 		prevStyle.active = manyStyles;
@@ -356,9 +384,10 @@ public final class FontConfigScreen extends Screen {
 		previewDirty = true;
 	}
 
+	/** Done and Esc: asks first if there are changes that haven't been applied (UI-13). */
 	@Override
 	public void onClose() {
-		minecraft.gui.setScreen(parent);
+		minecraft.gui.setScreen(hasUnappliedChanges() ? new UnappliedChangesScreen(this) : parent);
 	}
 
 	// ---- Drawing -------------------------------------------------------------------------------
