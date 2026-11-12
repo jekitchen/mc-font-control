@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Where each OS keeps installed fonts (PRD FD-1, FD-2). */
+/** Where each OS keeps installed fonts (PRD FD-1, FD-2, FD-9, FD-10). */
 public final class FontDirectories {
 	private FontDirectories() {
 	}
@@ -32,11 +32,39 @@ public final class FontDirectories {
 				dirs.add(Path.of("/Library/Fonts"));
 				dirs.add(userHome.resolve("Library").resolve("Fonts"));
 			}
-			case LINUX, OTHER -> {
-				// Linux folders arrive with M5L (FD-9, FD-10).
+			case LINUX -> {
+				// FD-9: standard folders, walked recursively; the walker follows symlinks without looping.
+				String dataHome = env.get("XDG_DATA_HOME");
+				Path userData = dataHome != null && !dataHome.isBlank() ? Path.of(dataHome) : userHome.resolve(".local").resolve("share");
+				dirs.add(userData.resolve("fonts"));
+				dirs.add(userHome.resolve(".fonts"));
+				dirs.add(Path.of("/usr/local/share/fonts"));
+				dirs.add(Path.of("/usr/share/fonts"));
+				// FD-10: Flatpak exposes the host's fonts here.
+				if (isFlatpak(env)) {
+					dirs.add(Path.of("/run/host/fonts"));
+					dirs.add(Path.of("/run/host/user-fonts"));
+					dirs.add(Path.of("/run/host/local-fonts"));
+				}
+			}
+			case OTHER -> {
+				// Unknown OS: nothing to scan; the UI explains (FD-7).
 			}
 		}
 		return List.copyOf(dirs);
+	}
+
+	/** Running inside a Flatpak sandbox (FD-10). */
+	public static boolean isFlatpak(Map<String, String> env) {
+		return env.containsKey("FLATPAK_ID") || java.nio.file.Files.exists(Path.of("/.flatpak-info"));
+	}
+
+	/** Inside Flatpak with no host font folder visible: the UI says why the list is short (FD-10). */
+	public static boolean flatpakWithoutHostFonts() {
+		Map<String, String> env = System.getenv();
+		return OsFamily.current() == OsFamily.LINUX && isFlatpak(env)
+			&& !java.nio.file.Files.isDirectory(Path.of("/run/host/fonts"))
+			&& !java.nio.file.Files.isDirectory(Path.of("/run/host/user-fonts"));
 	}
 
 	public static List<Path> forCurrentSystem() {

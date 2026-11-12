@@ -302,7 +302,13 @@ public final class FontConfigScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		graphics.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
 		extractPreview(graphics);
-		graphics.text(font, status(), MARGIN + list.getWidth() + MARGIN, height - 40, 0xFFA0A0A0, false);
+		if (list.children().isEmpty()) {
+			// Empty list: explain why, wrapped inside the list area (FD-7, FD-10).
+			Component why = search.isBlank() ? status() : Component.translatable("mcfontcontrol.screen.no_match", search);
+			graphics.textWithWordWrap(font, why, list.getX() + 6, list.getY() + 6, list.getWidth() - 12, 0xFFA0A0A0);
+		} else {
+			graphics.text(font, status(), MARGIN + list.getWidth() + MARGIN, height - 40, 0xFFA0A0A0, false);
+		}
 	}
 
 	private void extractPreview(GuiGraphicsExtractor graphics) {
@@ -353,6 +359,9 @@ public final class FontConfigScreen extends Screen {
 		}
 		if (index.state() == SystemFontIndex.State.SCANNING) {
 			return Component.translatable("mcfontcontrol.status.scanning");
+		}
+		if (index.families(true).isEmpty() && io.github.jekitchen.mcfontcontrol.discovery.FontDirectories.flatpakWithoutHostFonts()) {
+			return Component.translatable("mcfontcontrol.status.flatpak");
 		}
 		if (index.state() == SystemFontIndex.State.FAILED || index.families(true).isEmpty()) {
 			return Component.translatable("mcfontcontrol.status.no_fonts");

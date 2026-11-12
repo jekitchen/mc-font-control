@@ -43,6 +43,33 @@ class DiscoveryTest {
 	}
 
 	@Test
+	void linuxDirectories() {
+		List<Path> dirs = FontDirectories.forOs(OsFamily.LINUX, Map.of(), Path.of("/home/p"));
+		assertTrue(dirs.contains(Path.of("/home/p/.local/share/fonts")));
+		assertTrue(dirs.contains(Path.of("/home/p/.fonts")));
+		assertTrue(dirs.contains(Path.of("/usr/share/fonts")));
+		assertTrue(dirs.contains(Path.of("/usr/local/share/fonts")));
+		List<Path> xdg = FontDirectories.forOs(OsFamily.LINUX, Map.of("XDG_DATA_HOME", "/data"), Path.of("/home/p"));
+		assertTrue(xdg.contains(Path.of("/data/fonts")));
+		List<Path> flatpak = FontDirectories.forOs(OsFamily.LINUX, Map.of("FLATPAK_ID", "org.prismlauncher.PrismLauncher"), Path.of("/home/p"));
+		assertTrue(flatpak.contains(Path.of("/run/host/fonts")));
+	}
+
+	@Test
+	void walkerSurvivesSymlinkLoops(@TempDir Path dir) throws IOException {
+		Path fonts = Files.createDirectories(dir.resolve("fonts/sub"));
+		Files.writeString(fonts.resolve("a.ttf"), "x");
+		try {
+			Files.createSymbolicLink(fonts.resolve("loop"), dir.resolve("fonts"));
+			Files.createSymbolicLink(dir.resolve("fonts/alias.ttf"), fonts.resolve("a.ttf"));
+		} catch (IOException | UnsupportedOperationException | SecurityException e) {
+			org.junit.jupiter.api.Assumptions.assumeTrue(false, "symlinks not permitted here");
+		}
+		List<Path> found = FontFileWalker.find(List.of(dir.resolve("fonts")));
+		assertEquals(1, found.size(), "loop followed once and alias de-duplicated: " + found);
+	}
+
+	@Test
 	void unknownOsHasNoDirectories() {
 		assertTrue(FontDirectories.forOs(OsFamily.OTHER, Map.of(), Path.of("/home/p")).isEmpty());
 	}
