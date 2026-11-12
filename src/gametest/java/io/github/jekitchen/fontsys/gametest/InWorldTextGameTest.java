@@ -45,7 +45,7 @@ public class InWorldTextGameTest implements FabricClientGameTest {
 	}
 
 	/** A sign, a glowing sign, a text display and a named pig in front of the player at (0.5, -60, -2.5). */
-	private static void buildScene(TestSingleplayerContext world) {
+	static void buildScene(TestSingleplayerContext world) {
 		var server = world.getServer();
 		server.runCommand("time set noon");
 		server.runCommand("weather clear");

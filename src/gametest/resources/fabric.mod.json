@@ -15,7 +15,8 @@
 			"io.github.jekitchen.fontsys.gametest.InWorldTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.StyledTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.MemoryGameTest",
-			"io.github.jekitchen.fontsys.gametest.ModMenuGameTest"
+			"io.github.jekitchen.fontsys.gametest.ModMenuGameTest",
+			"io.github.jekitchen.fontsys.gametest.StoreScreenshotsGameTest"
 		]
 	},
 	"depends": {
