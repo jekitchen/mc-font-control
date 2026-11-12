@@ -6,7 +6,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 |---|---|
 | [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
-| Icon | **Not included yet** (see [Icon](#icon) below). |
+| [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. Read [Icon](#icon) before using it on Modrinth. |
 
 ## Project details
 
@@ -56,10 +56,8 @@ They use Inter and Georgia when installed (Inter is free under the SIL Open Font
 
 ## Icon
 
-Both sites need a square icon: CurseForge crops and resizes its avatar to 400×400; Modrinth shows icons small, so keep it simple and legible at 64×64. The same image can go into the mod jar (`assets/fontsys/icon.png`, referenced from `fabric.mod.json`) so Mod Menu shows it.
+"Aa": a blocky pixel "A" with Minecraft's hard drop shadow next to a smooth "a" in Inter. The pixel "A" is drawn for this icon, not taken from Minecraft's font; Inter is under the SIL Open Font License, which allows its use in a logo. It is legible down to 32×32. The same image, at 128×128, is the mod's own icon (`assets/fontsys/icon.png`, shown by Mod Menu).
 
-Because of Modrinth's rule on AI-created images, the icon should be made by a person. Brief:
+`scripts/make-icon.py` draws it (Pillow, with Inter installed) and writes every size; edit the script to change it.
 
-- 512×512 PNG, transparent or solid background, no text other than letterforms.
-- Idea: the letters "Aa" where the "A" is blocky, Minecraft-style pixels and the "a" is a smooth, modern letterform: Minecraft text, upgraded.
-- If it uses a typeface, use one whose licence allows logos (for example an SIL Open Font License font such as Inter).
+**Modrinth:** the script was written by an AI assistant, so the icon very likely counts as "created or derived from generative AI output", which Modrinth's rules bar from icons. Use it on CurseForge, GitHub and in the mod; for Modrinth, have a person redraw it (the concept and colours can stay) unless Modrinth confirms it is acceptable.
