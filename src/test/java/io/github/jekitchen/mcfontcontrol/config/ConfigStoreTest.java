@@ -1,0 +1,105 @@
+package io.github.jekitchen.mcfontcontrol.config;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+/** Config load, save, migration and backup (PRD 5.3, D16). */
+class ConfigStoreTest {
+	@Test
+	void missingFileGivesDisabledDefaults(@TempDir Path dir) {
+		ConfigStore.LoadResult r = new ConfigStore(dir.resolve("mcfontcontrol.json")).load();
+		assertFalse(r.config().enabled);
+		assertFalse(r.config().settings().isActive());
+		assertTrue(r.warnings().isEmpty());
+		assertFalse(r.reset());
+	}
+
+	@Test
+	void roundTrip(@TempDir Path dir) throws IOException {
+		ConfigStore store = new ConfigStore(dir.resolve("mcfontcontrol.json"));
+		FontConfig config = FontConfig.defaults();
+		config.setSettings(FontSettings.DEFAULTS.withEnabled(true).withFont("/fonts/a.ttc", (2 << 16) | 1, "Avenir Next", "Medium").withLayout(11, 3, 0.5F, -1));
+		config.showHiddenFonts = true;
+		config.pending = FontSettings.DEFAULTS;
+		config.systemFingerprint = "abc";
+		store.save(config);
+
+		FontConfig loaded = store.load().config();
+		assertEquals(config.settings(), loaded.settings());
+		assertTrue(loaded.showHiddenFonts);
+		assertEquals(FontSettings.DEFAULTS, loaded.pending);
+		assertEquals("abc", loaded.systemFingerprint);
+		assertEquals(FontConfig.CURRENT_VERSION, loaded.configVersion);
+	}
+
+	@Test
+	void corruptFileIsBackedUpAndReset(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("mcfontcontrol.json"), "{ \"enabled\": tru");
+		ConfigStore store = new ConfigStore(file);
+		ConfigStore.LoadResult r = store.load();
+		assertTrue(r.reset());
+		assertEquals(1, r.warnings().size());
+		assertFalse(r.config().enabled);
+		assertFalse(Files.exists(file));
+		assertEquals("{ \"enabled\": tru", Files.readString(store.backupFile()));
+	}
+
+	@Test
+	void newerVersionIsTreatedAsUnreadable(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("mcfontcontrol.json"), "{\"configVersion\": 99, \"enabled\": true, \"fontPath\": \"/f.ttf\"}");
+		ConfigStore.LoadResult r = new ConfigStore(file).load();
+		assertTrue(r.reset());
+		assertTrue(r.warnings().getFirst().contains("newer"));
+		assertFalse(r.config().enabled);
+	}
+
+	@Test
+	void unknownFieldsIgnoredAndMissingFieldsDefault(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("mcfontcontrol.json"), "{\"enabled\": true, \"fontPath\": \"/f.ttf\", \"futureThing\": [1,2]}");
+		ConfigStore.LoadResult r = new ConfigStore(file).load();
+		assertFalse(r.reset());
+		FontSettings s = r.config().settings();
+		assertTrue(s.isActive());
+		assertEquals(FontSettings.DEFAULT_SIZE, s.size());
+		assertEquals(FontSettings.AUTO_OVERSAMPLE, s.oversample());
+		assertNull(r.config().pending);
+		assertEquals(FontConfig.CURRENT_VERSION, r.config().configVersion);
+	}
+
+	@Test
+	void wrongTypesAreUnreadable(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("mcfontcontrol.json"), "[1, 2, 3]");
+		assertTrue(new ConfigStore(file).load().reset());
+		Path file2 = Files.writeString(dir.resolve("b.json"), "{\"size\": \"big\"}");
+		assertTrue(new ConfigStore(file2).load().reset());
+	}
+
+	@Test
+	void settingsAreClamped() {
+		FontSettings s = new FontSettings(true, "/f.ttf", -5, "F", "R", 99, 50, Float.NaN, -100, false, false).sanitized();
+		assertEquals(0, s.faceIndex());
+		assertEquals(FontSettings.MAX_SIZE, s.size());
+		assertEquals(FontSettings.MAX_OVERSAMPLE, s.oversample());
+		assertEquals(0, s.shiftX());
+		assertEquals(-FontSettings.MAX_SHIFT, s.shiftY());
+		assertEquals(FontSettings.AUTO_OVERSAMPLE, new FontSettings(true, "/f", 0, null, null, 10, -3, 0, 0, false, false).sanitized().oversample());
+	}
+
+	@Test
+	void sameRendering() {
+		FontSettings a = FontSettings.DEFAULTS.withEnabled(true).withFont("/a.ttf", 0, "A", "Regular");
+		assertTrue(a.sameRendering(a.withFont("/a.ttf", 0, "Renamed", "Style")));
+		assertFalse(a.sameRendering(a.withLayout(12, 0, 0, 0)));
+		assertFalse(a.sameRendering(a.withEnabled(false)));
+		// Two disabled configurations both render vanilla.
+		assertTrue(FontSettings.DEFAULTS.sameRendering(a.withEnabled(false)));
+	}
+}
