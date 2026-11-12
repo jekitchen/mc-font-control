@@ -1,6 +1,6 @@
 # Builds the release jar when a version tag is pushed and attaches it to a draft GitHub
-# release (PRD D29). The owner reviews and publishes the draft; Modrinth and CurseForge
-# uploads stay manual (docs/RELEASING.md).
+# release (PRD D29). The owner reviews and publishes the draft; publishing it runs the
+# publish workflow, which uploads the jar to Modrinth and CurseForge (D31).
 name: release
 on:
   push:

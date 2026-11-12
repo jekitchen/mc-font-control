@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest something Fontsys should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fontsys aims to stay small: pick an installed font and use it everywhere, with nothing to set up.
+        Ideas that keep it simple have the best chance; per-screen fonts, colour themes and font packs are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem or situation, not just the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+    validations:
+      required: true

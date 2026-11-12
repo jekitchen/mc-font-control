@@ -1,0 +1,96 @@
+# Uploads a release's jar to Modrinth and CurseForge when the owner publishes the GitHub
+# release that the release workflow drafted (PRD D31). The draft review stays the gate:
+# nothing reaches the stores until it is published on GitHub.
+#
+# Setup (repository settings → Secrets and variables → Actions):
+#   variables MODRINTH_PROJECT_ID, CURSEFORGE_PROJECT_ID   (project IDs, not slugs)
+#   secrets   MODRINTH_TOKEN, CURSEFORGE_TOKEN
+# A store whose project ID variable is empty is skipped.
+#
+# To retry a failed upload: Actions → publish → Run workflow, with the tag (e.g. v1.0.1).
+name: publish
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v1.0.1
+        required: true
+      stores:
+        description: Which stores
+        type: choice
+        options: [both, modrinth, curseforge]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      STORES: ${{ inputs.stores || 'both' }}
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.TAG }}
+      # The jar comes from the GitHub release, so the stores get exactly the reviewed file.
+      - name: Download the release jar and notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/^mod_version=//p' gradle.properties)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match mod_version=$version"
+            exit 1
+          fi
+          mkdir dist
+          gh release download "$TAG" --dir dist --pattern 'fontsys-*.jar'
+          rm -f dist/*-sources.jar
+          test "$(ls dist/*.jar | wc -l)" -eq 1 || { echo "::error::Expected one jar on release $TAG"; ls dist; exit 1; }
+          gh release view "$TAG" --json body --jq .body > release-notes.md
+          jar=$(ls dist/*.jar)
+          echo "JAR=$jar" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          # Version number on the stores: the jar's own version, e.g. 1.0.1+26.3.
+          echo "FULL_VERSION=$(basename "$jar" .jar | sed 's/^fontsys-//')" >> "$GITHUB_ENV"
+          # Minecraft versions the jar is listed for, from gradle.properties.
+          echo "GAME_VERSIONS=$(sed -n 's/^publish_game_versions=//p' gradle.properties | tr -d '\r')" >> "$GITHUB_ENV"
+      - name: Modrinth
+        if: vars.MODRINTH_PROJECT_ID != '' && env.STORES != 'curseforge'
+        # mc-publish v3.3.2, pinned to its commit.
+        uses: Kir-Antipov/mc-publish@c23376546a97f5ba7984e94445da359459b14419
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: ${{ env.JAR }}
+          name: Fontsys ${{ env.VERSION }}
+          version: ${{ env.FULL_VERSION }}
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: ${{ env.GAME_VERSIONS }}
+          java: 25
+          dependencies: |
+            fabric-api(required)
+            modmenu(optional)
+      - name: CurseForge
+        if: vars.CURSEFORGE_PROJECT_ID != '' && env.STORES != 'modrinth'
+        uses: Kir-Antipov/mc-publish@c23376546a97f5ba7984e94445da359459b14419
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: ${{ env.JAR }}
+          name: Fontsys ${{ env.VERSION }}
+          version: ${{ env.FULL_VERSION }}
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: fabric
+          game-versions: ${{ env.GAME_VERSIONS }}
+          java: 25
+          dependencies: |
+            fabric-api(required)
+            modmenu(optional)
