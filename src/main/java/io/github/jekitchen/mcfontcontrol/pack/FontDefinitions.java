@@ -17,6 +17,20 @@ public final class FontDefinitions {
 
 	/** One {@code ttf} provider. {@code fileId} is relative to {@code font/}. */
 	public static String ttf(String fileId, float size, float oversample, float shiftX, float shiftY) {
+		return wrap(ttfProvider(fileId, size, oversample, shiftX, shiftY));
+	}
+
+	/**
+	 * A bold or italic font ({@code mcfontcontrol:bold} and so on, AP-8): the styled face, then
+	 * the same vanilla providers as {@code default.json}. It is a font of its own rather than an
+	 * override, so vanilla's providers must be listed here for missing glyphs to fall back.
+	 */
+	public static String styled(String fileId, float size, float oversample, float shiftX, float shiftY) {
+		return wrap(ttfProvider(fileId, size, oversample, shiftX, shiftY), reference("minecraft:include/space"),
+			vanillaBitmap(), reference("minecraft:include/unifont"));
+	}
+
+	private static JsonObject ttfProvider(String fileId, float size, float oversample, float shiftX, float shiftY) {
 		JsonObject provider = new JsonObject();
 		provider.addProperty("type", "ttf");
 		provider.addProperty("file", fileId);
@@ -26,7 +40,7 @@ public final class FontDefinitions {
 		shift.add(shiftX);
 		shift.add(shiftY);
 		provider.add("shift", shift);
-		return wrap(provider);
+		return provider;
 	}
 
 	/**
@@ -35,13 +49,16 @@ public final class FontDefinitions {
 	 * vanilla font whatever is applied (used by the keep-or-revert dialog, D13).
 	 */
 	public static String vanillaCopy() {
-		JsonObject space = reference("minecraft:include/space");
+		return wrap(reference("minecraft:include/space"), vanillaBitmap(), reference("minecraft:include/unifont"));
+	}
+
+	/** Vanilla's bitmap glyphs, skipped when "Force Unicode Font" is on, as in vanilla's {@code default.json}. */
+	private static JsonObject vanillaBitmap() {
 		JsonObject bitmap = reference("minecraft:include/default");
 		JsonObject filter = new JsonObject();
 		filter.addProperty("uniform", false);
 		bitmap.add("filter", filter);
-		JsonObject unifont = reference("minecraft:include/unifont");
-		return wrap(space, bitmap, unifont);
+		return bitmap;
 	}
 
 	private static JsonObject reference(String id) {

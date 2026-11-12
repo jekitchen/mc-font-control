@@ -8,26 +8,34 @@ import org.jspecify.annotations.Nullable;
 import org.lwjgl.util.freetype.FT_Face;
 
 /**
- * Hides the system font's private-use characters, so server resource packs' custom HUD glyphs
- * and negative-space characters always come from the server pack or vanilla (PRD AP-11, D11).
+ * Wraps the {@code ttf} provider vanilla opens for one of our font files.
  *
- * <p>Done as a wrapper rather than with the provider's {@code skip} list: vanilla keeps
- * {@code skip} in a linear-lookup set and checks it for every character the font maps, which
- * is far too slow for the ~137,000 private-use code points.
+ * <ul>
+ *   <li>Hides the system font's private-use characters, so server resource packs' custom HUD
+ *       glyphs and negative-space characters always come from the server pack or vanilla
+ *       (PRD AP-11, D11). Done here rather than with the provider's {@code skip} list: vanilla
+ *       keeps {@code skip} in a linear-lookup set and checks it for every character the font
+ *       maps, which is far too slow for the ~137,000 private-use code points.</li>
+ *   <li>For bold and italic faces, wraps each glyph in a {@link StyledGlyph} so vanilla doesn't
+ *       simulate the style on top (AP-8, D24).</li>
+ * </ul>
  */
 public final class PrivateUseFilteringProvider implements GlyphProvider {
 	private final GlyphProvider delegate;
 	private final FT_Face face;
+	private final FaceSpec spec;
 	private IntSet supported;
 
 	/**
 	 * @param face the delegate's FreeType face, registered with {@link SystemFaces} until this
 	 *             provider closes; may be null
+	 * @param spec how the face is drawn
 	 */
-	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face) {
+	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face, FaceSpec spec) {
 		this.delegate = delegate;
 		this.face = face;
-		SystemFaces.add(face);
+		this.spec = spec;
+		SystemFaces.add(face, spec.syntheticBold());
 	}
 
 	/** U+E000–U+F8FF, plus the supplementary private-use planes 15 and 16. */
@@ -39,7 +47,11 @@ public final class PrivateUseFilteringProvider implements GlyphProvider {
 
 	@Override
 	public @Nullable UnbakedGlyph getGlyph(int codepoint) {
-		return isPrivateUse(codepoint) ? null : delegate.getGlyph(codepoint);
+		if (isPrivateUse(codepoint)) {
+			return null;
+		}
+		UnbakedGlyph glyph = delegate.getGlyph(codepoint);
+		return glyph != null && spec.replacesVanillaStyle() ? new StyledGlyph(glyph, spec.providesBold(), spec.providesItalic()) : glyph;
 	}
 
 	@Override

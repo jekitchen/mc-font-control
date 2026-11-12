@@ -9,7 +9,8 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 ## Features
 
 - Lists every font installed on your computer, including the faces inside `.ttc` collections (most macOS system fonts) and the named weights of variable fonts such as SF Pro, Segoe UI Variable and Inter.
-- Shows a live preview before anything changes, with chat, tooltip and sign samples.
+- Uses the font's own Bold, Italic and Bold Italic faces for styled text, the way a word processor does, instead of Minecraft's simulated bold and slant.
+- Shows a live preview before anything changes, with bold and italic, chat, tooltip and sign samples.
 - Applies the font everywhere with one click, no restart.
 - Gives you 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
 - Adjusts size, sharpness and baseline offset.
@@ -41,7 +42,7 @@ Settings are stored in `config/mcfontcontrol.json`. The font list cache is `conf
 - **Complex scripts** such as Arabic and Devanagari don't render correctly. Minecraft doesn't join or reorder glyphs, whatever font is used.
 - **Colour emoji** fonts can't be used. Minecraft's text renderer is greyscale. Colour fonts are hidden unless you turn on **Show hidden fonts**, and then only their outline glyphs are drawn.
 - **Classic Symbol fonts** (Wingdings, Webdings) are never listed. They have no Unicode character map, so Minecraft can't draw them.
-- **Bold text** uses Minecraft's simulated bold (a 1-pixel offset), not the font's real Bold face.
+- **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.
 - **Text far away in the world** (signs, name tags) can look thin or broken at a distance. Minecraft's glyph atlas has no mipmaps; built-in TrueType fonts behave the same.
 - **Large text sizes** can be clipped in tight UI spots such as buttons and the scoreboard. Lower the size if that happens.
 - **Other font mods:** if Caxton, Font, FontSwap or Modern UI is installed, MC Font Control turns itself off and tells you, rather than fighting over the font.

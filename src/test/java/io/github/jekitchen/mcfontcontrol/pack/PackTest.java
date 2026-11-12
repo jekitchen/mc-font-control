@@ -55,6 +55,38 @@ class PackTest {
 		assertFalse(root.getAsJsonArray("providers").get(1).getAsJsonObject().getAsJsonObject("filter").get("uniform").getAsBoolean());
 	}
 
+	/** A bold or italic font is a font of its own, so it lists vanilla's providers after the face (AP-8). */
+	@Test
+	void styledDefinitionFallsBackToVanilla() {
+		JsonObject root = JsonParser.parseString(FontDefinitions.styled("mcfontcontrol:system/bold.ttf", 9, 3, 0, 0)).getAsJsonObject();
+		var providers = root.getAsJsonArray("providers");
+		assertEquals(4, providers.size());
+		assertEquals("ttf", providers.get(0).getAsJsonObject().get("type").getAsString());
+		assertEquals("mcfontcontrol:system/bold.ttf", providers.get(0).getAsJsonObject().get("file").getAsString());
+		JsonObject vanilla = JsonParser.parseString(FontDefinitions.vanillaCopy()).getAsJsonObject();
+		for (int i = 0; i < 3; i++) {
+			assertEquals(vanilla.getAsJsonArray("providers").get(i), providers.get(i + 1));
+		}
+	}
+
+	@Test
+	void styleSlots() {
+		assertEquals(null, FontStyleSlot.of(false, false));
+		assertEquals(FontStyleSlot.BOLD, FontStyleSlot.of(true, false));
+		assertEquals(FontStyleSlot.ITALIC, FontStyleSlot.of(false, true));
+		assertEquals(FontStyleSlot.BOLD_ITALIC, FontStyleSlot.of(true, true));
+		assertEquals("mcfontcontrol:bold_italic", FontStyleSlot.BOLD_ITALIC.font().id().toString());
+		assertEquals("mcfontcontrol:system/bold.ttf", FontStyleSlot.BOLD.file().toString());
+		assertEquals("mcfontcontrol:font/system/bold.ttf", FontStyleSlot.BOLD.fileResource().toString());
+		assertEquals("mcfontcontrol:font/italic.json", FontStyleSlot.ITALIC.jsonResource().toString());
+
+		FaceInfo italicFace = new FaceInfo("/f/Test-Italic.ttf", 2, "Test", "Italic", false, true, "TrueType", Visibility.VISIBLE);
+		FaceSpec italic = FontStyleSlot.ITALIC.spec(new io.github.jekitchen.mcfontcontrol.discovery.StyledFaces.Variant(italicFace, false));
+		assertEquals(new FaceSpec(2, false, false, true), italic);
+		FaceSpec synthBold = FontStyleSlot.BOLD.spec(new io.github.jekitchen.mcfontcontrol.discovery.StyledFaces.Variant(italicFace, true));
+		assertEquals(new FaceSpec(2, true, true, true), synthBold);
+	}
+
 	/** Uses vanilla's own insertion rule to check where our pack lands (D11). */
 	@Test
 	void packSitsAbovePlayerPacksAndBelowServerPacks() {

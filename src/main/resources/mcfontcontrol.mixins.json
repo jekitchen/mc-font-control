@@ -4,12 +4,14 @@
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"FontManagerAccessor",
+		"FontMixin",
 		"FontSetAccessor",
 		"MinecraftAccessor",
 		"MinecraftMixin",
 		"NativeImageMixin",
 		"TrueTypeGlyphProviderAccessor",
-		"TrueTypeGlyphProviderDefinitionMixin"
+		"TrueTypeGlyphProviderDefinitionMixin",
+		"TrueTypeGlyphProviderMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

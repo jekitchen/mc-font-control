@@ -13,6 +13,7 @@
 			"io.github.jekitchen.mcfontcontrol.gametest.ConfigScreenGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.RobustnessGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.InWorldTextGameTest",
+			"io.github.jekitchen.mcfontcontrol.gametest.StyledTextGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.MemoryGameTest",
 			"io.github.jekitchen.mcfontcontrol.gametest.ModMenuGameTest"
 		]
