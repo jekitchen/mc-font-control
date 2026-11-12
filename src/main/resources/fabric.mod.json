@@ -8,6 +8,7 @@
 		"jekitchen"
 	],
 	"contact": {
+		"homepage": "https://modrinth.com/mod/fontsys",
 		"sources": "https://github.com/jekitchen/mc-fontsys",
 		"issues": "https://github.com/jekitchen/mc-fontsys/issues"
 	},
