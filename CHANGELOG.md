@@ -10,6 +10,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - The font list rescans each time the settings screen opens.
 - **Crisp edges** for pixel-style fonts: glyphs are drawn with hard, square pixels and no smoothing, in menus and in the world. While it's on, sharpness follows the GUI scale so every font pixel lands on whole screen pixels.
 - The preview recognises pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.
+- **Done asks before throwing away changes.** If you changed the settings but didn't press Apply, Done (or Esc) asks whether to apply them, discard them, or go back.
 
 ### Changed
 
