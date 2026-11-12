@@ -2,6 +2,17 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
+## [1.1.0] - unreleased
+
+### Added
+
+- **Instance fonts folder.** Fonts in the instance's own `fonts/` folder (next to `mods/`) are listed alongside system fonts, marked **Instance**, so you can use a font in one instance without installing it on your computer. The new **Fonts folder** button opens it.
+- The font list rescans each time the settings screen opens.
+
+### Changed
+
+- A config copied from another computer is kept if its font is in the instance's `fonts/` folder, since that font travels with the instance. Other copied configs still reset to the vanilla font.
+
 ## [1.0.1] - 2026-11-12
 
 ### Fixed

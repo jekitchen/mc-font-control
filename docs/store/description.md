@@ -4,6 +4,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 
 - **Every installed font.** Fontsys lists every font on your computer, including the faces inside `.ttc` collections (most macOS system fonts) and the named weights of variable fonts such as Segoe UI Variable, SF Pro and Inter.
 - **Real bold and italic.** Bold and italic text uses the font's own Bold, Italic and Bold Italic faces, the way a word processor does, instead of Minecraft's doubled-up bold and slant. Server rank tags and chat formatting look clean and solid.
+- **Fonts just for this instance.** Drop a font into the instance's `fonts` folder (the **Fonts folder** button opens it) and it's listed alongside your system fonts, without installing it on your computer.
 - **Live preview.** See the font with chat, tooltip, sign, bold and italic samples before anything changes.
 - **One click, no restart.** Apply the font and it's used everywhere straight away.
 - **Can't get stuck.** You have 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
@@ -18,6 +19,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font at any time.
+5. **Fonts folder** opens this instance's `fonts` folder. Fonts you put there are listed with an **Instance** tag.
 
 ## Supported systems
 

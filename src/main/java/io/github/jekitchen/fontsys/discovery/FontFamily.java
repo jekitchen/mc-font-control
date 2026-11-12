@@ -11,13 +11,27 @@ import java.util.Optional;
 /**
  * A font family with its selectable styles, ordered upright-first then by weight, and the
  * four classic slots (PRD FD-4).
+ *
+ * @param instance the family's files are in the instance's {@code fonts/} folder (FD-14). A
+ *                 family installed both there and on the system is listed twice, once each.
  */
-public record FontFamily(String name, List<FaceInfo> styles) {
+public record FontFamily(String name, List<FaceInfo> styles, boolean instance) {
+	/** Map-key prefix that keeps instance families apart from system families of the same name. */
+	private static final String INSTANCE_KEY = "\u0000instance:";
 	private static final Comparator<FaceInfo> STYLE_ORDER = Comparator
 		.comparing((FaceInfo f) -> f.italic())
 		.thenComparingInt(f -> StyleNames.plainness(f.style()) == 2 ? 1 : 0)
 		.thenComparingInt(FaceInfo::weight)
 		.thenComparing(f -> f.style().toLowerCase(Locale.ROOT));
+
+	public FontFamily(String name, List<FaceInfo> styles) {
+		this(name, styles, false);
+	}
+
+	/** Whether this is the family a face belongs to: same name and same source (system or instance). */
+	public boolean holds(String familyName, String path) {
+		return familyName != null && name.equalsIgnoreCase(familyName) && instance == InstanceFonts.contains(path);
+	}
 
 	public Optional<FaceInfo> regular() {
 		return closest(false, 400);
@@ -66,7 +80,8 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 	 * Groups faces into families, skipping faces that should not be shown. Duplicate
 	 * family/style pairs (the same font installed twice) keep the first one in path order.
 	 * Aliases ({@link FamilyAliases}) are added as extra families unless a real family already
-	 * has the alias's name.
+	 * has the alias's name. Faces in the instance's {@code fonts/} folder form their own
+	 * families, listed after a system family of the same name (FD-14).
 	 */
 	public static List<FontFamily> group(List<FaceInfo> faces, boolean showHidden) {
 		Map<String, Map<String, FaceInfo>> byFamily = new LinkedHashMap<>();
@@ -75,7 +90,7 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 			if (!face.visibility().isShown(showHidden)) {
 				continue;
 			}
-			String key = face.family().toLowerCase(Locale.ROOT);
+			String key = (InstanceFonts.contains(face.path()) ? INSTANCE_KEY : "") + face.family().toLowerCase(Locale.ROOT);
 			displayNames.putIfAbsent(key, face.family());
 			byFamily.computeIfAbsent(key, k -> new LinkedHashMap<>()).putIfAbsent(face.style().toLowerCase(Locale.ROOT), face);
 		}
@@ -100,9 +115,9 @@ public record FontFamily(String name, List<FaceInfo> styles) {
 		byFamily.forEach((key, styles) -> {
 			List<FaceInfo> sorted = new ArrayList<>(styles.values());
 			sorted.sort(STYLE_ORDER);
-			result.add(new FontFamily(displayNames.get(key), List.copyOf(sorted)));
+			result.add(new FontFamily(displayNames.get(key), List.copyOf(sorted), key.startsWith(INSTANCE_KEY)));
 		});
-		result.sort(Comparator.comparing(f -> f.name().toLowerCase(Locale.ROOT)));
+		result.sort(Comparator.comparing((FontFamily f) -> f.name().toLowerCase(Locale.ROOT)).thenComparing(FontFamily::instance));
 		return List.copyOf(result);
 	}
 }

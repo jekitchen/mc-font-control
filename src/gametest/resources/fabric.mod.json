@@ -11,6 +11,7 @@
 			"io.github.jekitchen.fontsys.gametest.RuntimePackGameTest",
 			"io.github.jekitchen.fontsys.gametest.FaceSelectionGameTest",
 			"io.github.jekitchen.fontsys.gametest.ConfigScreenGameTest",
+			"io.github.jekitchen.fontsys.gametest.InstanceFontsGameTest",
 			"io.github.jekitchen.fontsys.gametest.RobustnessGameTest",
 			"io.github.jekitchen.fontsys.gametest.InWorldTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.ShaderPackGameTest",

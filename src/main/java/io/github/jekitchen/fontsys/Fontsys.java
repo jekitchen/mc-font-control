@@ -4,11 +4,14 @@ import io.github.jekitchen.fontsys.apply.FontController;
 import io.github.jekitchen.fontsys.config.ConfigStore;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FontDirectories;
+import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.discovery.OsFamily;
 import io.github.jekitchen.fontsys.discovery.SystemFontIndex;
 import io.github.jekitchen.fontsys.pack.RuntimeFontPackSource;
 import io.github.jekitchen.fontsys.platform.Platform;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +43,9 @@ public final class Fontsys {
 	/** Called once by the loader entry point during client start-up. */
 	public static void init(Platform loaderPlatform) {
 		platform = loaderPlatform;
-		fontIndex = new SystemFontIndex(dataDir().resolve("font-index.json"), OsFamily.current(), FontDirectories::forCurrentSystem);
-		controller = new FontController(new ConfigStore(platform.configDir().resolve(MOD_ID + ".json")), platform);
+		InstanceFonts.setGameDir(platform.gameDir());
+		fontIndex = new SystemFontIndex(dataDir().resolve("font-index.json"), OsFamily.current(), Fontsys::fontDirectories);
+		controller = new FontController(new ConfigStore(platform.configDir().resolve(MOD_ID + ".json"), platform.gameDir()), platform);
 		fontIndex.scan();
 	}
 
@@ -59,6 +63,13 @@ public final class Fontsys {
 
 	public static RuntimeFontPackSource packSource() {
 		return PACK_SOURCE;
+	}
+
+	/** The system font folders, then the instance's {@code fonts/} folder (FD-14). */
+	private static List<Path> fontDirectories() {
+		List<Path> dirs = new ArrayList<>(FontDirectories.forCurrentSystem());
+		InstanceFonts.dir().ifPresent(dirs::add);
+		return dirs;
 	}
 
 	/** {@code config/fontsys/}: font cache. */

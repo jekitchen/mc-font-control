@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.24: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
+| **Status** | v0.25: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-12 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -130,6 +130,7 @@ Priority key: **P0** = required for v1.0 definition of done; **P1** = v1.0 if fe
 | FD-11 | Linux (optional): read extra font folders from fontconfig config files. Standard folders alone are acceptable for the first Linux release. | P2 |
 | FD-12 | **Variable fonts:** list each named instance (e.g. SF Pro Light / Regular / Semibold / Bold) as a selectable style. FreeType addresses named instances through the upper bits of the face index (`faceIndex = (instance << 16) \| face`), so the same D1 mixin covers them. | P0 |
 | FD-13 | **Hidden by default:** symbol fonts (symbol `cmap` encoding or no Latin coverage, e.g. Wingdings, Webdings) and colour fonts. Symbol fonts and colour fonts that also carry outline glyphs can be revealed with the **Show hidden fonts** toggle (UI-10). Bitmap-only colour fonts (e.g. Apple Color Emoji) stay hidden always, because they can't render in vanilla's grayscale atlas. macOS system-private fonts (family name starting with a dot) are never listed (D25). | P0 |
+| FD-14 | **Instance fonts folder:** also scan `<game folder>/fonts/` (next to `mods/` and `resourcepacks/`, subfolders included) on every OS, so a player can use a font in one instance without installing it on the computer. Its families are listed separately from system families of the same name and marked **Instance**; bold and italic faces come only from the same folder. The config saves these fonts as paths relative to the game folder (`fonts/MyFont.ttf`). | P1 |
 
 ### 5.2 Applying the font (`RuntimeFontPack`)
 
@@ -188,6 +189,7 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 | UI-9 | **Crisp edges** toggle under the sliders (M8). | P2 |
 | UI-10 | **Show hidden fonts** toggle on the font list. Revealed fonts are marked (e.g. "symbol") so the player knows why they were hidden. | P0 |
 | UI-11 | **Keep-or-revert confirmation** after any change that alters the applied font (Apply, or Reset if it changes anything). See section 5.7. | P0 |
+| UI-12 | **Fonts folder** button: creates and opens the instance's `fonts/` folder in the file manager (FD-14). The list rescans each time the screen opens. | P1 |
 
 ### 5.5 Future: crisp mode for pixel-style fonts (P2)
 
@@ -220,6 +222,7 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 
 - Every config the mod writes records a **system fingerprint** (`systemFingerprint`): a SHA-256 hash of the OS family (Windows / macOS / Linux) and the user's home folder path. Nothing is written outside the game folder, and only the hash is stored.
 - On startup, if the stored fingerprint doesn't match this system (or the config has none), the mod treats it as a **new system**: it renames the old file to `fontsys.json.bak`, resets to defaults (vanilla font) and rescans fonts.
+- **Exception (D33):** if the selected font is in the instance's `fonts/` folder and present, the config is kept and adopted by this system, with one INFO log line; that font travels with the instance.
 - **No dialog or toast.** The player just sees vanilla text and can pick a font as usual. Instead, the mod writes **one WARN line to the game log** so the reset can be traced, for example:
   `[Fontsys] Config was written on a different system (OS family or user profile changed: macOS -> Windows); backed up to fontsys.json.bak and reset to defaults.`
   The log line names the OS families and which part changed, never the raw home path.
@@ -231,7 +234,7 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 |---|---|
 | Config moved to another OS | Reset (fingerprint differs) |
 | Config moved to another user account or a computer with a different username | Reset |
-| Modpack shipping the author's config | Reset, unless the author has the same OS and username |
+| Modpack shipping the author's config | Reset, unless the author has the same OS and username, or its font is in the instance's `fonts/` folder (FD-14) |
 | Computer renamed | No reset |
 | Same game instance copied between launchers on one computer and account | No reset |
 | Config moved between two computers with the same OS and username | No reset; if the font file is missing, the existing fallback applies: re-find by family name, else vanilla with one warning (AP-7) |
@@ -386,6 +389,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D30 | Glyph atlas | System-font glyphs go in vanilla's colour (RGBA) glyph atlas, not the grayscale one, so they draw with the same `text*` pipelines as vanilla's own font. Vanilla's `ttf` provider reports glyphs as grayscale, which selects the `text_grayscale*` pipelines; vanilla's own font never uses them, and Iris 1.11.7 has no shader-pack program for `text_grayscale_polygon_offset` (sign text), so with a shader pack signs drew as streaks across the screen (found by the owner in 1.0.0 with Complementary Unbound). `ColorAtlasGlyph` renders each glyph through vanilla's `NativeImage.copyFromFont` and uploads coverage `c` as `(c, c, c, c)`; the grayscale shader samples `.rrrr`, so pixels match. It also fixes see-through name tags, which were brighter than vanilla's because `text_grayscale_see_through` has no blending. Costs 4 bytes per atlas pixel instead of 1 (256 KB per 256×256 page). `GlyphPipelineGameTest` checks the pipelines; `ShaderPackGameTest` loads a shader pack named by `FONTSYS_SHADERPACK` and fails on Iris's "Missing program" error (local only: shader packs can't be redistributed). | 2026-11-12. Fixed in 1.0.1. Verified on Windows 11 with Sodium, Iris and Complementary Unbound r5.9.3. |
 | D31 | Store publishing | Publishing a GitHub release runs `.github/workflows/publish.yml`, which uploads that release's jar to Modrinth and CurseForge with `Kir-Antipov/mc-publish` (v3.3.2, pinned to its commit). The draft review (D29) stays the gate. Version number `<mod_version>+<minecraft>`, release notes as changelog, game versions from `publish_game_versions`. Project IDs are repository variables and API tokens repository secrets; a store without an ID is skipped, and a manual run can retry one store. | 2026-11-12. Awaiting the owner's API tokens; 1.0.0 and 1.0.1 were uploaded by hand. |
 | D32 | Minecraft version support | One jar per Minecraft year when feasible: a single Fontsys jar covers every 26.x release it has been tested on (26.3, then 26.4, …), and 2027's 27.x releases get their own line. A version is added to the jar's range only after both game-test suites pass on it. If vanilla changes break one jar for the whole year, the fallback is a separate jar per Minecraft version from the same code, decided when it happens. Older 26.x versions stay supported as long as one jar can cover them without real growth in size or complexity. | 2026-11-12, owner's decision. First test: 26.4 (snapshots now; Sodium and Iris not yet on 26.4). |
+| D33 | Instance fonts folder | Approved addition (owner, 2026-11-12): `<game folder>/fonts/` is scanned with the system folders (FD-14, UI-12). Relative paths in the config make the choice survive copying or moving the instance, and a config from another system is **kept** when its font is in that folder and present (5.6), since the font travels with the instance; this also lets a modpack ship a font with a config that selects it (licensing the font is the pack author's responsibility; Fontsys still never bundles fonts). Instance families stay separate from system families of the same name, so a player can tell which copy they pick and an instance font never borrows a system font's bold. | 2026-11-12. Built; game test `InstanceFontsGameTest` copies an installed font into the test instance's folder, applies it and checks the relative path. |
 
 ### Still open
 
@@ -430,3 +434,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.22 | 2026-11-11 | 1.0.0 released (D29): owner's manual checks recorded; status updated. |
 | v0.23 | 2026-11-12 | Glyphs in the colour atlas (D30): fixes sign text with Iris shader packs; version 1.0.1. |
 | v0.24 | 2026-11-12 | Automatic Modrinth and CurseForge uploads (D31); one jar per Minecraft year (D32); GitHub issue templates. |
+| v0.25 | 2026-11-12 | Instance fonts folder (FD-14, UI-12, D33); 5.6 keeps configs whose font is in that folder. |
