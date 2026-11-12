@@ -1,5 +1,7 @@
 # Fontsys
 
+<p align="center"><img src="docs/store/logo/fontsys-logo.png" alt="Fontsys" width="640"></p>
+
 A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any font installed on your computer and uses it everywhere the game draws text: menus, HUD, chat, tooltips, signs, books, name tags and text displays.
 
 - **Status:** 1.0.0 for Minecraft 26.3. See the [changelog](CHANGELOG.md); requirements and decisions live in the [PRD](docs/PRD.md).

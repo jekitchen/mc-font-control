@@ -32,5 +32,14 @@ public class ModMenuGameTest implements FabricClientGameTest {
 		context.waitTicks(10);
 		context.takeScreenshot("m7-modmenu-config");
 		context.setScreen(TitleScreen::new);
+
+		// The mod list: Fontsys shows its own icon (assets/fontsys/icon.png, PRD D28).
+		context.waitForScreen(TitleScreen.class);
+		context.clickScreenButton("modmenu.title");
+		context.waitTicks(10);
+		context.getInput().typeChars("Fontsys");
+		context.waitTicks(10);
+		context.takeScreenshot("m7-modmenu-list");
+		context.setScreen(TitleScreen::new);
 	}
 }
