@@ -33,6 +33,4 @@ The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-
 
 ## Listing copy
 
-> Pick any font installed on your computer and use it for all of Minecraft's text: menus, HUD, chat, tooltips, signs, books and name tags. Includes macOS collection faces and variable-font weights, a live preview, and a 30-second automatic revert if you can't read the result. Client-only, uses the game's own font renderer, never copies font files.
-
-Copy the "Known limitations" section of the README into the description.
+The description, summary, categories, gallery screenshots and form fields for both sites are in [`docs/store/`](store/README.md), with the disclosures Modrinth requires (PRD D28).

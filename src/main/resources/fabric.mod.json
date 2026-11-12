@@ -12,6 +12,7 @@
 		"issues": "https://github.com/jekitchen/mc-fontsys/issues"
 	},
 	"license": "MIT",
+	"icon": "assets/fontsys/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
