@@ -36,3 +36,6 @@ replay_*.log
 artifacts/
 # Personal Claude Code settings
 .claude/settings.local.json
+
+# Python bytecode from scripts/
+__pycache__/
