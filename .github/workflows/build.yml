@@ -43,6 +43,10 @@ jobs:
     runs-on: ubuntu-24.04
     # A client that can't open its window waits forever; fail fast instead of after 6 hours.
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mods: [vanilla, sodium-iris]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -64,14 +68,15 @@ jobs:
         run: |
           chmod +x ./gradlew
           # Virtual display for the client window.
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runProductionClientGameTest
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: client-game-test
+          name: client-game-test-${{ matrix.mods }}
           path: |
             build/run/clientGameTest/screenshots/
             build/run/clientGameTest/logs/
             build/run/clientGameTest/crash-reports/
+            build/run/clientGameTest/config/mcfontcontrol/
           if-no-files-found: ignore
