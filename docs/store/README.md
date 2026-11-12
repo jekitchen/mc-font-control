@@ -7,7 +7,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 | [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
 | [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. |
-| [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. |
+| [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. `fontsys-social.png`, 1280×640: the GitHub social preview (repository Settings → General → Social preview), with everything inside GitHub's 80 px safe border. |
 
 ## Project details
 
@@ -59,6 +59,6 @@ They use Inter and Georgia when installed (Inter is free under the SIL Open Font
 
 "Font" in blocky pixel letters with Minecraft's hard drop shadow, and "sys" in smooth Inter ExtraBold: Minecraft's text, upgraded. The icon stacks the two words; the logo sets them side by side on one baseline, with Inter's x-height matched to the pixel letters'. The pixel letters are drawn for Fontsys, not taken from Minecraft's font; Inter is under the SIL Open Font License, which allows its use in a logo. The icon is legible down to 32×32. At 128×128 it is also the mod's own icon (`assets/fontsys/icon.png`, shown by Mod Menu).
 
-`scripts/make-icon.py` draws both (Pillow, with Inter installed) and writes every file; `--preview FILE` writes a review sheet without touching them.
+`scripts/make-icon.py` draws all of them (Pillow, with Inter installed) and writes every file; `--preview FILE` writes a review sheet without touching them.
 
 **Both stores:** the owner reviewed the icon, logo and screenshots against Modrinth's rules (section 6) and approved them for Modrinth and CurseForge (PRD D28). The AI-content disclosures above still apply.
