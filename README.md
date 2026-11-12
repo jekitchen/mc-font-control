@@ -26,7 +26,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`.
 2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
-3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
+3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
 5. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
 6. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), creating it if needed. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.

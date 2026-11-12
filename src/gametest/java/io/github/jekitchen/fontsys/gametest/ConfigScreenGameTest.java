@@ -9,6 +9,7 @@ import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.pack.PackContents;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
 import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
+import io.github.jekitchen.fontsys.ui.UnappliedChangesScreen;
 import java.util.Optional;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -16,7 +17,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 
 /**
  * M5: config screen with live preview, Apply with keep-or-revert (Enter keeps, Esc reverts,
- * 30 s timeout reverts), and Reset to vanilla (PRD 5.4, 5.7).
+ * 30 s timeout reverts), Reset to vanilla (PRD 5.4, 5.7), and Done asking about changes that
+ * weren't applied (UI-13).
  */
 @SuppressWarnings("UnstableApiUsage")
 public class ConfigScreenGameTest implements FabricClientGameTest {
@@ -79,6 +81,55 @@ public class ConfigScreenGameTest implements FabricClientGameTest {
 		context.waitFor(mc -> mc.gui.overlay() == null);
 		require(!Fontsys.controller().appliedSettings().isActive(), "reset to vanilla");
 		context.setScreen(TitleScreen::new);
+
+		unappliedChanges(context, family);
+	}
+
+	/** Done with changes that weren't applied asks first (UI-13): Back, Discard changes, Apply. */
+	private static void unappliedChanges(ClientGameTestContext context, FontFamily family) {
+		FontFamily other = Fontsys.fontIndex().families(false).stream()
+			.filter(f -> !f.name().equals(family.name())).findFirst().orElse(null);
+		if (other == null) {
+			return;
+		}
+		// No changes: Done just closes.
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(5);
+		context.clickScreenButton("gui.done");
+		context.waitForScreen(TitleScreen.class);
+
+		// A change, then Done: the dialog. Back (Esc) returns to the settings with the change kept.
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(5);
+		context.runOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).selectFamily(other));
+		context.clickScreenButton("gui.done");
+		context.waitForScreen(UnappliedChangesScreen.class);
+		context.takeScreenshot("ui13-unapplied-changes");
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(FontConfigScreen.class);
+		require(context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).hasUnappliedChanges()), "Back keeps the change");
+
+		// Discard changes: leaves, font untouched.
+		context.clickScreenButton("gui.done");
+		context.waitForScreen(UnappliedChangesScreen.class);
+		context.clickScreenButton("fontsys.unapplied.discard");
+		context.waitForScreen(TitleScreen.class);
+		require(!Fontsys.controller().appliedSettings().isActive(), "Discard leaves the font as it was");
+
+		// Apply: applies through keep-or-revert, then leaves the settings.
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(5);
+		context.runOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).selectFamily(other));
+		context.clickScreenButton("gui.done");
+		context.waitForScreen(UnappliedChangesScreen.class);
+		context.clickScreenButton("fontsys.unapplied.apply");
+		context.waitForScreen(KeepOrRevertScreen.class);
+		context.waitFor(mc -> mc.gui.overlay() == null);
+		context.clickScreenButton("fontsys.confirm.keep");
+		context.waitForScreen(TitleScreen.class);
+		require(Fontsys.controller().appliedSettings().isActive()
+			&& Fontsys.controller().appliedSettings().familyName().equals(other.defaultStyle().family()), "Apply applied the change");
+		GameTestFonts.apply(context, FontSettings.DEFAULTS);
 	}
 
 	private static void applyThroughController(ClientGameTestContext context, FontSettings settings) {
