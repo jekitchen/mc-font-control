@@ -2,7 +2,7 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
-## [1.0.1] - unreleased
+## [1.0.1] - 2026-11-12
 
 ### Fixed
 
