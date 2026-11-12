@@ -6,7 +6,8 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 |---|---|
 | [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
-| [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. Read [Icon](#icon) before using it on Modrinth. |
+| [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. Read [Icon and logo](#icon-and-logo) before using it on Modrinth. |
+| [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. |
 
 ## Project details
 
@@ -54,10 +55,10 @@ They use Inter and Georgia when installed (Inter is free under the SIL Open Font
 - **Modrinth: other disclosures.** Fontsys sends no data anywhere (no telemetry, no network calls), so no telemetry disclosure applies.
 - **CurseForge.** Its moderation guidelines ask for an original project avatar (not a blank square, not a generic game graphic) and a disclaimer on AI-modified showcase images that could misrepresent the mod. The gallery screenshots are unmodified renders.
 
-## Icon
+## Icon and logo
 
-"Aa": a blocky pixel "A" with Minecraft's hard drop shadow next to a smooth "a" in Inter. The pixel "A" is drawn for this icon, not taken from Minecraft's font; Inter is under the SIL Open Font License, which allows its use in a logo. It is legible down to 32×32. The same image, at 128×128, is the mod's own icon (`assets/fontsys/icon.png`, shown by Mod Menu).
+"Font" in blocky pixel letters with Minecraft's hard drop shadow, and "sys" in smooth Inter ExtraBold: Minecraft's text, upgraded. The icon stacks the two words; the logo sets them side by side on one baseline, with Inter's x-height matched to the pixel letters'. The pixel letters are drawn for Fontsys, not taken from Minecraft's font; Inter is under the SIL Open Font License, which allows its use in a logo. The icon is legible down to 32×32. At 128×128 it is also the mod's own icon (`assets/fontsys/icon.png`, shown by Mod Menu).
 
-`scripts/make-icon.py` draws it (Pillow, with Inter installed) and writes every size; edit the script to change it.
+`scripts/make-icon.py` draws both (Pillow, with Inter installed) and writes every file; `--preview FILE` writes a review sheet without touching them.
 
-**Modrinth:** the script was written by an AI assistant, so the icon very likely counts as "created or derived from generative AI output", which Modrinth's rules bar from icons. Use it on CurseForge, GitHub and in the mod; for Modrinth, have a person redraw it (the concept and colours can stay) unless Modrinth confirms it is acceptable.
+**Modrinth:** the script was written by an AI assistant, so the icon and logo very likely count as "created or derived from generative AI output", which Modrinth's rules bar from icons and description images. Use them on CurseForge, GitHub and in the mod. For Modrinth, have a person redraw the icon (the design and colours can stay) unless Modrinth confirms it is acceptable, and keep the logo out of the Modrinth description.
