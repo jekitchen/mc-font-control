@@ -8,10 +8,18 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 
 - **Instance fonts folder.** Fonts in the instance's own `fonts/` folder (next to `mods/`) are listed alongside system fonts, marked **Instance**, so you can use a font in one instance without installing it on your computer. The new **Fonts folder** button opens it.
 - The font list rescans each time the settings screen opens.
+- **Crisp edges** for pixel-style fonts: glyphs are drawn with hard, square pixels and no smoothing, in menus and in the world. While it's on, sharpness follows the GUI scale so every font pixel lands on whole screen pixels.
+- The preview recognises pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.
 
 ### Changed
 
 - A config copied from another computer is kept if its font is in the instance's `fonts/` folder, since that font travels with the instance. Other copied configs still reset to the vanilla font.
+- The **Also replace the Unicode font** checkbox is now **Replace Unicode font**, with the full explanation in its tooltip, to make room for Crisp edges.
+- Long font names in the list are shortened with "…" instead of running under the **Instance** and hidden-font tags.
+
+### Fixed
+
+- **Apply** now lights up as soon as you tick or untick **Replace Unicode font**; before, it waited for another change.
 
 ## [1.0.1] - 2026-11-12
 

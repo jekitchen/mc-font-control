@@ -33,12 +33,13 @@ public final class PrivateUseFilteringProvider implements GlyphProvider {
 	 * @param face the delegate's FreeType face, registered with {@link SystemFaces} until this
 	 *             provider closes; may be null
 	 * @param spec how the face is drawn
+	 * @param crisp render with hard edges (crisp mode, AP-10)
 	 */
-	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face, FaceSpec spec) {
+	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face, FaceSpec spec, boolean crisp) {
 		this.delegate = delegate;
 		this.face = face;
 		this.spec = spec;
-		SystemFaces.add(face, spec.syntheticBold());
+		SystemFaces.add(face, spec.syntheticBold(), crisp);
 	}
 
 	/** U+E000–U+F8FF, plus the supplementary private-use planes 15 and 16. */

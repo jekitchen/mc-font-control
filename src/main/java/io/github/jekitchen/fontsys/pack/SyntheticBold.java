@@ -21,11 +21,19 @@ public final class SyntheticBold {
 	 * @return a FreeType error code, 0 on success
 	 */
 	public static int emboldenAndRender(FT_Face face) {
+		return emboldenAndRender(face, false);
+	}
+
+	/**
+	 * As {@link #emboldenAndRender(FT_Face)}; {@code mono} renders a 1-bit bitmap, for measuring
+	 * crisp glyphs (AP-10).
+	 */
+	public static int emboldenAndRender(FT_Face face, boolean mono) {
 		FT_GlyphSlot slot = face.glyph();
 		if (slot == null) {
 			return 0;
 		}
 		FreeType.FT_GlyphSlot_Embolden(slot);
-		return FreeType.FT_Render_Glyph(slot, FreeType.FT_RENDER_MODE_NORMAL);
+		return FreeType.FT_Render_Glyph(slot, mono ? FreeType.FT_RENDER_MODE_MONO : FreeType.FT_RENDER_MODE_NORMAL);
 	}
 }

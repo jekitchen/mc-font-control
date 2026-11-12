@@ -8,6 +8,7 @@ import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.discovery.OsFamily;
+import io.github.jekitchen.fontsys.discovery.PixelGrid;
 import io.github.jekitchen.fontsys.discovery.StyledFaces;
 import io.github.jekitchen.fontsys.discovery.SystemFontIndex;
 import io.github.jekitchen.fontsys.discovery.Visibility;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalInt;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -57,6 +59,7 @@ public final class FontConfigScreen extends Screen {
 	private Button nextStyle;
 	private Button applyButton;
 	private Button resetButton;
+	private ValueSlider oversampleSlider;
 	private int previewX0;
 	private int previewY0;
 	private int previewX1;
@@ -112,8 +115,10 @@ public final class FontConfigScreen extends Screen {
 		addRenderableWidget(new ValueSlider(rightX, TOP + 24, half, FontSettings.MIN_SIZE, FontSettings.MAX_SIZE, 0.5, draft.size(),
 			v -> Component.translatable("fontsys.screen.size", format(v)),
 			v -> updateLayout(v, draft.oversample(), draft.shiftX(), draft.shiftY())));
-		addRenderableWidget(new ValueSlider(rightX + half + 4, TOP + 24, half, 0, FontSettings.MAX_OVERSAMPLE, 1, draft.oversample(),
-			v -> v <= 0
+		oversampleSlider = addRenderableWidget(new ValueSlider(rightX + half + 4, TOP + 24, half, 0, FontSettings.MAX_OVERSAMPLE, 1, draft.oversample(),
+			v -> draft.crispEdges()
+				? Component.translatable("fontsys.screen.oversample.crisp", RuntimeFontPackSource.currentGuiScale())
+				: v <= 0
 				? Component.translatable("fontsys.screen.oversample.auto", RuntimeFontPackSource.currentGuiScale())
 				: Component.translatable("fontsys.screen.oversample", format(v)),
 			v -> updateLayout(draft.size(), (float) v, draft.shiftX(), draft.shiftY())));
@@ -123,14 +128,28 @@ public final class FontConfigScreen extends Screen {
 		addRenderableWidget(new ValueSlider(rightX + half + 4, TOP + 48, half, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftY(),
 			v -> Component.translatable("fontsys.screen.shift_y", format(v)),
 			v -> updateLayout(draft.size(), draft.oversample(), draft.shiftX(), (float) v)));
-		addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.apply_to_uniform"), font)
+		Checkbox uniform = addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.apply_to_uniform"), font)
 			.pos(rightX, TOP + 72)
 			.selected(draft.applyToUniform())
-			.onValueChange((box, value) -> draft = draft.withApplyToUniform(value))
+			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.apply_to_uniform.tooltip")))
+			.onValueChange((box, value) -> {
+				draft = draft.withApplyToUniform(value);
+				updateButtons();
+			})
 			.build());
+		Checkbox crisp = addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.crisp"), font)
+			.selected(draft.crispEdges())
+			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.crisp.tooltip")))
+			.onValueChange((box, value) -> setCrispEdges(value))
+			.build());
+		// Under the sliders (UI-9): beside the Unicode checkbox when both fit, otherwise below it.
+		int crispX = rightX + rightWidth - crisp.getWidth();
+		boolean sameRow = crispX >= uniform.getRight() + 8;
+		crisp.setPosition(sameRow ? crispX : rightX, sameRow ? TOP + 72 : TOP + 92);
+		updateOversampleSlider();
 
 		previewX0 = rightX;
-		previewY0 = TOP + 96;
+		previewY0 = sameRow ? TOP + 96 : TOP + 116;
 		previewX1 = rightX + rightWidth;
 		previewY1 = bottom - 16;
 
@@ -234,6 +253,19 @@ public final class FontConfigScreen extends Screen {
 			}
 		}
 		selectFace(styles.get(Math.floorMod(current + direction, styles.size())));
+	}
+
+	/** Crisp mode (AP-10, D34): sharpness follows the GUI scale, so the slider steps aside. */
+	private void setCrispEdges(boolean value) {
+		draft = draft.withCrispEdges(value);
+		updateOversampleSlider();
+		previewDirty = true;
+		updateButtons();
+	}
+
+	private void updateOversampleSlider() {
+		oversampleSlider.active = !draft.crispEdges();
+		oversampleSlider.refreshMessage();
 	}
 
 	private void updateLayout(double size, float oversample, float shiftX, float shiftY) {
@@ -362,6 +394,12 @@ public final class FontConfigScreen extends Screen {
 		int line = Math.max(10, (int) Math.ceil(draft.size()) + 3);
 		int y = previewY0 + 5;
 		graphics.enableScissor(previewX0 + 1, previewY0 + 1, previewX1 - 1, previewY1 - 1);
+		Component hint = pixelFontHint(current);
+		if (hint != null) {
+			// First, so it stays visible however little room the samples leave.
+			graphics.text(font, hint, x, y, 0xFFFFE080, false);
+			y += font.lineHeight + 3;
+		}
 		graphics.text(pf, Component.translatable("fontsys.preview.pangram"), x, y, 0xFFFFFFFF, true);
 		y += line;
 		graphics.text(pf, Component.translatable("fontsys.preview.digits"), x, y, 0xFFD0D0D0, true);
@@ -389,6 +427,25 @@ public final class FontConfigScreen extends Screen {
 			current.styles().ifPresent(styles -> graphics.text(font, facesLabel(current, styles), x, labelY, 0xFFA0A0A0, false));
 		}
 		graphics.disableScissor();
+	}
+
+	/**
+	 * For a pixel-style font (PRD 5.5): suggests crisp mode while it's off, then a size on the
+	 * font's pixel grid if the current one isn't. Never changes anything by itself.
+	 */
+	private @Nullable Component pixelFontHint(PreviewFont current) {
+		if (current.pixelGrid().isEmpty()) {
+			return null;
+		}
+		int cells = current.pixelGrid().getAsInt();
+		OptionalInt size = PixelGrid.suggestedSize(cells, draft.size(), FontSettings.MIN_SIZE, FontSettings.MAX_SIZE);
+		boolean onGrid = size.isPresent() && size.getAsInt() == draft.size();
+		if (!draft.crispEdges()) {
+			return size.isPresent() && !onGrid
+				? Component.translatable("fontsys.preview.pixel_font.crisp_size", size.getAsInt())
+				: Component.translatable("fontsys.preview.pixel_font.crisp");
+		}
+		return size.isPresent() && !onGrid ? Component.translatable("fontsys.preview.pixel_font.size", size.getAsInt()) : null;
 	}
 
 	/** "Bold text  Italic text  Bold italic", each in its style (AP-8). */
@@ -484,7 +541,6 @@ public final class FontConfigScreen extends Screen {
 			@Override
 			public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
 				int y = getContentYMiddle() - 4;
-				graphics.text(font, family.name(), getContentX() + 2, y, 0xFFFFFFFF, false);
 				int right = getContentX() + getContentWidth() - 2;
 				Visibility v = family.visibility();
 				if (v != Visibility.VISIBLE) {
@@ -495,8 +551,15 @@ public final class FontConfigScreen extends Screen {
 				}
 				if (family.instance()) {
 					Component tag = Component.translatable("fontsys.screen.instance_tag");
-					graphics.text(font, tag, right - font.width(tag), y, 0xFF78ECBA, false);
+					right -= font.width(tag);
+					graphics.text(font, tag, right, y, 0xFF78ECBA, false);
+					right -= 6;
 				}
+				// Long names (or a wide applied font) are cut short rather than run under the tags.
+				int room = right - (getContentX() + 2);
+				String name = font.width(family.name()) <= room ? family.name()
+					: font.plainSubstrByWidth(family.name(), Math.max(0, room - font.width("…"))) + "…";
+				graphics.text(font, name, getContentX() + 2, y, 0xFFFFFFFF, false);
 			}
 
 			@Override
