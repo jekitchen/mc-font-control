@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "mcfontcontrol",
+	"version": "${version}",
+	"name": "MC Font Control",
+	"description": "Use any font installed on your computer for all in-game text.",
+	"authors": [
+		"jekitchen"
+	],
+	"contact": {
+		"sources": "https://github.com/jekitchen/mc-font-control",
+		"issues": "https://github.com/jekitchen/mc-font-control/issues"
+	},
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"io.github.jekitchen.mcfontcontrol.fabric.McFontControlFabric"
+		]
+	},
+	"mixins": [
+		"mcfontcontrol.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

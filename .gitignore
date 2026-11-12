@@ -1,0 +1,36 @@
+# gradle
+.gradle/
+build/
+out/
+classes/
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+*.launch
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# macOS
+*.DS_Store
+
+# fabric dev runs
+run/
+
+# java crash and profiling output
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
+# Claude Code worktrees (kept inside the project, removed when done)
+.claude/worktrees/
+# Build and measurement output saved from removed worktrees
+artifacts/
+# Personal Claude Code settings
+.claude/settings.local.json

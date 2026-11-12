@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.7 |
+| **Status** | Draft v0.8 |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-11 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -354,13 +354,13 @@ No telemetry, so success is read from public signals: download and follower grow
 
 | # | Topic | Decision | Verify / when |
 |---|---|---|---|
-| D1 | `.ttc` face index, variable fonts and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` (including named-instance bits) to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | Confirm the target method against decompiled 26.3 source in M1. |
+| D1 | `.ttc` face index, variable fonts and `.otf` | One mixin where vanilla opens the font with FreeType: pass `faceIndex` (including named-instance bits) to `FT_New_Memory_Face`, and lift any TrueType-only check so `.otf` loads. | **Target confirmed in M1 (26.3 source):** `TrueTypeGlyphProviderDefinition.load(ResourceManager)`. It calls `FT_New_Memory_Face(library, fontData, 0L, face)` with face index hard-coded to `0`, then throws unless `FT_Get_Font_Format(face)` is `"TrueType"`, so CFF `.otf` files are rejected. The record has no spare field, so the mixin looks the face index up by the provider's `file` identifier (which our runtime pack controls), changes the `0L` argument, and accepts `"CFF"` in the format check. Built in M4. |
 | D2 | Applying changes | Full resource reload on Apply. Add a font-only reload mixin only if Apply misses the D14 target. | Measure in M5. |
 | D3 | Runtime pack | Mixin that adds our own pack source to the game's pack list; pack is required and ordered per D11. | Check whether Fabric API for 26.3 offers a native hook (M3). |
 | D4 | Live preview | Private `Font` backed by its own `FontSet`, drawn through the 26.x prepared-text path and closed with the screen. Fallback: apply temporarily and roll back on Cancel. | Spike at the start of M5. |
 | D5 | Antialias | No antialias toggle: vanilla always antialiases, and its font definition has no such option; `oversample` controls smoothness. The opposite case, hard edges for pixel-style fonts, is planned as crisp mode (AP-10, section 5.5, M8). | — |
 | D6 | Vulkan on macOS | No special code expected. OS × renderer row in the test matrix; re-test glyph rendering on every snapshot. | Ongoing. |
-| D7 | Baseline | Minecraft Java 26.3.x (released 15 Sep 2026), Java 25. | Exact Loom / Loader / Fabric API / Gradle versions at M1. |
+| D7 | Baseline | Minecraft Java 26.3.x (released 15 Sep 2026), Java 25. Toolchain at M1: Minecraft `26.3`, Fabric Loader `0.20.1`, Fabric API `0.166.0+26.3`, Loom `1.19.4` (`net.fabricmc.fabric-loom`), Gradle `9.8.2`, JUnit `5.13.4`. Versions live in `gradle.properties`. | Recorded 2026-11-11 from the Fabric develop site and Fabric Maven; recheck each Minecraft release. |
 | D8 | NeoForge | Loader-specific code isolated in its own package from M1. Port go / no-go after M7, based on Modrinth demand. | After M7. |
 | D9 | Licensing | MC Font Control is **MIT**. Caxton and SAH TTF Sign Fix are MIT (reuse with attribution). CustomFontFix is GPL-3.0-only (study only, never copy). Glyph's licence is unknown (treat as all rights reserved). | Confirm Glyph's licence before reading its code. |
 | D10 | PRD home | `docs/PRD.md` in this repository is the single source of truth. Changes land through pull requests. | — |
@@ -375,11 +375,10 @@ No telemetry, so success is read from public signals: download and follower grow
 
 ### Still open
 
-1. **Toolchain versions:** exact Loom, Fabric Loader, Fabric API and Gradle versions for 26.3, from the Fabric develop site (first step of M1).
-2. **Linux font sources:** are standard folders plus the Flatpak path enough, or is FD-11 (fontconfig folders) needed? Decide from early Linux feedback.
-3. **Glyph licence:** confirm before using it as a reference.
-4. **Supplementary private-use planes:** can the `ttf` provider's `skip` field cover U+F0000–U+10FFFD efficiently, or does AP-11 need a small mixin for those planes? (M3)
-5. **Client game tests on 26.3:** do Fabric's client game tests and screenshot comparison work reliably enough to run in CI? (M1)
+1. **Linux font sources:** are standard folders plus the Flatpak path enough, or is FD-11 (fontconfig folders) needed? Decide from early Linux feedback.
+2. **Glyph licence:** confirm before using it as a reference.
+3. **Supplementary private-use planes:** can the `ttf` provider's `skip` field cover U+F0000–U+10FFFD efficiently, or does AP-11 need a small mixin for those planes? (M3) *M1 finding:* `skip` accepts supplementary code points, but `TrueTypeGlyphProvider` stores it in an `IntArraySet` (linear lookup) and checks every character the font maps, so load cost grows with font size × skip size. The supplementary planes (~131,000 code points) are impractical through `skip`; even the BMP range (6,400) is slow for large CJK fonts. Expect a small filter mixin in the provider's constructor instead; decide in M3.
+4. **Client game tests on 26.3:** do Fabric's client game tests and screenshot comparison work reliably enough to run in CI? (M1) *M1 finding:* a client game test (`src/gametest`) boots 26.3 to the title screen and takes a screenshot locally on Windows; CI runs it under Xvfb in a separate job. Close this once the CI job has proven stable over a few PRs; screenshot comparison is untested.
 
 ## Maintaining this document
 
@@ -399,3 +398,4 @@ No telemetry, so success is read from public signals: download and follower grow
 | v0.5 | 2026-11-11 | Gap review: server-pack glyph protection (AP-11, D11); variable-font named instances (FD-12); hidden symbol/colour fonts with Show hidden fonts toggle (FD-13, UI-10); keep-or-revert safety valve with 30 s auto-revert (section 5.7, D13); new-computer detection and config reset (section 5.6, D12); other-font-mod detection (AP-12); performance and memory targets (D14); latest-version-only support, semantic versioning, Modrinth primary + CurseForge (D15); config versioning and corrupt-file handling (D16); testing and CI (D17); complex shaping and colour emoji as non-goals; new user stories, risks, milestone exit criteria and test-matrix rows. |
 | v0.6 | 2026-11-11 | New-system detection simplified: fingerprint is a hash of OS family + user home path stored in the config (no machine-ID file, no host name); silent reset with one WARN log line instead of a notice (UI-12 removed); section 5.6 adds a catches / doesn't-catch table. |
 | v0.7 | 2026-11-11 | Identity decided (D18: mod ID, package, slug). Competitive landscape corrected and expanded: Font does have a preview; added FontSwap, Smooth Font and Modern UI. |
+| v0.8 | 2026-11-11 | M1: exact toolchain versions recorded (D7, open question 1 closed); D1 mixin target confirmed against 26.3 source; `skip` performance finding for the private-use planes; client game test working locally. |

@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"id": "mcfontcontrol-gametest",
+	"version": "1.0.0",
+	"name": "MC Font Control game tests",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"io.github.jekitchen.mcfontcontrol.gametest.TitleScreenGameTest"
+		]
+	},
+	"depends": {
+		"mcfontcontrol": "*"
+	}
+}

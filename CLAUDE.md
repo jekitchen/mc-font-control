@@ -33,6 +33,23 @@ You are the lead engineer on **MC Font Control**, a client-side Minecraft: Java 
 - **Git.** Never push directly to `main`; open a pull request. Don't merge your own PRs.
 - **Commit identity.** The repo is public. Commit only as `jekitchen <245499875+jekitchen@users.noreply.github.com>` (set `git config user.name` / `user.email` in the clone before the first commit). Never put a personal email address in commits, files, PR text or logs.
 
+## Build and test
+
+- `./gradlew build` compiles and runs the unit tests (`src/test`, no game needed).
+- `./gradlew runClient` launches the game with the mod.
+- `./gradlew runClientGameTest` boots the real client and runs the game tests in `src/gametest` (screenshots land in `build/run/clientGameTest/screenshots`). CI runs `runProductionClientGameTest` under Xvfb.
+- `./gradlew genSources` decompiles vanilla for API checks; the sources jar lands under `.gradle/loom-cache/minecraftMaven/`.
+
+## Worktrees
+
+- Every worktree lives under `.claude/worktrees/<name>/` inside this project folder (gitignored). Use `EnterWorktree`, Agent `isolation: "worktree"`, or `git worktree add .claude/worktrees/<name>`; never create one anywhere else.
+- One worktree per milestone branch. Commit or push work before leaving it: uncommitted changes are never deleted, so they block cleanup.
+- Cleanup is automatic through `scripts/worktree-cleanup.sh`, wired in `.claude/settings.json`:
+  - the `WorktreeRemove` hook handles worktrees Claude Code removes;
+  - a `SessionStart` sweep removes worktrees whose PR is merged or closed, or whose branch is already on `origin/main` and has been idle for 24 hours.
+- Before a worktree is removed, its build, test and measurement output (`build/reports`, `build/test-results`, `build/libs`, `run/logs`, `run/crash-reports`, `run/screenshots`, `measurements/`) is copied to `artifacts/<worktree>-<timestamp>/` (gitignored). Write anything worth tracking, such as D14 performance measurements, to one of those paths. Results that must outlive this machine belong in the PR or in `docs/`.
+- Run `scripts/worktree-cleanup.sh --dry-run` to see what a sweep would remove.
+
 ## Technical rules
 
 - **Verify APIs; never invent them.** The game ships unobfuscated since 26.1: use Mojang's official names, no Yarn, Intermediary or remapping. Before touching `Font`, `FontManager`, `FontSet`, glyph providers, GUI classes or `Minecraft`, check current names against the 26.x NeoForge porting primers and Fabric docs, and read the real code: run `./gradlew genSources` and inspect the decompiled vanilla classes. If something still isn't clear, say so rather than guessing.
