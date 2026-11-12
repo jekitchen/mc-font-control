@@ -166,7 +166,7 @@ def draw_logo(font_path):
 
 
 SOCIAL_TAGLINE = "Any font on your computer, everywhere Minecraft draws text."
-SOCIAL_DETAILS = "Fabric mod  ·  Minecraft 26.3+  ·  Client-side"
+SOCIAL_DETAILS = "Minecraft: Java Edition 26.3+  ·  Windows, macOS & Linux  ·  Fabric"
 SOCIAL_MUTED = (150, 164, 188)
 
 
