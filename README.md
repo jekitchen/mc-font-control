@@ -35,7 +35,7 @@ Settings are stored in `config/fontsys.json`. The font list cache is `config/fon
 |---|---|
 | Windows 11 | Supported |
 | macOS | Supported |
-| Linux | Best effort: standard font folders and Flatpak launchers |
+| Linux | Best effort: standard font folders and Flatpak launchers; tested on Ubuntu 26.04 |
 
 ## Known limitations
 

@@ -1,0 +1,30 @@
+#cloud-config
+# First-boot setup for the Fontsys Linux test VM (scripts/linux-vm.sh, PRD D27).
+# Gives the VM what a typical Ubuntu desktop has for fonts, plus what the client
+# game tests need to run headless, as in CI (.github/workflows/build.yml).
+package_update: true
+packages:
+  # Java 25 for Gradle and the game.
+  - openjdk-25-jdk-headless
+  - git
+  - unzip
+  # Headless display and software rendering: OpenGL (llvmpipe) and Vulkan (lavapipe).
+  - xvfb
+  - libgl1-mesa-dri
+  - libglx-mesa0
+  - libegl1
+  - mesa-vulkan-drivers
+  # The font set of a stock Ubuntu desktop, so discovery sees real families:
+  # four-style families (DejaVu, Liberation, Ubuntu), Noto, CJK collections and a colour emoji font.
+  - fonts-dejavu
+  - fonts-liberation
+  - fonts-ubuntu
+  - fonts-noto-core
+  - fonts-noto-cjk
+  - fonts-noto-color-emoji
+  - fonts-urw-base35
+  - fontconfig
+  # Flatpak, for the sandbox check (FD-10).
+  - flatpak
+runcmd:
+  - [touch, /var/lib/fontsys-vm-ready]

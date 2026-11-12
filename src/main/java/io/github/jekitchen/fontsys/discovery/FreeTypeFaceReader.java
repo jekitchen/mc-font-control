@@ -13,6 +13,7 @@ import java.util.List;
 import org.lwjgl.CLongBuffer;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.freetype.FT_CharMap;
 import org.lwjgl.util.freetype.FT_Face;
 import org.lwjgl.util.freetype.FreeType;
@@ -162,7 +163,8 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 			&& FreeType.FT_Select_Charmap(face, FreeType.FT_ENCODING_UNICODE) == 0
 			&& FreeType.FT_Get_Char_Index(face, 'A') != 0
 			&& FreeType.FT_Get_Char_Index(face, 'a') != 0
-			&& FreeType.FT_Get_Char_Index(face, '0') != 0;
+			&& FreeType.FT_Get_Char_Index(face, '0') != 0
+			&& !lettersAreSymbols(face, format);
 
 		// macOS marks fonts meant only for the system with a leading dot (".SF Arabic",
 		// ".LastResort"); Font Book and the font menus never list them, and neither do we.
@@ -201,6 +203,36 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 			}
 		}
 		return real * 2 > drawn;
+	}
+
+	/**
+	 * D27: true if the font's glyph names show that "A" and "a" are drawn as something other than
+	 * those letters. Symbol fonts converted from PostScript, such as URW's D050000L (dingbats) and
+	 * Standard Symbols PS (Greek) on Linux, map ASCII codes to their symbols and claim Latin in
+	 * their OS/2 table, so the character map alone lists them as text fonts. Only names that
+	 * clearly identify another glyph count: no names, "uni0041"-style or numbered names
+	 * ("glyph36", "cid00034") say nothing either way.
+	 * <p>
+	 * CFF fonts only: there the names are part of the glyph data. In TrueType they are optional
+	 * labels in the {@code post} table and can be plain wrong (Windows' Edwardian Script ITC
+	 * labels its "A" glyph "T"), so a TrueType font is never hidden on their evidence.
+	 */
+	private static boolean lettersAreSymbols(FT_Face face, String format) {
+		if (!"CFF".equals(format) || !FreeType.FT_HAS_GLYPH_NAMES(face)) {
+			return false;
+		}
+		return !GlyphNames.couldBe(glyphName(face, 'A'), "A") && !GlyphNames.couldBe(glyphName(face, 'a'), "a");
+	}
+
+	private static String glyphName(FT_Face face, char c) {
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+			ByteBuffer buffer = stack.calloc(64);
+			int glyph = FreeType.FT_Get_Char_Index(face, c);
+			if (glyph == 0 || FreeType.FT_Get_Glyph_Name(face, glyph, buffer) != 0) {
+				return null;
+			}
+			return MemoryUtil.memASCII(buffer, MemoryUtil.memLengthNT1(buffer));
+		}
 	}
 
 	private static boolean hasTable(FT_Face face, String tag) {
