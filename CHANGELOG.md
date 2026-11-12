@@ -2,6 +2,13 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
+## [1.0.1] - unreleased
+
+### Fixed
+
+- **Signs with shader packs.** With an Iris shader pack on, sign text in a system font drew as long streaks across the screen. Fontsys glyphs now draw through the same render pipelines as Minecraft's own font, which shader packs support.
+- **Name tags** in a system font were slightly brighter than with the normal font when seen through walls. They now match.
+
 ## [1.0.0] - 2026-11-11
 
 First release, for Minecraft 26.3 on Fabric.
@@ -25,4 +32,4 @@ First release, for Minecraft 26.3 on Fabric.
 - Windows 11 and macOS.
 - Linux, best effort: standard font folders and Flatpak launchers; tested on Ubuntu 26.04.
 
-See the [README](README.md#known-limitations) for known limitations.
+See the [README](https://github.com/jekitchen/mc-fontsys#known-limitations) for known limitations.
