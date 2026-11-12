@@ -1,0 +1,24 @@
+name: Translation
+description: Offer a translation of Fontsys's text into your language.
+labels: [translation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        All of Fontsys's text is in [`en_us.json`](https://github.com/jekitchen/mc-fontsys/blob/main/src/main/resources/assets/fontsys/lang/en_us.json).
+        Copy it, translate the values (not the keys), and attach it here or open a pull request adding
+        `src/main/resources/assets/fontsys/lang/<locale>.json` (for example `de_de.json`).
+  - type: input
+    id: locale
+    attributes:
+      label: Language and Minecraft locale code
+      placeholder: German, de_de
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Translation
+      description: Attach the file, or paste its contents.
+    validations:
+      required: true

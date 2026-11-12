@@ -31,11 +31,14 @@ The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-
    git tag v1.0.0 && git push origin v1.0.0
    ```
    The `release` workflow checks that the tag matches `mod_version`, builds and tests, and creates a **draft** GitHub release with the jar and the changelog section as notes. Review it on GitHub and press Publish.
-2. Modrinth (primary home), project slug `fontsys`; upload the same jar:
-   - Loader: Fabric. Game version: 26.3. Environment: client required, server unsupported.
+2. Publishing the GitHub release runs the `publish` workflow (PRD D31). It uploads the release's jar to Modrinth and CurseForge as version `<mod_version>+<minecraft>` (e.g. `1.0.1+26.3`), named "Fontsys <version>", with the release notes as changelog:
+   - Loader: Fabric. Game versions: `publish_game_versions` in `gradle.properties`. Java 25.
    - Dependencies: Fabric API (required), Mod Menu (optional).
-   - Link the Modrinth page from the README.
-3. CurseForge, slug `fontsys`, same metadata.
+   - It needs, in the repository's Actions settings: variables `MODRINTH_PROJECT_ID` and `CURSEFORGE_PROJECT_ID` (the numeric or base-62 project IDs shown on each project page, not the slug), and secrets `MODRINTH_TOKEN` (a Modrinth personal access token with the "Create versions" scope) and `CURSEFORGE_TOKEN` (a CurseForge API token from the account's API tokens page). A store whose project ID variable is empty is skipped.
+   - If an upload fails, fix the cause and rerun it from Actions → publish → Run workflow, with the tag and the store.
+3. Check both project pages. Modrinth's AI-content disclosures (D28) are project settings, so they carry over to new versions.
+
+Manual upload, if the workflow is unavailable: the same jar and metadata through each site's upload form (environment: client required, server unsupported).
 
 ## Listing copy
 

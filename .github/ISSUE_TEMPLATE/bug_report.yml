@@ -1,0 +1,89 @@
+name: Bug report
+description: Something looks wrong, crashes, or doesn't work with another mod.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The details below let us reproduce the problem without a back-and-forth.
+        If the game crashed, the crash report is in `crash-reports/` inside your instance folder.
+  - type: input
+    id: fontsys-version
+    attributes:
+      label: Fontsys version
+      description: Shown in Mod Menu, or in the jar's file name.
+      placeholder: 1.0.1+26.3
+    validations:
+      required: true
+  - type: input
+    id: minecraft-version
+    attributes:
+      label: Minecraft and Fabric Loader versions
+      placeholder: Minecraft 26.3, Fabric Loader 0.20.1
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Linux (Flatpak launcher)
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Renderer
+      description: Options → Video Settings → Renderer.
+      options:
+        - OpenGL
+        - Vulkan
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: font
+    attributes:
+      label: Font
+      description: The font family and style you picked.
+      placeholder: Segoe UI Variable Semibold
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you saw instead. Screenshots help a lot; drag them into this box.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Pick the font in Fontsys settings and keep it
+        2. Join a world and look at a sign
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods, resource packs and shader pack
+      description: The full mods list if you can, or at least anything that changes rendering or text (Sodium, Iris and the shader pack name, ImmediatelyFast, other font mods, resource packs with fonts).
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        Upload `logs/latest.log` from your instance folder to https://mclo.gs and paste the link, or attach the file.
+        Run the game once more with the problem before copying it, so the log covers it.
+      placeholder: https://mclo.gs/...
+    validations:
+      required: true
