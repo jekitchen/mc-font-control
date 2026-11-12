@@ -17,6 +17,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 - Applies the font everywhere with one click, no restart.
 - Gives you 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
 - Adjusts size, sharpness and baseline offset.
+- Blends the smooth edges of letters by true coverage and uses a lighter drop shadow, so light text on dark menus keeps its full weight and doesn't look doubled.
 - **Crisp edges** for pixel-style fonts: hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it, with a size that keeps every pixel square.
 - Uses the game's own font renderer, so it works alongside Sodium and Iris.
 - Never copies or bundles font files: fonts are read from where your system keeps them, or from the instance's `fonts/` folder.
