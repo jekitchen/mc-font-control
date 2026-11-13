@@ -4,7 +4,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 
 | File | Use |
 |---|---|
-| [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
+| [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor. Modrinth takes Markdown as is. On CurseForge, switch the description editor from WYSIWYG to **Markdown** first, or the page shows the raw Markdown. |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
 | [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. |
 | [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. `fontsys-social.png`, 1280×640: the GitHub social preview (repository Settings → General → Social preview), with everything inside GitHub's 80 px safe border. |
