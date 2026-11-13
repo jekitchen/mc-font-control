@@ -8,7 +8,9 @@
 	"key.category.fontsys.main": "Fontsys",
 	"key.fontsys.open": "Open font settings",
 
-	"fontsys.screen.title": "Fontsys",
+	"fontsys.screen.title": "%s%s",
+	"fontsys.screen.title.font": "Font",
+	"fontsys.screen.title.sys": "sys",
 	"fontsys.screen.search": "Search fonts",
 	"fontsys.screen.search.clear": "Clear search",
 	"fontsys.screen.show_hidden": "Show hidden fonts",
