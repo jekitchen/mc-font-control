@@ -44,7 +44,8 @@ import org.jspecify.annotations.Nullable;
  *   <li>the keep-or-revert dialog shows samples in the new font (UI-11);</li>
  *   <li>a kept font is listed first and tagged Recent (UI-17);</li>
  *   <li>font files dropped on the screen are copied into the instance's fonts folder (UI-16);</li>
- *   <li>Options > Language > Font Settings has a Fontsys button (UI-1), and F7 is the default key (UI-2, D39).</li>
+ *   <li>Options > Language > Font Settings has a Fontsys button (UI-1), and F7 is the default key (UI-2, D39);</li>
+ *   <li>the screen's title draws "sys" in the logo's green, and still reads "Fontsys" (D48).</li>
  * </ul>
  */
 @SuppressWarnings("UnstableApiUsage")
@@ -53,6 +54,7 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		context.waitForScreen(TitleScreen.class);
 		defaultKey(context);
+		greenTitle(context);
 		tooltips(context);
 		clearSearch(context);
 		searchFocus(context);
@@ -129,6 +131,26 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 
 	private static boolean isFontsysButton(AbstractWidget w) {
 		return w instanceof Button && w.getMessage().getString().equals(Component.translatable("fontsys.options.button").getString());
+	}
+
+	/**
+	 * The title draws "Font" in white and "sys" in the logo's green, #56D9A8 (D48). Both colors
+	 * must appear in the band at the top of the screen, and the title still reads "Fontsys" for
+	 * narration.
+	 */
+	private static void greenTitle(ClientGameTestContext context) {
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(5);
+		String title = context.computeOnClient(mc -> mc.gui.screen().getTitle().getString());
+		require(title.equals("Fontsys"), "the title reads Fontsys, not " + title);
+		int scale = context.computeOnClient(mc -> (int) mc.getWindow().getGuiScale());
+		int[][] rgb = shootRgb(context, "d48-green-title");
+		int[][] band = Arrays.copyOfRange(rgb, 0, Math.min(rgb.length, (8 + 10) * scale));
+		int green = count(band, 0x56D9A8);
+		int white = count(band, 0xFFFFFF);
+		require(green > 10 * scale * scale, "\"sys\" is drawn in green in the title: " + green + " px");
+		require(white > 10 * scale * scale, "\"Font\" is drawn in white in the title: " + white + " px");
+		context.setScreen(TitleScreen::new);
 	}
 
 	/** Hovering each control with a tooltip draws a tooltip box: dark purple pixels that weren't there before. */

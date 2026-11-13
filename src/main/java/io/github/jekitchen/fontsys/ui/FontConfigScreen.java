@@ -62,6 +62,11 @@ public final class FontConfigScreen extends Screen {
 	private static final int CLEAR_SIZE = 16;
 	/** Recently applied fonts listed first while the search box is empty (UI-17). */
 	private static final int RECENT_SHOWN = 5;
+	/**
+	 * The green of "sys" in the logo (D48). The logo fades from #78ECBA to #34C496; Minecraft
+	 * gives each character one color, so the title uses the midpoint.
+	 */
+	private static final int TITLE_GREEN = 0x56D9A8;
 
 	private final @Nullable Screen parent;
 	private final FontController controller = Fontsys.controller();
@@ -99,7 +104,10 @@ public final class FontConfigScreen extends Screen {
 	private int previewWait;
 
 	public FontConfigScreen(@Nullable Screen parent) {
-		super(Component.translatable("fontsys.screen.title"));
+		// "Font" in white and "sys" in the logo's green (D48). One component, so narration
+		// still reads "Fontsys"; the color is only drawn, never spoken.
+		super(Component.translatable("fontsys.screen.title", Component.translatable("fontsys.screen.title.font"),
+			Component.translatable("fontsys.screen.title.sys").withColor(TITLE_GREEN)));
 		this.parent = parent;
 		this.draft = controller.appliedSettings();
 		this.baseline = draft;
