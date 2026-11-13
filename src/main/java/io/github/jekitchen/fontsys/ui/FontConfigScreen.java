@@ -99,6 +99,8 @@ public final class FontConfigScreen extends Screen {
 	private int previewY1;
 
 	private @Nullable PreviewFont preview;
+	/** Each family's name in its own font in the list (D49). */
+	private final FamilyNameFonts nameFonts = new FamilyNameFonts();
 	private @Nullable Component previewError;
 	private boolean previewDirty = true;
 	private int previewWait;
@@ -532,6 +534,11 @@ public final class FontConfigScreen extends Screen {
 		return list.children().stream().map(e -> Map.entry(e.family, e.recent)).toList();
 	}
 
+	/** The list's name fonts (D49); for the game tests. */
+	public FamilyNameFonts nameFonts() {
+		return nameFonts;
+	}
+
 	private record StripHit(float size, int x0, int y0, int x1, int y1) {
 	}
 
@@ -639,6 +646,7 @@ public final class FontConfigScreen extends Screen {
 	@Override
 	public void removed() {
 		closePreview();
+		nameFonts.clear();
 		previewDirty = true;
 	}
 
@@ -870,6 +878,13 @@ public final class FontConfigScreen extends Screen {
 			}
 		}
 
+		/** Starts each frame's names: their fonts load only for the rows drawn below (D49). */
+		@Override
+		public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+			nameFonts.beginFrame(RuntimeFontPackSource.currentGuiScale(), minecraft.gui.overlay() == null);
+			super.extractWidgetRenderState(graphics, mouseX, mouseY, a);
+		}
+
 		@Override
 		public int getRowWidth() {
 			return width - 14;
@@ -912,11 +927,9 @@ public final class FontConfigScreen extends Screen {
 					graphics.text(font, tag, right, y, 0xFFFFE080, false);
 					right -= 6;
 				}
-				// Long names (or a wide applied font) are cut short rather than run under the tags.
-				int room = right - (getContentX() + 2);
-				String name = font.width(family.name()) <= room ? family.name()
-					: font.plainSubstrByWidth(family.name(), Math.max(0, room - font.width("…"))) + "…";
-				graphics.text(font, name, getContentX() + 2, y, 0xFFFFFFFF, false);
+				// In the family's own font once it's ready (D49). Long names (or a wide font) are cut
+				// short rather than run under the tags.
+				nameFonts.drawName(graphics, font, family, getContentX() + 2, y, right - (getContentX() + 2), 0xFFFFFFFF);
 			}
 
 			@Override

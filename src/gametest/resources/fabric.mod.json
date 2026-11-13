@@ -13,6 +13,7 @@
 			"io.github.jekitchen.fontsys.gametest.ConfigScreenGameTest",
 			"io.github.jekitchen.fontsys.gametest.SettingsUiGameTest",
 			"io.github.jekitchen.fontsys.gametest.InstanceFontsGameTest",
+			"io.github.jekitchen.fontsys.gametest.FontNamesGameTest",
 			"io.github.jekitchen.fontsys.gametest.CrispModeGameTest",
 			"io.github.jekitchen.fontsys.gametest.TextQualityGameTest",
 			"io.github.jekitchen.fontsys.gametest.RobustnessGameTest",
