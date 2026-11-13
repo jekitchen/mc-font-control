@@ -6,7 +6,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 
 ### Added
 
-- **NeoForge version.** Fontsys now also comes as a NeoForge mod for Minecraft 26.3 (NeoForge 26.3.0.103 or later), with the same features. Open the settings with F7, from Font Settings, or from the Config button in NeoForge's mods list.
+- **NeoForge support.** Fontsys now also runs on NeoForge for Minecraft 26.3 (NeoForge 26.3.0.103 or later), with the same features. It's the same jar for Fabric and NeoForge: drop it into either. On NeoForge, open the settings with F7, from Font Settings, or from the Config button in the mods list; Fabric API isn't needed there.
 - **"Keep this font?" says what's changing.** Above the samples, the dialog lists the font you're switching from and to, and every setting you changed, such as size 10 → 12 or Crisp edges Off → On, so you know exactly what you're keeping.
 - **The settings title matches the logo.** "sys" in "Fontsys" at the top of the settings screen is drawn in the logo's green; "Font" stays white.
 - **Font names in their own font.** The font list shows each name in its own font, as word processors' font menus do, so you can see what a font looks like before you pick it. Names a font can't draw, such as symbol and emoji fonts, stay in the normal font.

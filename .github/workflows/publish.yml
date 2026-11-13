@@ -2,6 +2,16 @@
 # release that the release workflow drafted (PRD D31). The draft review stays the gate:
 # nothing reaches the stores until it is published on GitHub.
 #
+# The one jar works on Fabric and NeoForge, so each store gets one file listed for both
+# loaders (PRD D54). Store dependencies apply to the whole file, not per loader, and
+# fabric.mod.json enforces Fabric API on Fabric whatever the store says:
+#   Modrinth:   fabric-api required. The Modrinth App and website skip a required
+#               dependency that has no version for the instance's loader, so Fabric
+#               players get Fabric API installed and NeoForge players don't.
+#   CurseForge: fabric-api optional. How the CurseForge app treats a required dependency
+#               with no NeoForge file isn't documented, so don't risk it installing Fabric
+#               API into NeoForge instances.
+#
 # Setup (repository settings → Secrets and variables → Actions):
 #   variables MODRINTH_PROJECT_ID, CURSEFORGE_PROJECT_ID   (project IDs, not slugs)
 #   secrets   MODRINTH_TOKEN, CURSEFORGE_TOKEN
@@ -72,7 +82,9 @@ jobs:
           version: ${{ env.FULL_VERSION }}
           version-type: release
           changelog-file: release-notes.md
-          loaders: fabric
+          loaders: |
+            fabric
+            neoforge
           game-versions: ${{ env.GAME_VERSIONS }}
           java: 25
           dependencies: |
@@ -91,9 +103,11 @@ jobs:
           version: ${{ env.FULL_VERSION }}
           version-type: release
           changelog-file: release-notes.md
-          loaders: fabric
+          loaders: |
+            fabric
+            neoforge
           game-versions: ${{ env.GAME_VERSIONS }}
           java: 25
           dependencies: |
-            fabric-api(required)
+            fabric-api(optional)
             modmenu(optional)

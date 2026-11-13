@@ -41,6 +41,7 @@ import net.minecraft.server.packs.repository.Pack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforgespi.locating.IModFile;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -210,6 +211,15 @@ public final class FontsysSmokeTest {
 
 	/** Checks that need no font change: the NeoForge wiring of the pack, key, mods list and command. */
 	private void checkStatic(Minecraft mc) {
+		// The run loads Fontsys from the single jar players get, Fabric metadata and all (D54).
+		if (Boolean.getBoolean("fontsys.smokeTest.expectJar")) {
+			IModFile file = ModList.get().getModFileById(Fontsys.MOD_ID).getFile();
+			Path path = file.getFilePath();
+			lines.add("INFO Fontsys loaded from " + path.getFileName());
+			check(Files.isRegularFile(path) && path.getFileName().toString().endsWith(".jar"), "Fontsys loads from the built jar", "loaded from " + path);
+			check(file.getContents().containsFile("fabric.mod.json"), "the jar is the single jar for both loaders (it carries fabric.mod.json)", "no fabric.mod.json in " + path);
+		}
+
 		List<String> selected = mc.getResourcePackRepository().getSelectedPacks().stream().map(Pack::getId).toList();
 		check(selected.contains(RuntimeFontPackSource.PACK_ID), "the runtime font pack is selected", "selected: " + selected);
 

@@ -19,10 +19,10 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 | License | MIT |
 | Source | https://github.com/jekitchen/mc-fontsys |
 | Issues | https://github.com/jekitchen/mc-fontsys/issues |
-| Loader | Fabric |
+| Loaders | Fabric, NeoForge (one file for both; PRD D54) |
 | Game version | 26.3 |
 | Environment | Client: required. Server: unsupported (Modrinth: "Client-side only"). |
-| Dependencies | Fabric API: required. Mod Menu: optional. |
+| Dependencies | Modrinth: Fabric API required, Mod Menu optional. CurseForge: Fabric API optional, Mod Menu optional. Dependencies cover the whole file, not one loader; see PRD D54. |
 | Modrinth categories | Utility |
 | CurseForge categories | Utility & QoL (main), Cosmetic |
 

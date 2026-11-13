@@ -1,5 +1,5 @@
 # Builds the release jar when a version tag is pushed and attaches it to a draft GitHub
-# release (PRD D29). The owner reviews and publishes the draft; publishing it runs the
+# release (PRD D29). It is one jar for both Fabric and NeoForge (PRD D54). The owner reviews and publishes the draft; publishing it runs the
 # publish workflow, which uploads the jar to Modrinth and CurseForge (D31).
 name: release
 on:

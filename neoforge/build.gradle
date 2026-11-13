@@ -1,11 +1,12 @@
-// NeoForge build of Fontsys (PRD D51).
+// NeoForge side of Fontsys (PRD D51, D54).
 //
-// The loader-neutral code is not copied or moved: this project compiles the root project's
-// src/main/java (everything except the fabric package) together with its own neoforge
-// package, and packs the shared assets and mixin config from src/main/resources.
-// Build:   ./gradlew :neoforge:build            -> neoforge/build/libs/fontsys-<version>+<mc>-neoforge.jar
-// Play:    ./gradlew :neoforge:runNeoforgeClient
-// Check:   ./gradlew :neoforge:neoforgeSmokeTest     (boots the client, applies a font, quits)
+// Fontsys ships as one jar for both loaders, built by the root project (D54). This project
+// supplies the NeoForge parts of it: the io.github.jekitchen.fontsys.neoforge package and
+// META-INF/neoforge.mods.toml. For NeoForge dev runs and the bytecode check it also compiles
+// the root project's src/main/java (everything except the fabric package) against NeoForge's
+// Minecraft; the loader-neutral code is not copied or moved.
+// Play:    ./gradlew :neoforge:runNeoforgeClient                (dev classes)
+// Check:   ./gradlew :neoforge:neoforgeSmokeTest     (boots the client with the built jar, applies a font, quits)
 plugins {
 	id 'net.neoforged.moddev' version "${moddev_version}"
 }
@@ -54,17 +55,57 @@ neoForge {
 			client()
 			loadedMods = [mods.fontsys]
 		}
+		// Fontsys comes from the built jar in the run's mods folder, not from dev classes, so
+		// this tests the file players get (D54).
 		neoforgeSmokeTest {
 			client()
 			sourceSet = sourceSets.smokeTest
+			loadedMods = [mods.fontsys_smoketest]
 			gameDirectory = project.file('build/run/smokeTest')
 			systemProperty 'fontsys.smokeTest', 'true'
+			systemProperty 'fontsys.smokeTest.expectJar', 'true'
 		}
 	}
 }
 
 dependencies {
-	smokeTestImplementation sourceSets.main.output
+	// Compile against Fontsys; at run time it comes from the built jar (see installSmokeTestJar).
+	smokeTestCompileOnly sourceSets.main.output
+}
+
+// The NeoForge parts of the single jar (D54), picked up by the root project's jar task.
+def neoforgePartsTask = tasks.register('neoforgeParts', Sync) {
+	from(sourceSets.main.output) {
+		include 'io/github/jekitchen/fontsys/neoforge/**'
+		include 'META-INF/neoforge.mods.toml'
+	}
+	into layout.buildDirectory.dir('neoforgeParts')
+}
+configurations.consumable('neoforgeParts')
+artifacts.add('neoforgeParts', layout.buildDirectory.dir('neoforgeParts')) {
+	builtBy neoforgePartsTask
+}
+// This project's compile of the shared code, for the root project's checkSharedBytecode.
+configurations.consumable('neoforgeSharedClasses')
+artifacts.add('neoforgeSharedClasses', tasks.named('compileJava').flatMap { it.destinationDirectory }) {
+	builtBy tasks.named('compileJava')
+}
+
+// No separate NeoForge jar any more: the root project builds the one jar (D54).
+tasks.named('jar') {
+	enabled = false
+}
+
+// The built single jar, copied into the smoke test's mods folder.
+def modJarScope = configurations.dependencyScope('modJar')
+def modJarFiles = configurations.resolvable('modJarFiles') { extendsFrom(modJarScope.get()) }
+dependencies {
+	modJar project(path: ':', configuration: 'modJarElements')
+}
+def smokeRunDir = project.file('build/run/smokeTest')
+def installSmokeTestJar = tasks.register('installSmokeTestJar', Sync) {
+	from modJarFiles
+	into new File(smokeRunDir, 'mods')
 }
 
 // NeoForm Runtime (asset download, Minecraft setup) asks for a Java 21 toolchain by default.
@@ -74,7 +115,6 @@ tasks.withType(net.neoforged.nfrtgradle.NeoFormRuntimeTask).configureEach {
 }
 
 // Runs the smoke test client and fails the build unless it passed (D51). CI wraps it in xvfb-run.
-def smokeRunDir = project.file('build/run/smokeTest')
 tasks.register('neoforgeSmokeTest') {
 	group = 'verification'
 	description = 'Boots the NeoForge client with Fontsys, applies a font, checks it, and quits.'
@@ -100,6 +140,7 @@ tasks.register('neoforgeSmokeTest') {
 }
 
 tasks.named('runNeoforgeSmokeTest') {
+	dependsOn installSmokeTestJar
 	// Start from the vanilla font, and remove the last result so an old one can't pass for this run.
 	def stale = [new File(smokeRunDir, 'fontsys-smoketest.txt'), new File(smokeRunDir, 'config/fontsys.json')]
 	doFirst {
@@ -130,10 +171,3 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
-jar {
-	// fontsys-<version>+<mc>-neoforge.jar, next to the Fabric jar's fontsys-<version>+<mc>.jar.
-	archiveClassifier = 'neoforge'
-	from(rootProject.file("LICENSE")) {
-		rename { "${it}_fontsys" }
-	}
-}

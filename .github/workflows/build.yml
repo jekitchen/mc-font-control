@@ -24,16 +24,12 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew build
+      # One jar for Fabric and NeoForge (PRD D54).
       - name: Upload mod jar
         uses: actions/upload-artifact@v7
         with:
           name: fontsys-jar
           path: build/libs/
-      - name: Upload NeoForge jar
-        uses: actions/upload-artifact@v7
-        with:
-          name: fontsys-neoforge-jar
-          path: neoforge/build/libs/
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -44,14 +40,27 @@ jobs:
             build/test-results/
 
   # Boots the real client under Xvfb and runs src/gametest (PRD D17, open question 4).
+  # production-jar runs the same tests against the built single jar on a production-style
+  # Fabric client (PRD D54); the others run from dev classes.
   client-game-test:
+    # Keeps the check names the main branch ruleset requires: client-game-test (vanilla) and (sodium-iris).
+    name: client-game-test (${{ matrix.mods }})
     runs-on: ubuntu-24.04
     # A client that can't open its window waits forever; fail fast instead of after 6 hours.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        mods: [vanilla, sodium-iris]
+        include:
+          - mods: vanilla
+            task: runClientGameTest
+            run-dir: clientGameTest
+          - mods: sodium-iris
+            task: runClientGameTest -PwithSodiumIris
+            run-dir: clientGameTest
+          - mods: production-jar
+            task: runProductionClientGameTest
+            run-dir: productionClientGameTest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -73,21 +82,22 @@ jobs:
         run: |
           chmod +x ./gradlew
           # Virtual display for the client window.
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew runClientGameTest ${{ matrix.mods == 'sodium-iris' && '-PwithSodiumIris' || '' }}
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew ${{ matrix.task }}
       - name: Upload screenshots and logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: client-game-test-${{ matrix.mods }}
           path: |
-            build/run/clientGameTest/screenshots/
-            build/run/clientGameTest/logs/
-            build/run/clientGameTest/crash-reports/
-            build/run/clientGameTest/config/fontsys/
+            build/run/${{ matrix.run-dir }}/screenshots/
+            build/run/${{ matrix.run-dir }}/logs/
+            build/run/${{ matrix.run-dir }}/crash-reports/
+            build/run/${{ matrix.run-dir }}/config/fontsys/
           if-no-files-found: ignore
 
-  # NeoForge build (PRD D51). Fabric's client game tests have no NeoForge counterpart, so a test-only
-  # mod boots the NeoForge client under Xvfb, checks the NeoForge wiring, applies a font and quits.
+  # NeoForge (PRD D51, D54). Fabric's client game tests have no NeoForge counterpart, so a test-only
+  # mod boots the NeoForge client under Xvfb with the built single jar in its mods folder, checks
+  # the NeoForge wiring, applies a font and quits.
   neoforge-smoke-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
