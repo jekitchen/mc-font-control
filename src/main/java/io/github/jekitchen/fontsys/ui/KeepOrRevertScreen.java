@@ -10,14 +10,17 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FormattedCharSequence;
 import org.jspecify.annotations.Nullable;
 
 /**
  * "Keep this font?" (PRD 5.7, D13). The question, countdown and buttons are drawn in the
- * vanilla font so the dialog stays readable whatever was applied. Between them, samples in the
- * new font, with every setting applied, on the backgrounds text appears on in the game: a menu,
+ * vanilla font so the dialog stays readable whatever was applied. Below the question, what the
+ * change changes: the font, from and to, and each setting that differs (D47), also in the
+ * vanilla font. Then samples in the new font, with every setting applied, on the backgrounds text appears on in the game: a menu,
  * chat, a sign and a tooltip (UI-11). Enter or Keep confirms; Esc, Revert or the countdown
  * reverts. The countdown itself runs in {@link FontController#tick}, on the wall clock, so it
  * continues if this screen is replaced or the window loses focus.
@@ -25,6 +28,11 @@ import org.jspecify.annotations.Nullable;
 public final class KeepOrRevertScreen extends Screen {
 	private static final int PAD = 5;
 	private static final int GAP = 6;
+	/** Line height of the change summary, in the vanilla font. */
+	private static final int SUMMARY_LINE = 10;
+	private static final int LABEL_COLOR = 0xFFA0A0A0;
+	/** Space between the summary's labels and values. */
+	private static final int LABEL_GAP = 6;
 
 	private final @Nullable Screen returnTo;
 
@@ -53,18 +61,105 @@ public final class KeepOrRevertScreen extends Screen {
 		graphics.centeredText(font, title, width / 2, 10, 0xFFFFFFFF);
 		int seconds = Fontsys.controller().secondsLeft();
 		graphics.centeredText(font, VanillaText.translatable("fontsys.confirm.countdown", seconds), width / 2, height - 44, 0xFFFFFF55);
-		extractSamples(graphics, 26, height - 50);
+		// The change summary and the samples, centered together between the title and the countdown.
+		ChangesLayout changes = layoutChanges();
+		int lead = changes == null ? 0 : changes.height() + GAP;
+		int blockTop = extractSamples(graphics, 26, height - 50, lead);
+		if (changes != null) {
+			extractChanges(graphics, changes, blockTop);
+		}
+	}
+
+	/** What this change changes (UI-11, D47); empty if the settings it replaced are gone. */
+	public List<ChangeSummary.Row> changes() {
+		FontSettings before = Fontsys.controller().pendingSettings();
+		return before == null ? List.of() : ChangeSummary.rows(before, Fontsys.controller().appliedSettings());
+	}
+
+	/** The change summary laid out: a label per row, its value split into lines, and the panel height. */
+	private record ChangesLayout(List<Component> labels, List<List<FormattedCharSequence>> values, int labelWidth, int height) {
+	}
+
+	/**
+	 * Lays out the changes as "label: old → new" rows, in the vanilla font so they are readable
+	 * whatever was applied. Values too long for one line wrap. Null when there is nothing to list.
+	 */
+	private @Nullable ChangesLayout layoutChanges() {
+		List<ChangeSummary.Row> rows = changes();
+		if (rows.isEmpty()) {
+			return null;
+		}
+		List<Component> labels = rows.stream().map(KeepOrRevertScreen::label).toList();
+		int labelWidth = labels.stream().mapToInt(font::width).max().orElse(0);
+		int valueWidth = Math.max(40, boxWidth() - 2 * PAD - labelWidth - LABEL_GAP);
+		List<List<FormattedCharSequence>> values = rows.stream().map(row -> font.split(value(row), valueWidth)).toList();
+		int lines = values.stream().mapToInt(List::size).sum();
+		return new ChangesLayout(labels, values, labelWidth, lines * SUMMARY_LINE + 2 * PAD - 1);
+	}
+
+	private void extractChanges(GuiGraphicsExtractor graphics, ChangesLayout layout, int top) {
+		int boxWidth = boxWidth();
+		int left = (width - boxWidth) / 2;
+		int valueX = left + PAD + layout.labelWidth() + LABEL_GAP;
+		graphics.fill(left, top, left + boxWidth, top + layout.height(), 0xE0181818);
+		graphics.outline(left, top, boxWidth, layout.height(), 0xFF555555);
+		int y = top + PAD;
+		for (int i = 0; i < layout.labels().size(); i++) {
+			graphics.text(font, layout.labels().get(i), left + PAD, y, LABEL_COLOR, false);
+			for (FormattedCharSequence line : layout.values().get(i)) {
+				graphics.text(font, line, valueX, y, 0xFFFFFFFF, true);
+				y += SUMMARY_LINE;
+			}
+		}
+	}
+
+	private static Component label(ChangeSummary.Row row) {
+		return VanillaText.translatable("fontsys.confirm.change.label", Component.translatable(row.labelKey()));
+	}
+
+	/** "old → new" with the old value gray, or just the value when it didn't change or had none. */
+	private static Component value(ChangeSummary.Row row) {
+		MutableComponent to = text(row.to());
+		if (row.from() == null || !row.changed()) {
+			return VanillaText.of(to);
+		}
+		return VanillaText.of(Component.empty()
+			.append(text(row.from()).withStyle(ChatFormatting.GRAY))
+			.append(Component.translatable("fontsys.confirm.change.arrow").withStyle(ChatFormatting.GRAY))
+			.append(to));
+	}
+
+	private static MutableComponent text(ChangeSummary.Value value) {
+		return value.key() == null ? Component.literal(value.text()) : Component.translatable(value.key(), value.text());
+	}
+
+	/** Narrators read the changes after the title. */
+	@Override
+	public Component getNarrationMessage() {
+		List<Component> parts = new ArrayList<>();
+		parts.add(title);
+		for (ChangeSummary.Row row : changes()) {
+			parts.add(Component.empty().append(label(row)).append(" ").append(value(row)));
+		}
+		return CommonComponents.joinForNarration(parts.toArray(Component[]::new));
+	}
+
+	private int boxWidth() {
+		return Math.min(width - 32, 400);
 	}
 
 	/**
 	 * The samples, top to bottom in {@code [top, bottom)}: a menu panel with a sentence and the
 	 * characters that look alike in poor fonts, then chat, sign and tooltip swatches, wrapped
-	 * into rows. {@link #font} is the game font, so this is the applied font.
+	 * into rows. {@link #font} is the game font, so this is the applied font. {@code lead} pixels
+	 * are kept free above them for the change summary, and the two are centered together.
+	 *
+	 * @return the top of the centered block, where the change summary goes
 	 */
-	private void extractSamples(GuiGraphicsExtractor graphics, int top, int bottom) {
+	private int extractSamples(GuiGraphicsExtractor graphics, int top, int bottom, int lead) {
 		FontSettings applied = Fontsys.controller().appliedSettings();
 		int line = applied.isActive() ? Math.max(10, (int) Math.ceil(applied.size()) + 3) : 10;
-		int boxWidth = Math.min(width - 32, 400);
+		int boxWidth = boxWidth();
 		int left = (width - boxWidth) / 2;
 
 		// Lay out first, so the samples can be centered in the space they have.
@@ -91,7 +186,8 @@ public final class KeepOrRevertScreen extends Screen {
 		rows.add(row);
 		int swatchHeight = line + 2 * PAD - 3;
 		int total = panelHeight + rows.size() * (GAP + swatchHeight);
-		int y = top + Math.max(0, (bottom - top - total) / 2);
+		int blockTop = top + Math.max(0, (bottom - top - lead - total) / 2);
+		int y = blockTop + lead;
 
 		graphics.enableScissor(0, top, width, bottom);
 		// Menu text: white with a shadow on a dark panel.
@@ -109,6 +205,7 @@ public final class KeepOrRevertScreen extends Screen {
 			y += swatchHeight + GAP;
 		}
 		graphics.disableScissor();
+		return blockTop;
 	}
 
 	/** "Il1 O0 rn m · 0123456789 · Bold · Italic": look-alike letters, digits, and the bold and italic faces. */

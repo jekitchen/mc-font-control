@@ -7,6 +7,7 @@ import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
+import io.github.jekitchen.fontsys.ui.ChangeSummary;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
 import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
 import java.io.IOException;
@@ -177,16 +178,38 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 
 	/** The keep-or-revert dialog draws samples (the sign's wood color is on screen); a kept font is listed first. */
 	private static void samplesAndRecent(ClientGameTestContext context, FontFamily family) {
+		FontSettings before = Fontsys.controller().appliedSettings();
 		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
 		context.waitTicks(5);
 		context.runOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).selectFamily(family));
-		context.waitTicks(5);
+		context.waitFor(mc -> !((FontConfigScreen) mc.gui.screen()).stripSizes().isEmpty());
+		context.waitTicks(3);
+		// One size up, so the change summary has a setting row as well as the font.
+		float size = context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).draftSize()) + 1;
+		ScreenPosition larger = context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).stripCenter(size));
+		require(larger != null, "the strip drew size " + size);
+		click(context, larger.x(), larger.y());
+		context.waitTicks(3);
 		context.clickScreenButton("fontsys.screen.apply");
 		context.waitForScreen(KeepOrRevertScreen.class);
 		context.waitFor(mc -> mc.gui.overlay() == null);
 		context.waitTicks(10);
 		int[][] rgb = shootRgb(context, "ui11-keep-samples");
 		require(count(rgb, 0xA2824E) > 200, "the sign sample is drawn on the keep-or-revert dialog");
+		// The change summary above the samples (D47): the font row ends at the new font, and its
+		// gray labels are on screen and in the narration.
+		List<ChangeSummary.Row> changes = context.computeOnClient(mc -> ((KeepOrRevertScreen) mc.gui.screen()).changes());
+		FontSettings applied = Fontsys.controller().appliedSettings();
+		require(!changes.isEmpty() && changes.get(0).to().text().equals(applied.familyName() + " " + applied.styleName()),
+			"the summary's first row is the new font, not " + changes);
+		require(count(rgb, 0xA0A0A0) > 30, "the summary's labels are drawn");
+		if (!before.isActive() || before.size() != size) {
+			String expected = size == Math.rint(size) ? String.valueOf((int) size) : String.valueOf(size);
+			require(changes.stream().anyMatch(r -> r.labelKey().equals("fontsys.confirm.change.size") && r.to().text().equals(expected)),
+				"the summary lists the new size " + expected + ": " + changes);
+		}
+		String narration = context.computeOnClient(mc -> mc.gui.screen().getNarrationMessage().getString());
+		require(narration.contains(applied.familyName()), "the narration reads the changes: " + narration);
 		context.getInput().pressKey(InputConstants.KEY_RETURN);
 		context.waitForScreen(FontConfigScreen.class);
 		require(!Fontsys.controller().recentFonts().isEmpty() && family.holds(Fontsys.controller().recentFonts().get(0).familyName(),
