@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.29: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34) and text quality (AP-13, D36, D37) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
+| **Status** | v0.30: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34) and text quality (AP-13, D36, D37) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-12 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -367,7 +367,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D5 | Antialias | No antialias toggle: vanilla always antialiases, and its font definition has no such option; `oversample` controls smoothness. The opposite case, hard edges for pixel-style fonts, is planned as crisp mode (AP-10, section 5.5, M8). | — |
 | D6 | Vulkan on macOS | No special code expected. OS × renderer row in the test matrix; re-test glyph rendering on every snapshot. | Ongoing. |
 | D7 | Baseline | Minecraft Java 26.3.x (released 15 Sep 2026), Java 25. Toolchain at M1: Minecraft `26.3`, Fabric Loader `0.20.1`, Fabric API `0.166.0+26.3`, Loom `1.19.4` (`net.fabricmc.fabric-loom`), Gradle `9.8.2`, JUnit `5.13.4`. Versions live in `gradle.properties`. | Recorded 2026-11-11 from the Fabric develop site and Fabric Maven; recheck each Minecraft release. |
-| D8 | NeoForge | Loader-specific code isolated in its own package from M1. Port go / no-go after M7, based on Modrinth demand. | Fabric-only code is confined to `io.github.jekitchen.fontsys.fabric` (entry point, platform adapter, commands, keybind, Mod Menu); everything else is loader-independent. Decision waits for post-release Modrinth demand. |
+| D8 | NeoForge | Loader-specific code isolated in its own package from M1. Port go / no-go after M7, based on Modrinth demand. | Fabric-only code is confined to `io.github.jekitchen.fontsys.fabric` (entry point, platform adapter, commands, keybind, Mod Menu); everything else is loader-independent. Decision waits for post-release Modrinth demand. 2026-11-12: listed under future improvements (item 6). |
 | D9 | Licensing | Fontsys is **MIT**. Caxton and SAH TTF Sign Fix are MIT (reuse with attribution). CustomFontFix is GPL-3.0-only (study only, never copy). Glyph's licence is unknown (treat as all rights reserved). | Confirm Glyph's licence before reading its code. |
 | D10 | PRD home | `docs/PRD.md` in this repository is the single source of truth. Changes land through pull requests. | — |
 | D11 | Server resource packs | Our pack ranks above the player's own packs but below server-provided packs, and our font provider skips the private-use ranges (AP-11). Server UI glyphs always win. | **Settled in M3:** the pack is `required`, default position TOP, not fixed. Vanilla's `Pack.Position.insert` puts it above the player's packs and below fixed-TOP packs, which is how server packs are configured (unit-tested against vanilla's own code). Vanilla merges `font/default.json` across packs with higher packs first, so our file lists only the system font and vanilla's providers stay underneath as the fallback (AP-2 needs no copy of vanilla's providers). Private-use characters are filtered by a wrapper provider instead of `skip` (open question 3). |
@@ -416,6 +416,7 @@ Recorded 2026-11-12 from the text-quality review; none is approved scope yet. Ea
 3. **Kerning.** Vanilla lays out text without pair kerning. Fonts with a legacy `kern` table could be kerned through `FT_Get_Kerning`; most modern fonts keep kerning in `GPOS`, which needs HarfBuzz (not bundled). Needs layout mixins that could misalign other mods' screens. Medium to high effort, small gain.
 4. **Text weight.** If players still find text light after D36, a small weight setting (coverage curve or FreeType stem darkening).
 5. **Classic shadow option**, if players want vanilla's full-unit shadow back (D37).
+6. **Other mod loaders** (owner, 2026-11-12: add to the list). NeoForge first: D8's go / no-go, now on this list rather than waiting only on Modrinth demand. Loader-specific code is already confined to the `fabric` package, so a port means a `common` / `fabric` / `neoforge` build split, NeoForge versions of the resource-pack hook, keybind, commands and config-screen entry (the mods list instead of Mod Menu, UI-1), and both game-test suites running on NeoForge in CI. Forge only if players ask and it is still maintained for 26.x. Quilt usually loads Fabric mods as they are: test the Fabric jar on Quilt and list it if it works, with no separate build. One jar per Minecraft year (D32) would apply per loader. Medium to large effort; the biggest gain in reach.
 
 Not planned: ClearType-style subpixel rendering (needs per-channel blending the text shaders can't do, and breaks on rotated and in-world text) and complex-script shaping (non-goal).
 
@@ -459,3 +460,4 @@ Not planned: ClearType-style subpixel rendering (needs per-channel blending the 
 | v0.27 | 2026-11-12 | Done asks before discarding unapplied changes (UI-13, D35). |
 | v0.28 | 2026-11-12 | Text quality for 1.2.0: linear coverage (AP-13, D36) and a thinner shadow for smooth fonts (D37); future improvements listed in section 10. |
 | v0.29 | 2026-11-12 | Text quality (D36, D37) folded into 1.1.0 at the owner's request. |
+| v0.30 | 2026-11-12 | Other mod loaders (NeoForge first, then Forge and Quilt) added to future improvements. |
