@@ -587,6 +587,17 @@ public final class FontConfigScreen extends Screen {
 		minecraft.gui.setScreen(new AdvancedFontScreen(this));
 	}
 
+	/**
+	 * Frees the preview and the list's name fonts (D14, D49). Called by {@link #removed()}, and by
+	 * the Advanced screen when the player leaves it some other way than back to this screen, since
+	 * this screen kept them while the Advanced screen was open.
+	 */
+	void releaseFonts() {
+		advancedOpen = false;
+		closePreview();
+		nameFonts.clear();
+	}
+
 	/** The settings Apply will apply; the Advanced screen edits this same draft. Also read by the game tests. */
 	public FontSettings draft() {
 		return draft;
@@ -644,8 +655,7 @@ public final class FontConfigScreen extends Screen {
 	@Override
 	public void removed() {
 		if (!advancedOpen) {
-			closePreview();
-			nameFonts.clear();
+			releaseFonts();
 		}
 	}
 

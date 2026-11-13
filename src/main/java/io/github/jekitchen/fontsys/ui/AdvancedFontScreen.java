@@ -148,9 +148,9 @@ public final class AdvancedFontScreen extends Screen {
 
 	@Override
 	public void removed() {
-		// Left some other way than back to the settings: free the preview font (D14).
+		// Left some other way than back to the settings: free the preview and name fonts (D14).
 		if (!returning) {
-			settings.preview().close();
+			settings.releaseFonts();
 		}
 		returning = false;
 	}
