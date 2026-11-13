@@ -11,6 +11,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - **The settings title matches the logo.** "sys" in "Fontsys" at the top of the settings screen is drawn in the logo's green; "Font" stays white.
 - **Font names in their own font.** The font list shows each name in its own font, as word processors' font menus do, so you can see what a font looks like before you pick it. Names a font can't draw, such as symbol and emoji fonts, stay in the normal font.
 - **Hinting: Full, Light or None.** A new setting on the Advanced screen chooses how letters are fitted to your screen's pixels. **Full**, the default and what you had before, follows the font's own instructions and is the crispest. **Light** only lines letters up vertically and keeps the designer's shapes and spacing, as on most Linux desktops. **None** draws the exact outlines, softest and most faithful, as on a Mac. The preview shows the difference before you apply it. Crisp edges keeps its own hinting, so the setting is grayed out while it's on.
+- **Clearer text at a distance.** Signs, name tags and text displays in your font now fade evenly as you walk away, instead of breaking up into missing pixels and shimmering. Menus, chat, the HUD and close-up text look exactly as before, and Crisp edges stays hard-edged.
 
 ### Changed
 

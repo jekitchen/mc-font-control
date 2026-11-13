@@ -76,8 +76,12 @@ final class ColorAtlasGlyph implements UnbakedGlyph {
 		return thinShadow ? TextShadow.thin(metrics) : metrics;
 	}
 
-	/** The delegate's bitmap, uploaded as RGBA. Size, bearings and oversample are unchanged. */
-	private final class Rgba implements GlyphBitmap {
+	/**
+	 * The delegate's bitmap, uploaded as RGBA. Size, bearings and oversample are unchanged.
+	 * Smooth glyphs go on mipmapped pages for clearer distant text ({@link MipmappedGlyphPages},
+	 * D50), which read the coverage through {@link #render}.
+	 */
+	private final class Rgba implements MipmappableBitmap {
 		private final GlyphBitmap delegate;
 
 		private Rgba(GlyphBitmap delegate) {
@@ -114,41 +118,50 @@ final class ColorAtlasGlyph implements UnbakedGlyph {
 			return true;
 		}
 
-		/**
-		 * Renders the glyph the way vanilla's {@code TrueTypeGlyphProvider} does
-		 * ({@code NativeImage.copyFromFont}, so {@code NativeImageMixin} still applies), or in
-		 * crisp mode with hard edges ({@link CrispGlyphs}), then expands it to RGBA. Locks the
-		 * face as vanilla does while loading glyphs, because glyph metrics are loaded off the
-		 * render thread.
-		 */
+		@Override
+		public boolean mipmapped() {
+			return !SystemFaces.isCrisp(face);
+		}
+
+		/** Renders the glyph ({@link #render}) and uploads it as RGBA at {@code (x, y)}. */
 		@Override
 		public void upload(int x, int y, GpuTexture texture) {
-			int width = getPixelWidth();
-			int height = getPixelHeight();
-			synchronized (face) {
-				if (!SystemFaces.contains(face)) {
-					return; // provider closed by a reload; vanilla would throw here
-				}
-				try (NativeImage rgba = new NativeImage(NativeImage.Format.RGBA, width, height, true)) {
-					boolean rendered = SystemFaces.isCrisp(face)
-						? CrispGlyphs.render(face, glyphIndex, SystemFaces.isSyntheticBold(face), width, height, (px, py, c) -> set(rgba, px, py, c))
-						: renderSmooth(rgba, width, height);
-					if (rendered) {
-						RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, rgba, 0, 0, x, y);
-					}
+			try (NativeImage rgba = new NativeImage(NativeImage.Format.RGBA, getPixelWidth(), getPixelHeight(), true)) {
+				if (render((px, py, c) -> set(rgba, px, py, c))) {
+					RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, rgba, 0, 0, x, y);
 				}
 			}
 		}
 
-		/** Vanilla's antialiased rendering, expanded to RGBA. */
-		private boolean renderSmooth(NativeImage rgba, int width, int height) {
+		/**
+		 * Renders the glyph the way vanilla's {@code TrueTypeGlyphProvider} does
+		 * ({@code NativeImage.copyFromFont}, so {@code NativeImageMixin} still applies), or in
+		 * crisp mode with hard edges ({@link CrispGlyphs}). Locks the face as vanilla does while
+		 * loading glyphs, because glyph metrics are loaded off the render thread.
+		 */
+		@Override
+		public boolean render(CoverageSink sink) {
+			int width = getPixelWidth();
+			int height = getPixelHeight();
+			synchronized (face) {
+				if (!SystemFaces.contains(face)) {
+					return false; // provider closed by a reload; vanilla would throw here
+				}
+				return SystemFaces.isCrisp(face)
+					? CrispGlyphs.render(face, glyphIndex, SystemFaces.isSyntheticBold(face), width, height, sink::set)
+					: renderSmooth(sink, width, height);
+			}
+		}
+
+		/** Vanilla's antialiased rendering. */
+		private boolean renderSmooth(CoverageSink sink, int width, int height) {
 			try (NativeImage coverage = new NativeImage(NativeImage.Format.LUMINANCE, width, height, false)) {
 				if (!coverage.copyFromFont(face, glyphIndex)) {
 					return false;
 				}
 				for (int py = 0; py < height; py++) {
 					for (int px = 0; px < width; px++) {
-						set(rgba, px, py, coverage.getLuminanceOrAlpha(px, py) & 0xFF);
+						sink.set(px, py, coverage.getLuminanceOrAlpha(px, py) & 0xFF);
 					}
 				}
 				return true;

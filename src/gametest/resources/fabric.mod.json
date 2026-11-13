@@ -20,6 +20,7 @@
 			"io.github.jekitchen.fontsys.gametest.TextQualityGameTest",
 			"io.github.jekitchen.fontsys.gametest.RobustnessGameTest",
 			"io.github.jekitchen.fontsys.gametest.InWorldTextGameTest",
+			"io.github.jekitchen.fontsys.gametest.DistantTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.ShaderPackGameTest",
 			"io.github.jekitchen.fontsys.gametest.GlyphPipelineGameTest",
 			"io.github.jekitchen.fontsys.gametest.StyledTextGameTest",
