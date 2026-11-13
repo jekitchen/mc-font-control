@@ -10,6 +10,10 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - **The settings title matches the logo.** "sys" in "Fontsys" at the top of the settings screen is drawn in the logo's green; "Font" stays white.
 - **Font names in their own font.** The font list shows each name in its own font, as word processors' font menus do, so you can see what a font looks like before you pick it. Names a font can't draw, such as symbol and emoji fonts, stay in the normal font.
 
+### Changed
+
+- **Advanced settings get their own screen.** Shift X, Shift Y and Replace Unicode font, which most fonts don't need, moved to **Advanced...** on the settings screen, leaving more room for the preview. Its preview shows your font on a button next to Minecraft's, so you can line them up, and **Reset to defaults** puts those settings back. Changes there are applied with **Apply** as before, and the button shows how many you changed, such as **Advanced (1)...**.
+
 ## [1.1.0] - 2026-11-13
 
 ### Added

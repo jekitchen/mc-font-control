@@ -7,6 +7,7 @@ import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
+import io.github.jekitchen.fontsys.ui.AdvancedFontScreen;
 import io.github.jekitchen.fontsys.ui.ChangeSummary;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
 import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
@@ -39,7 +40,7 @@ import org.jspecify.annotations.Nullable;
  * The 1.1.0 settings-screen improvements, driven with the real mouse and keyboard:
  *
  * <ul>
- *   <li>every control with a tooltip shows it when hovered (UI-14);</li>
+ *   <li>every control with a tooltip shows it when hovered, on the settings and Advanced screens (UI-14, UI-19);</li>
  *   <li>the size strip offers the neighboring sizes, and clicking one selects it (UI-15);</li>
  *   <li>the keep-or-revert dialog shows samples in the new font (UI-11);</li>
  *   <li>a kept font is listed first and tagged Recent (UI-17);</li>
@@ -153,28 +154,43 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		context.setScreen(TitleScreen::new);
 	}
 
-	/** Hovering each control with a tooltip draws a tooltip box: dark purple pixels that weren't there before. */
+	/**
+	 * Hovering each control with a tooltip draws a tooltip box: dark purple pixels that weren't
+	 * there before. Shift X, Shift Y and Replace Unicode font are on the Advanced screen (D52).
+	 */
 	private static void tooltips(ClientGameTestContext context) {
 		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
 		context.waitTicks(10);
 		List<ScreenRectangle> widgets = context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).tooltipWidgets().stream()
 			.map(AbstractWidget::getRectangle).toList());
-		require(widgets.size() == 10, "10 controls have tooltips, found " + widgets.size());
+		require(widgets.size() == 8, "8 controls have tooltips, found " + widgets.size());
+		requireTooltips(context, widgets, "ui14");
+
+		context.clickScreenButton("fontsys.screen.advanced");
+		context.waitForScreen(AdvancedFontScreen.class);
+		context.waitTicks(10);
+		List<ScreenRectangle> advanced = context.computeOnClient(mc -> ((AdvancedFontScreen) mc.gui.screen()).tooltipWidgets().stream()
+			.map(AbstractWidget::getRectangle).toList());
+		require(advanced.size() == 4, "4 controls on the Advanced screen have tooltips, found " + advanced.size());
+		requireTooltips(context, advanced, "ui19-advanced");
+		context.setScreen(TitleScreen::new);
+	}
+
+	private static void requireTooltips(ClientGameTestContext context, List<ScreenRectangle> widgets, String name) {
 		context.getInput().setCursorPos(1, 1);
 		context.waitTicks(3);
-		int[][] before = shoot(context, "ui14-no-tooltip");
+		int[][] before = shoot(context, name + "-no-tooltip");
 		List<String> missing = new ArrayList<>();
 		for (int i = 0; i < widgets.size(); i++) {
 			ScreenRectangle r = widgets.get(i);
 			hover(context, r.left() + r.width() / 2, r.top() + r.height() / 2);
-			int appeared = tooltipPixels(before, shoot(context, "ui14-tooltip-" + i));
+			int appeared = tooltipPixels(before, shoot(context, name + "-tooltip-" + i));
 			if (appeared < 1000) {
 				missing.add(r + " (" + appeared + " px)");
 			}
 		}
 		context.getInput().setCursorPos(1, 1);
 		require(missing.isEmpty(), "no tooltip shown for " + missing);
-		context.setScreen(TitleScreen::new);
 	}
 
 	/** The strip shows the sizes either side; clicking the larger one selects it. */
