@@ -7,6 +7,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 - **Status:** 1.0.0 for Minecraft 26.3. See the [changelog](CHANGELOG.md); requirements and decisions live in the [PRD](docs/PRD.md).
 - **Downloads:** [Modrinth](https://modrinth.com/mod/fontsys) (primary) and [CurseForge](https://www.curseforge.com/minecraft/mc-mods/fontsys).
 - **License:** [MIT](LICENSE).
+- **Support:** if Fontsys is useful to you, you can [buy me a coffee](https://buymeacoffee.com/jekitchen).
 
 ## Features
 

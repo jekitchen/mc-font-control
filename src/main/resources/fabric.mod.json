@@ -34,5 +34,14 @@
 	},
 	"suggests": {
 		"modmenu": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"links": {
+				"modmenu.modrinth": "https://modrinth.com/mod/fontsys",
+				"modmenu.curseforge": "https://www.curseforge.com/minecraft/mc-mods/fontsys",
+				"modmenu.buymeacoffee": "https://buymeacoffee.com/jekitchen"
+			}
+		}
 	}
 }

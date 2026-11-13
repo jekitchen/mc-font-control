@@ -18,6 +18,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - **Recent fonts:** the last five fonts you applied and kept are listed first, marked **Recent**.
 - **Drag and drop:** drop one or more font files onto the settings screen to copy them into the instance's fonts folder. The first one is selected once it's listed.
 - A **×** button clears the font search.
+- Mod Menu lists links to Fontsys on **Modrinth** and **CurseForge**, and to **Buy Me a Coffee**.
 - Tooltips explaining Size, Sharpness, Shift X and Y, Show hidden fonts, Rescan fonts and Reset to vanilla.
 
 ### Changed

@@ -39,4 +39,4 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 
 ## Source and issues
 
-Fontsys is open source under the MIT license: [github.com/jekitchen/mc-fontsys](https://github.com/jekitchen/mc-fontsys). Please report problems in the [issue tracker](https://github.com/jekitchen/mc-fontsys/issues).
+Fontsys is open source under the MIT license: [github.com/jekitchen/mc-fontsys](https://github.com/jekitchen/mc-fontsys). Please report problems in the [issue tracker](https://github.com/jekitchen/mc-fontsys/issues). If Fontsys is useful to you, you can [buy me a coffee](https://buymeacoffee.com/jekitchen).
