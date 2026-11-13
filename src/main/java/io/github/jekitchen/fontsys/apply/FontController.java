@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Owns the config and every change to the applied font: Apply and Reset with the
@@ -111,6 +112,11 @@ public final class FontController {
 	/** Settings the runtime pack serves. */
 	public synchronized FontSettings appliedSettings() {
 		return config.settings();
+	}
+
+	/** The settings an unconfirmed change replaced, which Revert restores; null when nothing is pending. */
+	public synchronized @Nullable FontSettings pendingSettings() {
+		return config.pending;
 	}
 
 	/** Fonts applied and kept, newest first (UI-17). */

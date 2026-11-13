@@ -2,6 +2,12 @@
 
 All notable changes to Fontsys. Versions follow [semantic versioning](https://semver.org/); the jar adds the Minecraft version as build metadata (for example `1.0.0+26.3`).
 
+## [1.2.0] - unreleased
+
+### Added
+
+- **"Keep this font?" says what's changing.** Above the samples, the dialog lists the font you're switching from and to, and every setting you changed, such as size 10 → 12 or Crisp edges Off → On, so you know exactly what you're keeping.
+
 ## [1.1.0] - 2026-11-13
 
 ### Added
