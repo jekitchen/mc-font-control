@@ -54,6 +54,7 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		defaultKey(context);
 		tooltips(context);
 		clearSearch(context);
+		searchFocus(context);
 		Optional<FaceInfo> pick = GameTestFonts.pick(context, "Segoe UI", "Arial", "Helvetica Neue", "DejaVu Sans");
 		if (pick.isEmpty()) {
 			fontOptionsButton(context, null);
@@ -255,6 +256,36 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 				Fontsys.LOGGER.warn("[gametest] Could not clean up the dropped fonts: {}", e.toString());
 			}
 		}
+	}
+
+	/**
+	 * Typing straight after the screen opens goes into the search box (UI-3), whether it was
+	 * opened with the mouse (a button) or the keyboard (F7, or Enter on a focused button).
+	 */
+	private static void searchFocus(ClientGameTestContext context) {
+		// Mouse: the Fontsys Settings button in Font Settings.
+		context.setScreen(() -> new FontOptionsScreen(new TitleScreen(), net.minecraft.client.Minecraft.getInstance().options));
+		context.waitTicks(3);
+		openFontsysFromFontOptions(context);
+		context.waitTicks(3);
+		context.getInput().typeChars("ari");
+		context.waitTicks(2);
+		String typed = context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).searchText());
+		require(typed.equals("ari"), "opened with the mouse, typing went to the search box: '" + typed + "'");
+
+		// Keyboard: Tab makes the keyboard the last input, as F7 does, then the screen opens.
+		context.setScreen(TitleScreen::new);
+		context.waitTicks(3);
+		context.getInput().pressKey(InputConstants.KEY_TAB);
+		context.waitTicks(2);
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(3);
+		context.getInput().typeChars("ari");
+		context.waitTicks(2);
+		typed = context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).searchText());
+		context.takeScreenshot("ui3-search-focus-keyboard");
+		require(typed.equals("ari"), "opened from the keyboard, typing went to the search box: '" + typed + "'");
+		context.setScreen(TitleScreen::new);
 	}
 
 	/** The search box's × button clears it and shows the whole list again; it hides while the box is empty (UI-3). */

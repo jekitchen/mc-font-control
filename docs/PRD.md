@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.34: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34), text quality (AP-13, D36, D37) and settings-screen improvements (D39, D40) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
+| **Status** | v0.35: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34), text quality (AP-13, D36, D37) and settings-screen improvements (D39, D40) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-12 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -182,7 +182,7 @@ There is no `antialias` field: vanilla always antialiases TTF glyphs and `oversa
 |---|---|---|
 | UI-1 | Opens from Mod Menu (Fabric), the mods list (NeoForge), and a **Fontsys Settings...** button in Options > Language > Font Settings, under Force Unicode Font (D40). | P0 |
 | UI-2 | Keybind to open the screen: **F7** by default, rebindable under Controls (D39). | P1 |
-| UI-3 | Searchable list of font families and a style picker (faces and variable-font named instances). While the search box has text, a **×** button at its right end clears it (D43). | P0 |
+| UI-3 | Searchable list of font families and a style picker (faces and variable-font named instances). While the search box has text, a **×** button at its right end clears it (D43). The cursor starts in the search box, so a font name can be typed straight away (D44). | P0 |
 | UI-4 | Size, oversample and baseline-shift sliders with clamped ranges. | P0 |
 | UI-5 | Live preview panel: pangram, digits, symbols, and samples styled as chat, tooltip and sign text. | P0 |
 | UI-6 | Preview renders with a private `Font` backed by a temporary `FontSet` before Apply, without touching the global font (D4). | P0 |
@@ -411,6 +411,7 @@ No telemetry, so success is read from public signals: download and follower grow
 | D41 | US English | Owner (2026-11-12): text uses US spelling (color, not colour). Converted everywhere in one pass: the lang file, README, changelog, store text, issue templates, this PRD, code comments and test names. | 2026-11-12. Done in the D40 pull request. |
 | D42 | Screens the player returns to after a font change | Owner report from the 1.1.0 test build (2026-11-12): after changing the font from Fontsys Settings in Font Settings, that screen showed a second Fontsys button and its title was cut short ("Font Setti..."). Cause: since 26.x, `Screen.init(int, int)` runs `init()` only the first time a screen opens; coming back, it only repositions the existing widgets, but Fabric's init events fire every time. So the button was added again, and the title kept the width it was measured at in the old font. Fixes: each option list gets the button once; and a screen that was laid out before the latest font change has its `StringWidget` labels refit (those that were sized to their text) just before vanilla repositions them. Rebuilding those screens was tried and rejected: their layouts are built once, so a rebuild stacked a second title over the first. Buttons are not refit: vanilla scrolls button text that doesn't fit. | 2026-11-12. Built for 1.1.0, no mixin; `SettingsUiGameTest` applies a larger font while Fontsys is open over Font Settings and checks there is one button and the title fits. Both checks fail without the fix. |
 | D43 | Search clear button; select a dropped font | Owner review of the test build (2026-11-12): the search box needs a clear **×** like a standard text box, and a font dropped on the screen should be selected once it is copied; with several fonts dropped, the first. Vanilla's `EditBox` has no clear button, so a small button sits at the right end of the box, shown only while it has text. The dropped font is selected when the scan that lists it finishes; a scan already running when the file was copied may have missed it, so one more scan runs if needed. A hidden font (with Show hidden fonts off) isn't selected, since the list can't show it. | 2026-11-12. Built for 1.1.0; `SettingsUiGameTest` drops two fonts and a text file under a search that hides them, and checks the first font is selected and in view; it also checks the clear button. |
+| D44 | Cursor starts in the search box | Owner report from the test build (2026-11-12): typing straight after opening the screen didn't go into the search box. Cause: when a screen opens after keyboard input (F7, or Enter on a focused button), 26.3's `Screen.init(int, int)` runs `setInitialFocus()` after `init()`, and the default moves focus one Tab step on, out of the box that `init()` had focused. Opened with the mouse, it worked. Fix: the screen overrides `setInitialFocus()` to focus the search box, as vanilla's own screens do; `init()` still focuses it too, for the rebuild after a resize. | 2026-11-12. Built for 1.1.0; `SettingsUiGameTest` opens the screen with the mouse and after keyboard input and types straight away. The keyboard case fails without the fix. |
 
 ### Still open
 
@@ -481,3 +482,4 @@ Not planned: ClearType-style subpixel rendering (needs per-channel blending the 
 | v0.32 | 2026-11-12 | Settings-screen improvements for 1.1.0 (UI-1, UI-2, UI-7, UI-11, UI-14 to UI-17, AP-12, 5.7, D39, D40); US English throughout (D41); `size` default corrected to 10 and `recentFonts` added (5.3); future improvements 7 and 8. |
 | v0.33 | 2026-11-12 | Screens the player returns to after a font change: labels refit, Fontsys Settings button added once (UI-18, D42). |
 | v0.34 | 2026-11-12 | Search clear button (UI-3); a dropped font is selected after it is copied (UI-16) (D43). |
+| v0.35 | 2026-11-12 | The cursor starts in the font search box, also when the screen is opened from the keyboard (UI-3, D44). |
