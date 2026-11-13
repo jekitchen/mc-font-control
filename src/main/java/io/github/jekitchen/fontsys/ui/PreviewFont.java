@@ -40,6 +40,7 @@ import net.minecraft.client.gui.font.glyphs.EffectGlyph;
 import net.minecraft.client.gui.font.providers.FreeTypeUtil;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -103,18 +104,23 @@ public final class PreviewFont implements AutoCloseable {
 	/** A plain font at another size: its own face and atlas, no bold or italic faces. */
 	private record Sized(FontSet set, GlyphProvider provider, Font font) {
 		static Sized of(FontSet set, GlyphProvider provider) {
-			return new Sized(set, provider, new Font(new Font.Provider() {
-				@Override
-				public GlyphSource glyphs(FontDescription description) {
-					return set.source(false);
-				}
-
-				@Override
-				public EffectGlyph effect() {
-					return set.whiteGlyph();
-				}
-			}));
+			return new Sized(set, provider, plainFont(set));
 		}
+	}
+
+	/** A font drawn from one set, without bold or italic faces; also used for the font list's names (D49). */
+	static Font plainFont(FontSet set) {
+		return new Font(new Font.Provider() {
+			@Override
+			public GlyphSource glyphs(FontDescription description) {
+				return set.source(false);
+			}
+
+			@Override
+			public EffectGlyph effect() {
+				return set.whiteGlyph();
+			}
+		});
 	}
 
 	/** The faces bold and italic text use, if the selected face is in the font index. */
@@ -239,7 +245,8 @@ public final class PreviewFont implements AutoCloseable {
 		return vanilla == null ? List.of() : ((FontSetAccessor) vanilla).fontsys$allProviders();
 	}
 
-	private static FontSet fontSet(Minecraft mc, GlyphProvider first, List<GlyphProvider.Conditional> vanilla) {
+	/** A set with {@code first}, then {@code vanilla} as the fallback, in its own atlas. Render thread: it creates the atlas texture. */
+	static FontSet fontSet(Minecraft mc, GlyphProvider first, List<GlyphProvider.Conditional> vanilla) {
 		List<GlyphProvider.Conditional> providers = new ArrayList<>();
 		providers.add(new GlyphProvider.Conditional(first, FontOption.Filter.ALWAYS_PASS));
 		providers.addAll(vanilla);
@@ -267,7 +274,14 @@ public final class PreviewFont implements AutoCloseable {
 		return options;
 	}
 
-	private record Opened(GlyphProvider provider, OptionalInt pixelGrid, ByteBuffer data) {
+	/** @param trueType the vanilla provider inside {@code provider} */
+	record Opened(GlyphProvider provider, OptionalInt pixelGrid, ByteBuffer data, TrueTypeGlyphProvider trueType) {
+	}
+
+	/** Looks at a face before its provider is built, and may change the size it is built at, or reject it. */
+	@FunctionalInterface
+	interface FaceCheck {
+		FontSettings check(FT_Face face, FontSettings settings) throws IOException;
 	}
 
 	/**
@@ -281,6 +295,16 @@ public final class PreviewFont implements AutoCloseable {
 	 */
 	private static Opened openTrueType(ByteBuffer data, boolean ownsData, FaceSpec spec, FontSettings settings, int guiScale, boolean detectGrid)
 		throws IOException {
+		return openTrueType(data, ownsData, spec, settings, guiScale, detectGrid, null);
+	}
+
+	/**
+	 * As above, with a check that runs once the face is open and its Unicode map selected, before
+	 * the provider is built (the font list's names, D49). Safe off the render thread, as vanilla
+	 * loads its own {@code ttf} providers there.
+	 */
+	static Opened openTrueType(ByteBuffer data, boolean ownsData, FaceSpec spec, FontSettings settings, int guiScale, boolean detectGrid,
+		@Nullable FaceCheck check) throws IOException {
 		FT_Face face = null;
 		try {
 			synchronized (FreeTypeUtil.LIBRARY_LOCK) {
@@ -295,14 +319,17 @@ public final class PreviewFont implements AutoCloseable {
 				if (FreeType.FT_Select_Charmap(face, FreeType.FT_ENCODING_UNICODE) != 0) {
 					throw new IOException("No Unicode character map");
 				}
-				// Before the provider sets a size and transform: the check loads unscaled outlines.
+				// Before the provider sets a size and transform: the checks load unscaled outlines.
 				OptionalInt grid = detectGrid ? PixelGrid.detect(face) : OptionalInt.empty();
+				if (check != null) {
+					settings = check.check(face, settings);
+				}
 				// The provider frees the buffer it is given and checks it is set before every glyph.
 				// A provider that shares another's data gets a one-byte placeholder to own instead;
 				// its face still reads the shared data, which the owner frees after it closes.
 				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(ownsData ? data : MemoryUtil.memAlloc(1), face, settings.size(), settings.renderOversample(guiScale),
 					settings.renderShift(settings.shiftX(), guiScale), settings.renderShift(settings.shiftY(), guiScale), "");
-				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid, data);
+				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid, data, ttf);
 			}
 		} catch (IOException | RuntimeException e) {
 			if (face != null) {
@@ -318,7 +345,7 @@ public final class PreviewFont implements AutoCloseable {
 	}
 
 	/** Reads a file into native memory; {@code TrueTypeGlyphProvider.close} frees it. */
-	private static ByteBuffer readDirect(Path path) throws IOException {
+	static ByteBuffer readDirect(Path path) throws IOException {
 		try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
 			long size = channel.size();
 			if (size <= 0 || size > Integer.MAX_VALUE) {
