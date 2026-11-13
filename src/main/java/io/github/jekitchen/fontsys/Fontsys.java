@@ -9,9 +9,11 @@ import io.github.jekitchen.fontsys.discovery.OsFamily;
 import io.github.jekitchen.fontsys.discovery.SystemFontIndex;
 import io.github.jekitchen.fontsys.pack.RuntimeFontPackSource;
 import io.github.jekitchen.fontsys.platform.Platform;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +46,7 @@ public final class Fontsys {
 	public static void init(Platform loaderPlatform) {
 		platform = loaderPlatform;
 		InstanceFonts.setGameDir(platform.gameDir());
+		createInstanceFontsFolder(platform.gameDir());
 		fontIndex = new SystemFontIndex(dataDir().resolve("font-index.json"), OsFamily.current(), Fontsys::fontDirectories);
 		controller = new FontController(new ConfigStore(platform.configDir().resolve(MOD_ID + ".json"), platform.gameDir()), platform);
 		fontIndex.scan();
@@ -63,6 +66,18 @@ public final class Fontsys {
 
 	public static RuntimeFontPackSource packSource() {
 		return PACK_SOURCE;
+	}
+
+	/** Creates the instance's {@code fonts/} folder on start-up (D38); a failure costs only the empty folder. */
+	private static void createInstanceFontsFolder(@Nullable Path gameDir) {
+		if (gameDir == null) {
+			return;
+		}
+		try {
+			InstanceFonts.createDir(gameDir);
+		} catch (IOException | RuntimeException e) {
+			LOGGER.warn("[{}] Could not create the instance fonts folder: {}", DISPLAY_NAME, e.toString());
+		}
 	}
 
 	/** The system font folders, then the instance's {@code fonts/} folder (FD-14). */

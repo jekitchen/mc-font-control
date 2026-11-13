@@ -29,13 +29,14 @@ public class InstanceFontsGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		context.waitForScreen(TitleScreen.class);
+		Path dir = InstanceFonts.dir().orElseThrow(() -> new AssertionError("no instance fonts folder"));
+		require(Files.isDirectory(dir), "the fonts folder is created on start-up (D38)");
 		Optional<FaceInfo> pick = GameTestFonts.pick(context, "Segoe UI", "Arial", "Helvetica Neue", "DejaVu Sans");
 		if (pick.isEmpty()) {
 			Fontsys.LOGGER.warn("[gametest] No system fonts found; skipping the instance fonts test.");
 			return;
 		}
 		FaceInfo system = pick.get();
-		Path dir = InstanceFonts.dir().orElseThrow(() -> new AssertionError("no instance fonts folder"));
 		Path copy = dir.resolve(Path.of(system.path()).getFileName());
 		try {
 			Files.createDirectories(dir);

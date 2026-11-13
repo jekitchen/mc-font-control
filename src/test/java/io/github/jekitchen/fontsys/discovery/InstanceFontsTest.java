@@ -3,8 +3,11 @@ package io.github.jekitchen.fontsys.discovery;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -59,6 +62,23 @@ class InstanceFontsTest {
 		String system = game.getRoot().resolve("Library").resolve("Fonts").resolve("Avenir.ttc").toString();
 		assertEquals(system, InstanceFonts.toAbsolute(system, moved));
 		assertEquals("fonts/Comic.ttf", InstanceFonts.toAbsolute("fonts/Comic.ttf", null));
+	}
+
+	@Test
+	void createsTheFontsFolderAndLeavesAnExistingOneAlone() throws IOException {
+		Path dir = InstanceFonts.createDir(game);
+		assertEquals(InstanceFonts.dirOf(game), dir);
+		assertTrue(Files.isDirectory(dir));
+		Path font = Files.writeString(dir.resolve("Kept.ttf"), "x");
+		InstanceFonts.createDir(game);
+		assertTrue(Files.exists(font), "an existing folder and its fonts are kept");
+	}
+
+	@Test
+	void reportsAFileInTheWayInsteadOfReplacingIt(@TempDir Path other) throws IOException {
+		Path blocker = Files.writeString(other.resolve(InstanceFonts.FOLDER), "not a folder");
+		assertThrows(IOException.class, () -> InstanceFonts.createDir(other));
+		assertEquals("not a folder", Files.readString(blocker));
 	}
 
 	@Test
