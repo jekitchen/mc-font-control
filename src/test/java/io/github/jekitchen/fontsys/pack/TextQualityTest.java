@@ -10,7 +10,7 @@ class TextQualityTest {
 	@Test
 	void coverageIsUploadedAsWhiteWithAlpha() {
 		assertEquals(0x00FFFFFF, ColorAtlasGlyph.texel(0), "fully outside: transparent");
-		assertEquals(0x80FFFFFF, ColorAtlasGlyph.texel(128), "half covered: white at half alpha, not grey");
+		assertEquals(0x80FFFFFF, ColorAtlasGlyph.texel(128), "half covered: white at half alpha, not gray");
 		assertEquals(0xFFFFFFFF, ColorAtlasGlyph.texel(255));
 	}
 

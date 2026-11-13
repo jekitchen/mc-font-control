@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  * <p>Target: {@code TrueTypeGlyphProviderDefinition.load(ResourceManager)}. In 26.3 it opens
  * every font with face index {@code 0} and rejects anything whose FreeType format is not
  * {@code "TrueType"}. Without this mixin, faces inside {@code .ttc}/{@code .otc} collections
- * (most macOS system fonts), variable-font named instances and CFF-flavoured {@code .otf}
+ * (most macOS system fonts), variable-font named instances and CFF-flavored {@code .otf}
  * files cannot be used.
  *
  * <p>Only font files served by our runtime pack are touched ({@link PackContents#isSystemFont});

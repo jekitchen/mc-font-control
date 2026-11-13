@@ -92,7 +92,7 @@ class DiscoveryTest {
 		assertEquals(Visibility.VISIBLE, Visibility.classify(true, true, true, false, true));
 		assertEquals(Visibility.NO_LATIN, Visibility.classify(true, true, false, false, true));
 		assertEquals(Visibility.COLOR, Visibility.classify(true, true, true, true, true));
-		// Bitmap-only colour font (e.g. Apple Color Emoji): never shown.
+		// Bitmap-only color font (e.g. Apple Color Emoji): never shown.
 		assertEquals(Visibility.UNSUPPORTED, Visibility.classify(false, true, true, true, true));
 		// Symbol-only character map (e.g. Wingdings): never shown.
 		assertEquals(Visibility.UNSUPPORTED, Visibility.classify(true, false, false, false, true));

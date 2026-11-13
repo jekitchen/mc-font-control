@@ -5,7 +5,9 @@ import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.apply.FontController;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
+import io.github.jekitchen.fontsys.config.RecentFont;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
+import io.github.jekitchen.fontsys.discovery.FontFileWalker;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.discovery.OsFamily;
 import io.github.jekitchen.fontsys.discovery.PixelGrid;
@@ -17,18 +19,25 @@ import io.github.jekitchen.fontsys.pack.PackContents;
 import io.github.jekitchen.fontsys.pack.RuntimeFontPackSource;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.OptionalInt;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
@@ -37,12 +46,20 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The config screen (PRD 5.4): searchable family list, style picker, sliders, show-hidden
- * toggle, live preview, and Apply / Reset to vanilla / Rescan fonts.
+ * toggle, live preview with a size strip, and the buttons along the bottom: the list's
+ * Fonts folder and Rescan fonts on the left, Reset to vanilla on its own in the middle, and
+ * Apply and Done on the right (UI-7). Font files dropped on the screen are copied into the
+ * instance's fonts folder (UI-16).
  */
 public final class FontConfigScreen extends Screen {
 	private static final int MARGIN = 8;
 	private static final int TOP = 22;
 	private static final int PREVIEW_DEBOUNCE_TICKS = 3;
+	/** Space between buttons in a group, and between the groups along the bottom. */
+	private static final int BUTTON_GAP = 4;
+	private static final int GROUP_GAP = 14;
+	/** Recently applied fonts listed first while the search box is empty (UI-17). */
+	private static final int RECENT_SHOWN = 5;
 
 	private final @Nullable Screen parent;
 	private final FontController controller = Fontsys.controller();
@@ -61,7 +78,12 @@ public final class FontConfigScreen extends Screen {
 	private Button nextStyle;
 	private Button applyButton;
 	private Button resetButton;
+	private ValueSlider sizeSlider;
 	private ValueSlider oversampleSlider;
+	/** Widgets given a tooltip in {@link #init()}; read by the game tests. */
+	private final List<AbstractWidget> tooltipped = new ArrayList<>();
+	/** Where the size strip drew each size last frame, for clicks. */
+	private final List<StripHit> stripHits = new ArrayList<>();
 	private int previewX0;
 	private int previewY0;
 	private int previewX1;
@@ -88,6 +110,7 @@ public final class FontConfigScreen extends Screen {
 		int rightWidth = width - rightX - MARGIN;
 		int half = (rightWidth - 4) / 2;
 		int bottom = height - 28;
+		tooltipped.clear();
 
 		EditBox searchBox = new EditBox(font, MARGIN, TOP, listWidth, 16, Component.translatable("fontsys.screen.search"));
 		searchBox.setHint(Component.translatable("fontsys.screen.search").withStyle(EditBox.SEARCH_HINT_STYLE));
@@ -102,49 +125,47 @@ public final class FontConfigScreen extends Screen {
 		list.updateSizeAndPosition(listWidth, bottom - 26 - (TOP + 20), MARGIN, TOP + 20);
 		addRenderableWidget(list);
 
-		addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.show_hidden"), font)
+		addRenderableWidget(tip(Checkbox.builder(Component.translatable("fontsys.screen.show_hidden"), font)
 			.pos(MARGIN, bottom - 22)
 			.selected(controller.config().showHiddenFonts)
 			.onValueChange((box, value) -> {
 				controller.setShowHiddenFonts(value);
 				refreshList();
 			})
-			.build());
+			.build(), "fontsys.screen.show_hidden.tooltip"));
 
 		prevStyle = addRenderableWidget(Button.builder(Component.literal("<"), b -> cycleStyle(-1)).bounds(rightX, TOP, 20, 20).build());
 		styleButton = addRenderableWidget(Button.builder(Component.empty(), b -> cycleStyle(1)).bounds(rightX + 22, TOP, rightWidth - 44, 20).build());
 		nextStyle = addRenderableWidget(Button.builder(Component.literal(">"), b -> cycleStyle(1)).bounds(rightX + rightWidth - 20, TOP, 20, 20).build());
 
-		addRenderableWidget(new ValueSlider(rightX, TOP + 24, half, FontSettings.MIN_SIZE, FontSettings.MAX_SIZE, 0.5, draft.size(),
+		sizeSlider = addRenderableWidget(tip(new ValueSlider(rightX, TOP + 24, half, FontSettings.MIN_SIZE, FontSettings.MAX_SIZE, 0.5, draft.size(),
 			v -> Component.translatable("fontsys.screen.size", format(v)),
-			v -> updateLayout(v, draft.oversample(), draft.shiftX(), draft.shiftY())));
-		oversampleSlider = addRenderableWidget(new ValueSlider(rightX + half + 4, TOP + 24, half, 0, FontSettings.MAX_OVERSAMPLE, 1, draft.oversample(),
+			v -> updateLayout(v, draft.oversample(), draft.shiftX(), draft.shiftY())), "fontsys.screen.size.tooltip"));
+		oversampleSlider = addRenderableWidget(tip(new ValueSlider(rightX + half + 4, TOP + 24, half, 0, FontSettings.MAX_OVERSAMPLE, 1, draft.oversample(),
 			v -> draft.crispEdges()
 				? Component.translatable("fontsys.screen.oversample.crisp", RuntimeFontPackSource.currentGuiScale())
 				: v <= 0
 				? Component.translatable("fontsys.screen.oversample.auto", RuntimeFontPackSource.currentGuiScale())
 				: Component.translatable("fontsys.screen.oversample", format(v)),
-			v -> updateLayout(draft.size(), (float) v, draft.shiftX(), draft.shiftY())));
-		addRenderableWidget(new ValueSlider(rightX, TOP + 48, half, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftX(),
+			v -> updateLayout(draft.size(), (float) v, draft.shiftX(), draft.shiftY())), "fontsys.screen.oversample.tooltip"));
+		addRenderableWidget(tip(new ValueSlider(rightX, TOP + 48, half, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftX(),
 			v -> Component.translatable("fontsys.screen.shift_x", format(v)),
-			v -> updateLayout(draft.size(), draft.oversample(), (float) v, draft.shiftY())));
-		addRenderableWidget(new ValueSlider(rightX + half + 4, TOP + 48, half, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftY(),
+			v -> updateLayout(draft.size(), draft.oversample(), (float) v, draft.shiftY())), "fontsys.screen.shift_x.tooltip"));
+		addRenderableWidget(tip(new ValueSlider(rightX + half + 4, TOP + 48, half, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftY(),
 			v -> Component.translatable("fontsys.screen.shift_y", format(v)),
-			v -> updateLayout(draft.size(), draft.oversample(), draft.shiftX(), (float) v)));
-		Checkbox uniform = addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.apply_to_uniform"), font)
+			v -> updateLayout(draft.size(), draft.oversample(), draft.shiftX(), (float) v)), "fontsys.screen.shift_y.tooltip"));
+		Checkbox uniform = addRenderableWidget(tip(Checkbox.builder(Component.translatable("fontsys.screen.apply_to_uniform"), font)
 			.pos(rightX, TOP + 72)
 			.selected(draft.applyToUniform())
-			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.apply_to_uniform.tooltip")))
 			.onValueChange((box, value) -> {
 				draft = draft.withApplyToUniform(value);
 				updateButtons();
 			})
-			.build());
-		Checkbox crisp = addRenderableWidget(Checkbox.builder(Component.translatable("fontsys.screen.crisp"), font)
+			.build(), "fontsys.screen.apply_to_uniform.tooltip"));
+		Checkbox crisp = addRenderableWidget(tip(Checkbox.builder(Component.translatable("fontsys.screen.crisp"), font)
 			.selected(draft.crispEdges())
-			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.crisp.tooltip")))
 			.onValueChange((box, value) -> setCrispEdges(value))
-			.build());
+			.build(), "fontsys.screen.crisp.tooltip"));
 		// Under the sliders (UI-9): beside the Unicode checkbox when both fit, otherwise below it.
 		int crispX = rightX + rightWidth - crisp.getWidth();
 		boolean sameRow = crispX >= uniform.getRight() + 8;
@@ -156,25 +177,71 @@ public final class FontConfigScreen extends Screen {
 		previewX1 = rightX + rightWidth;
 		previewY1 = bottom - 16;
 
-		int buttonWidth = (width - 2 * MARGIN - 4 * 4) / 5;
-		applyButton = addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.apply"), b -> apply())
-			.bounds(MARGIN, bottom + 4, buttonWidth, 20).build());
-		resetButton = addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.reset"), b -> resetToVanilla())
-			.bounds(MARGIN + (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
-		addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.rescan"), b -> index.scan())
-			.bounds(MARGIN + 2 * (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
-		addRenderableWidget(Button.builder(Component.translatable("fontsys.screen.open_folder"), b -> openInstanceFolder())
-			.bounds(MARGIN + 3 * (buttonWidth + 4), bottom + 4, buttonWidth, 20)
-			.tooltip(Tooltip.create(Component.translatable("fontsys.screen.open_folder.tooltip")))
-			.build());
-		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-			.bounds(MARGIN + 4 * (buttonWidth + 4), bottom + 4, buttonWidth, 20).build());
+		// [Fonts folder] [Rescan fonts]   [Reset to vanilla]   [Apply] [Done] (UI-7)
+		Component[] labels = {Component.translatable("fontsys.screen.open_folder"), Component.translatable("fontsys.screen.rescan"),
+			Component.translatable("fontsys.screen.reset"), Component.translatable("fontsys.screen.apply"), CommonComponents.GUI_DONE};
+		int[] widths = buttonWidths(labels, width - 2 * MARGIN - 2 * BUTTON_GAP - 2 * GROUP_GAP);
+		int x = MARGIN;
+		int y = bottom + 4;
+		addRenderableWidget(tip(Button.builder(labels[0], b -> openInstanceFolder())
+			.bounds(x, y, widths[0], 20).build(), "fontsys.screen.open_folder.tooltip"));
+		x += widths[0] + BUTTON_GAP;
+		addRenderableWidget(tip(Button.builder(labels[1], b -> index.scan())
+			.bounds(x, y, widths[1], 20).build(), "fontsys.screen.rescan.tooltip"));
+		x += widths[1] + GROUP_GAP;
+		resetButton = addRenderableWidget(tip(Button.builder(labels[2], b -> resetToVanilla())
+			.bounds(x, y, widths[2], 20).build(), "fontsys.screen.reset.tooltip"));
+		x += widths[2] + GROUP_GAP;
+		applyButton = addRenderableWidget(Button.builder(labels[3], b -> apply())
+			.bounds(x, y, widths[3], 20).build());
+		x += widths[3] + BUTTON_GAP;
+		addRenderableWidget(Button.builder(labels[4], b -> onClose())
+			.bounds(x, y, widths[4], 20).build());
 
 		seenGeneration = -1;
 		refreshList();
 		updateButtons();
 		setInitialFocus(searchBox);
 		previewDirty = true;
+	}
+
+	/**
+	 * Splits {@code total} between buttons: each gets its label's width plus padding, and the
+	 * rest is shared equally, so long labels (Reset to vanilla) aren't cut off while short ones
+	 * (Apply, Done) shrink. Equal widths if the labels don't all fit.
+	 */
+	private int[] buttonWidths(Component[] labels, int total) {
+		int[] widths = new int[labels.length];
+		int needed = 0;
+		for (int i = 0; i < labels.length; i++) {
+			widths[i] = font.width(labels[i]) + 12;
+			needed += widths[i];
+		}
+		if (needed > total) {
+			Arrays.fill(widths, total / labels.length);
+			return widths;
+		}
+		int extra = total - needed;
+		for (int i = 0; i < labels.length; i++) {
+			widths[i] += extra / labels.length + (i < extra % labels.length ? 1 : 0);
+		}
+		return widths;
+	}
+
+	/**
+	 * Gives a widget its tooltip after it is built. 26.3's {@code Checkbox.Builder.build()}
+	 * keeps the builder's tooltip only when the label wraps past two lines, so set on the
+	 * builder it never showed for our one-line checkboxes.
+	 */
+	private <T extends AbstractWidget> T tip(T widget, String key) {
+		widget.setTooltip(Tooltip.create(Component.translatable(key)));
+		tooltipped.add(widget);
+		return widget;
+	}
+
+	/** The widgets that have a tooltip; read by the game tests. */
+	public List<AbstractWidget> tooltipWidgets() {
+		return List.copyOf(tooltipped);
 	}
 
 	private static String format(double v) {
@@ -192,8 +259,29 @@ public final class FontConfigScreen extends Screen {
 		List<FontFamily> families = index.families(controller.config().showHiddenFonts).stream()
 			.filter(f -> needle.isEmpty() || f.name().toLowerCase(Locale.ROOT).contains(needle))
 			.toList();
-		list.show(families, draft.familyName(), draft.fontPath());
+		List<FontFamily> recent = needle.isEmpty() ? recentFirst(families) : List.of();
+		if (!recent.isEmpty()) {
+			List<FontFamily> ordered = new ArrayList<>(recent);
+			families.stream().filter(f -> !recent.contains(f)).forEach(ordered::add);
+			families = ordered;
+		}
+		list.show(families, recent, draft.familyName(), draft.fontPath());
 		updateButtons();
+	}
+
+	/** The listed families applied most recently, newest first (UI-17). */
+	private List<FontFamily> recentFirst(List<FontFamily> families) {
+		List<FontFamily> result = new ArrayList<>();
+		for (RecentFont recent : controller.recentFonts()) {
+			families.stream()
+				.filter(f -> f.holds(recent.familyName(), recent.fontPath()) && !result.contains(f))
+				.findFirst()
+				.ifPresent(result::add);
+			if (result.size() == RECENT_SHOWN) {
+				break;
+			}
+		}
+		return result;
 	}
 
 	private @Nullable FontFamily selectedFamily() {
@@ -221,6 +309,44 @@ public final class FontConfigScreen extends Screen {
 				Fontsys.LOGGER.warn("[{}] Could not open the fonts folder {}: {}", Fontsys.DISPLAY_NAME, dir.getFileName(), e.toString());
 			}
 		});
+	}
+
+	/**
+	 * Font files dropped on the screen are copied into the instance's fonts folder and the list
+	 * rescans (UI-16). Files already there are left alone; other files are ignored. A toast says
+	 * what happened.
+	 */
+	@Override
+	public void onFilesDrop(List<Path> paths) {
+		Path dir = InstanceFonts.dir().orElse(null);
+		if (dir == null) {
+			return;
+		}
+		int copied = 0;
+		int skipped = 0;
+		try {
+			InstanceFonts.createDir(InstanceFonts.gameDir().orElseThrow());
+			for (Path path : paths) {
+				Path target = path.getFileName() == null ? null : dir.resolve(path.getFileName().toString());
+				if (target == null || !FontFileWalker.isFontFile(path) || !Files.isRegularFile(path) || Files.exists(target)) {
+					skipped++;
+					continue;
+				}
+				Files.copy(path, target);
+				copied++;
+			}
+		} catch (IOException | RuntimeException e) {
+			Fontsys.LOGGER.warn("[{}] Could not copy dropped fonts to {}: {}", Fontsys.DISPLAY_NAME, dir.getFileName(), e.toString());
+			skipped = paths.size() - copied;
+		}
+		if (copied > 0) {
+			index.scan();
+		}
+		Component title = Component.translatable(copied > 0 ? "fontsys.drop.title" : "fontsys.drop.none_title");
+		Component message = copied == 0 ? Component.translatable("fontsys.drop.none", skipped)
+			: skipped == 0 ? Component.translatable("fontsys.drop.added", copied)
+			: Component.translatable("fontsys.drop.added_skipped", copied, skipped);
+		SystemToast.addOrUpdate(minecraft.gui.toastManager(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, message);
 	}
 
 	/** The family highlighted in the list, if any; read by the game tests. */
@@ -275,6 +401,54 @@ public final class FontConfigScreen extends Screen {
 		draft = draft.withLayout((float) size, oversample, shiftX, shiftY).sanitized();
 		previewDirty = true;
 		updateButtons();
+	}
+
+	/** A click on a size in the size strip selects that size (UI-15). */
+	@Override
+	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		if (super.mouseClicked(event, doubleClick)) {
+			return true;
+		}
+		StripHit hit = stripHitAt(event.x(), event.y());
+		if (hit == null) {
+			return false;
+		}
+		if (hit.size() != draft.size()) {
+			sizeSlider.setCurrent(hit.size());
+		}
+		return true;
+	}
+
+	private @Nullable StripHit stripHitAt(double mouseX, double mouseY) {
+		for (StripHit hit : stripHits) {
+			if (mouseX >= hit.x0() && mouseX < hit.x1() && mouseY >= hit.y0() && mouseY < hit.y1()) {
+				return hit;
+			}
+		}
+		return null;
+	}
+
+	/** The sizes the size strip shows now, ascending; empty before the preview is ready. */
+	public List<Float> stripSizes() {
+		return preview == null ? List.of() : preview.stripSizes();
+	}
+
+	public float draftSize() {
+		return draft.size();
+	}
+
+	/** The middle of a size in the size strip as last drawn, in GUI coordinates; for the game tests. */
+	public @Nullable ScreenPosition stripCenter(float size) {
+		return stripHits.stream().filter(h -> h.size() == size).findFirst()
+			.map(h -> new ScreenPosition((h.x0() + h.x1()) / 2, (h.y0() + h.y1()) / 2)).orElse(null);
+	}
+
+	/** The families in the list, top to bottom, and whether each is tagged Recent; for the game tests. */
+	public List<Map.Entry<FontFamily, Boolean>> listedFamilies() {
+		return list.children().stream().map(e -> Map.entry(e.family, e.recent)).toList();
+	}
+
+	private record StripHit(float size, int x0, int y0, int x1, int y1) {
 	}
 
 	// ---- Apply / reset --------------------------------------------------------------------
@@ -396,7 +570,7 @@ public final class FontConfigScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		graphics.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
-		extractPreview(graphics);
+		extractPreview(graphics, mouseX, mouseY);
 		if (list.children().isEmpty()) {
 			// Empty list: explain why, wrapped inside the list area (FD-7, FD-10).
 			Component why = search.isBlank() ? status() : Component.translatable("fontsys.screen.no_match", search);
@@ -406,22 +580,32 @@ public final class FontConfigScreen extends Screen {
 		}
 	}
 
-	private void extractPreview(GuiGraphicsExtractor graphics) {
+	private void extractPreview(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		stripHits.clear();
 		graphics.fill(previewX0, previewY0, previewX1, previewY1, 0xA0000000);
 		graphics.outline(previewX0, previewY0, previewX1 - previewX0, previewY1 - previewY0, 0xFF555555);
+		int x = previewX0 + 6;
+		int w = previewX1 - previewX0 - 12;
+		int top = previewY0 + 5;
+		if (controller.conflict().isPresent()) {
+			// AP-12: say plainly why nothing happens, above everything else.
+			Component why = Component.translatable("fontsys.conflict.banner", controller.conflict().get().name());
+			int h = font.wordWrapHeight(why, w - 8) + 8;
+			graphics.fill(previewX0 + 1, previewY0 + 1, previewX1 - 1, previewY0 + 1 + h, 0xD0702020);
+			graphics.textWithWordWrap(font, why, x + 2, previewY0 + 5, w - 8, 0xFFFFFFFF);
+			top = previewY0 + h + 6;
+		}
 		PreviewFont current = preview;
 		if (current == null || minecraft.gui.overlay() != null) {
 			Component message = previewError != null ? previewError
 				: draft.fontPath() == null ? Component.translatable("fontsys.preview.empty")
 				: Component.translatable("fontsys.preview.loading");
-			graphics.textWithWordWrap(font, message, previewX0 + 6, previewY0 + 6, previewX1 - previewX0 - 12, 0xFFA0A0A0);
+			graphics.textWithWordWrap(font, message, x, top + 1, w, 0xFFA0A0A0);
 			return;
 		}
 		Font pf = current.font();
-		int x = previewX0 + 6;
-		int w = previewX1 - previewX0 - 12;
 		int line = Math.max(10, (int) Math.ceil(draft.size()) + 3);
-		int y = previewY0 + 5;
+		int y = top;
 		graphics.enableScissor(previewX0 + 1, previewY0 + 1, previewX1 - 1, previewY1 - 1);
 		Component hint = pixelFontHint(current);
 		if (hint != null) {
@@ -429,6 +613,7 @@ public final class FontConfigScreen extends Screen {
 			graphics.text(font, hint, x, y, 0xFFFFE080, false);
 			y += font.lineHeight + 3;
 		}
+		y = extractSizeStrip(graphics, current, x, y, w, mouseX, mouseY);
 		graphics.text(pf, Component.translatable("fontsys.preview.pangram"), x, y, 0xFFFFFFFF, true);
 		y += line;
 		graphics.text(pf, Component.translatable("fontsys.preview.digits"), x, y, 0xFFD0D0D0, true);
@@ -456,6 +641,57 @@ public final class FontConfigScreen extends Screen {
 			current.styles().ifPresent(styles -> graphics.text(font, facesLabel(current, styles), x, labelY, 0xFFA0A0A0, false));
 		}
 		graphics.disableScissor();
+	}
+
+	/**
+	 * The size strip (UI-15): a short sample at the next size down, the current size and the next
+	 * size up, each after its size in the vanilla font. Clicking one selects that size.
+	 *
+	 * @return the y below the strip
+	 */
+	private int extractSizeStrip(GuiGraphicsExtractor graphics, PreviewFont current, int x, int y, int w, int mouseX, int mouseY) {
+		List<Float> sizes = current.stripSizes();
+		if (sizes.size() < 2) {
+			return y;
+		}
+		Component sample = Component.translatable("fontsys.preview.size_sample");
+		if (stripWidth(current, sizes, sample) > w) {
+			sample = Component.translatable("fontsys.preview.size_sample.short");
+		}
+		// Vanilla places every glyph from a baseline at a fixed distance below the text's y, at any
+		// size, so drawing all sizes at one y lines them up. Start low enough for the largest
+		// size's ascenders (about 3/4 of the size above the baseline, which sits 7 below y).
+		float largest = sizes.get(sizes.size() - 1);
+		int textY = y + 2 + Math.max(0, Math.round(largest * 0.75F) - 7);
+		int rowHeight = textY - y + 7 + Math.round(largest * 0.25F) + 4;
+		int sx = x;
+		for (float size : sizes) {
+			Component label = Component.literal(format(size));
+			boolean selected = size == draft.size();
+			int sampleWidth = current.fontAt(size).width(sample);
+			int segment = font.width(label) + 3 + sampleWidth;
+			StripHit hit = new StripHit(size, sx - 2, y - 2, sx + segment + 2, y + rowHeight - 1);
+			stripHits.add(hit);
+			boolean hovered = !selected && stripHitAt(mouseX, mouseY) == hit;
+			if (selected || hovered) {
+				graphics.outline(hit.x0(), hit.y0(), hit.x1() - hit.x0(), hit.y1() - hit.y0(), selected ? 0xFF808080 : 0xFF505050);
+			}
+			graphics.text(font, label, sx, textY, selected ? 0xFFFFFFFF : 0xFF909090, false);
+			graphics.text(current.fontAt(size), sample, sx + font.width(label) + 3, textY, 0xFFFFFFFF, true);
+			if (hovered) {
+				graphics.setTooltipForNextFrame(font, Component.translatable("fontsys.preview.size_strip.tooltip", format(size)), mouseX, mouseY);
+			}
+			sx += segment + 12;
+		}
+		return y + rowHeight + 3;
+	}
+
+	private int stripWidth(PreviewFont current, List<Float> sizes, Component sample) {
+		int total = 0;
+		for (float size : sizes) {
+			total += font.width(format(size)) + 3 + current.fontAt(size).width(sample) + 12;
+		}
+		return total - 12;
 	}
 
 	/**
@@ -503,7 +739,7 @@ public final class FontConfigScreen extends Screen {
 
 	private Component status() {
 		if (controller.conflict().isPresent()) {
-			return Component.translatable("fontsys.status.conflict", controller.conflict().get().name());
+			return Component.translatable("fontsys.status.off"); // the banner explains (AP-12)
 		}
 		if (index.os() == OsFamily.OTHER) {
 			return Component.translatable("fontsys.status.unsupported_os");
@@ -533,9 +769,9 @@ public final class FontConfigScreen extends Screen {
 			super(minecraft, width, height, y, 14);
 		}
 
-		void show(List<FontFamily> families, @Nullable String selectedName, @Nullable String selectedPath) {
+		void show(List<FontFamily> families, List<FontFamily> recent, @Nullable String selectedName, @Nullable String selectedPath) {
 			Entry selected = null;
-			List<Entry> entries = families.stream().map(Entry::new).toList();
+			List<Entry> entries = families.stream().map(f -> new Entry(f, recent.contains(f))).toList();
 			for (Entry e : entries) {
 				if (e.family.holds(selectedName, selectedPath)) {
 					selected = e;
@@ -562,9 +798,11 @@ public final class FontConfigScreen extends Screen {
 
 		final class Entry extends ObjectSelectionList.Entry<Entry> {
 			final FontFamily family;
+			final boolean recent;
 
-			Entry(FontFamily family) {
+			Entry(FontFamily family, boolean recent) {
 				this.family = family;
+				this.recent = recent;
 			}
 
 			@Override
@@ -582,6 +820,12 @@ public final class FontConfigScreen extends Screen {
 					Component tag = Component.translatable("fontsys.screen.instance_tag");
 					right -= font.width(tag);
 					graphics.text(font, tag, right, y, 0xFF78ECBA, false);
+					right -= 6;
+				}
+				if (recent) {
+					Component tag = Component.translatable("fontsys.screen.recent_tag");
+					right -= font.width(tag);
+					graphics.text(font, tag, right, y, 0xFFFFE080, false);
 					right -= 6;
 				}
 				// Long names (or a wide applied font) are cut short rather than run under the tags.

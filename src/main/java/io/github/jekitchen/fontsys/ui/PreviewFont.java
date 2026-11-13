@@ -23,6 +23,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +52,10 @@ import org.lwjgl.util.freetype.FreeType;
  * plus one set per bold or italic face (AP-8, D24), so the preview matches what Apply will
  * show. The game's own fonts are never touched. Render thread only; {@link #close()} frees
  * the faces and atlases.
+ *
+ * <p>For the size strip (UI-15) it also builds plain fonts at the neighboring sizes. They open
+ * their own FreeType faces on the selected face's file data rather than reading the file again,
+ * so the strip costs glyph atlases, not another copy of the font (D14).
  */
 public final class PreviewFont implements AutoCloseable {
 	private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -61,19 +66,55 @@ public final class PreviewFont implements AutoCloseable {
 	private final Optional<StyledFaces> styles;
 	private final OptionalInt pixelGrid;
 	private final Font font;
+	private final float size;
+	/** The size strip's other sizes; closed before {@link #owned}, whose face data they share. */
+	private final Map<Float, Sized> others;
 
 	private PreviewFont(FontSet fontSet, Map<FontStyleSlot, FontSet> styledSets, List<GlyphProvider> owned, Optional<StyledFaces> styles,
-		OptionalInt pixelGrid) {
+		OptionalInt pixelGrid, float size, Map<Float, Sized> others) {
 		this.fontSet = fontSet;
 		this.styledSets = styledSets;
 		this.owned = owned;
 		this.styles = styles;
 		this.pixelGrid = pixelGrid;
 		this.font = new Font(new Provider());
+		this.size = size;
+		this.others = others;
 	}
 
 	public Font font() {
 		return font;
+	}
+
+	/** The sizes in the size strip, ascending; always includes the selected size. */
+	public List<Float> stripSizes() {
+		List<Float> sizes = new ArrayList<>(others.keySet());
+		sizes.add(size);
+		sizes.sort(null);
+		return sizes;
+	}
+
+	/** The plain font at one of {@link #stripSizes()}, or the main font for the selected size. */
+	public Font fontAt(float stripSize) {
+		Sized other = others.get(stripSize);
+		return other == null ? font : other.font();
+	}
+
+	/** A plain font at another size: its own face and atlas, no bold or italic faces. */
+	private record Sized(FontSet set, GlyphProvider provider, Font font) {
+		static Sized of(FontSet set, GlyphProvider provider) {
+			return new Sized(set, provider, new Font(new Font.Provider() {
+				@Override
+				public GlyphSource glyphs(FontDescription description) {
+					return set.source(false);
+				}
+
+				@Override
+				public EffectGlyph effect() {
+					return set.whiteGlyph();
+				}
+			}));
+		}
 	}
 
 	/** The faces bold and italic text use, if the selected face is in the font index. */
@@ -125,12 +166,35 @@ public final class PreviewFont implements AutoCloseable {
 		List<GlyphProvider.Conditional> vanilla = vanillaProviders(mc);
 		List<GlyphProvider> owned = new ArrayList<>();
 		Map<FontStyleSlot, FontSet> styledSets = new EnumMap<>(FontStyleSlot.class);
+		Map<Float, Sized> others = new LinkedHashMap<>();
 		FontSet set = null;
 		try {
-			Opened plain = openTrueType(Path.of(settings.fontPath()), FaceSpec.plain(settings.faceIndex()), settings, guiScale, true);
+			FaceSpec plainSpec = FaceSpec.plain(settings.faceIndex());
+			Opened plain = openTrueType(readDirect(Path.of(settings.fontPath())), true, plainSpec, settings, guiScale, true);
 			GlyphProvider ttf = plain.provider();
 			owned.add(ttf);
 			set = fontSet(mc, ttf, vanilla);
+
+			for (float other : SizeStrip.sizes(settings.size(), plain.pixelGrid(), settings.crispEdges(), FontSettings.MIN_SIZE, FontSettings.MAX_SIZE)) {
+				if (other == settings.size()) {
+					continue;
+				}
+				FontSettings resized = settings.withLayout(other, settings.oversample(), settings.shiftX(), settings.shiftY());
+				GlyphProvider provider;
+				try {
+					provider = openTrueType(plain.data(), false, plainSpec, resized, guiScale, false).provider();
+				} catch (IOException e) {
+					// The strip just leaves this size out.
+					Fontsys.LOGGER.debug("[{}] Preview at size {} failed: {}", Fontsys.DISPLAY_NAME, other, e.toString());
+					continue;
+				}
+				try {
+					others.put(other, Sized.of(fontSet(mc, provider, vanilla), provider));
+				} catch (RuntimeException e) {
+					provider.close();
+					throw e;
+				}
+			}
 
 			Optional<StyledFaces> styles = selectedFace(settings)
 				.map(face -> PackContents.styledFaces(face, Fontsys.fontIndex()::bestAvailable));
@@ -146,7 +210,8 @@ public final class PreviewFont implements AutoCloseable {
 						continue;
 					}
 					try {
-						GlyphProvider styled = openTrueType(Path.of(variant.get().face().path()), slot.spec(variant.get()), settings, guiScale, false).provider();
+						GlyphProvider styled = openTrueType(readDirect(Path.of(variant.get().face().path())), true, slot.spec(variant.get()), settings, guiScale, false)
+							.provider();
 						owned.add(styled);
 						styledSets.put(slot, fontSet(mc, styled, vanilla));
 					} catch (IOException e) {
@@ -155,8 +220,9 @@ public final class PreviewFont implements AutoCloseable {
 					}
 				}
 			}
-			return new PreviewFont(set, styledSets, owned, styles, plain.pixelGrid());
+			return new PreviewFont(set, styledSets, owned, styles, plain.pixelGrid(), settings.size(), others);
 		} catch (IOException | RuntimeException e) {
+			closeOthers(others);
 			styledSets.values().stream().distinct().forEach(FontSet::close);
 			if (set != null) {
 				set.close();
@@ -201,17 +267,20 @@ public final class PreviewFont implements AutoCloseable {
 		return options;
 	}
 
-	private record Opened(GlyphProvider provider, OptionalInt pixelGrid) {
+	private record Opened(GlyphProvider provider, OptionalInt pixelGrid, ByteBuffer data) {
 	}
 
 	/**
 	 * Same steps as vanilla's {@code TrueTypeGlyphProviderDefinition.load}, but with our face
 	 * index, style handling and crisp mode, laid out as Apply would at this GUI scale.
 	 *
+	 * @param data the font file in native memory
+	 * @param ownsData the provider frees {@code data} when it closes; otherwise another provider
+	 *     owns it and must close after this one
 	 * @param detectGrid also check whether the face looks like a pixel font
 	 */
-	private static Opened openTrueType(Path path, FaceSpec spec, FontSettings settings, int guiScale, boolean detectGrid) throws IOException {
-		ByteBuffer data = readDirect(path);
+	private static Opened openTrueType(ByteBuffer data, boolean ownsData, FaceSpec spec, FontSettings settings, int guiScale, boolean detectGrid)
+		throws IOException {
 		FT_Face face = null;
 		try {
 			synchronized (FreeTypeUtil.LIBRARY_LOCK) {
@@ -228,9 +297,12 @@ public final class PreviewFont implements AutoCloseable {
 				}
 				// Before the provider sets a size and transform: the check loads unscaled outlines.
 				OptionalInt grid = detectGrid ? PixelGrid.detect(face) : OptionalInt.empty();
-				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(data, face, settings.size(), settings.renderOversample(guiScale),
+				// The provider frees the buffer it is given and checks it is set before every glyph.
+				// A provider that shares another's data gets a one-byte placeholder to own instead;
+				// its face still reads the shared data, which the owner frees after it closes.
+				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(ownsData ? data : MemoryUtil.memAlloc(1), face, settings.size(), settings.renderOversample(guiScale),
 					settings.renderShift(settings.shiftX(), guiScale), settings.renderShift(settings.shiftY(), guiScale), "");
-				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid);
+				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid, data);
 			}
 		} catch (IOException | RuntimeException e) {
 			if (face != null) {
@@ -238,7 +310,9 @@ public final class PreviewFont implements AutoCloseable {
 					FreeType.FT_Done_Face(face);
 				}
 			}
-			MemoryUtil.memFree(data);
+			if (ownsData) {
+				MemoryUtil.memFree(data);
+			}
 			throw e instanceof IOException io ? io : new IOException(e);
 		}
 	}
@@ -264,8 +338,18 @@ public final class PreviewFont implements AutoCloseable {
 		}
 	}
 
+	/** The strip's fonts share the selected face's data, so they close first. */
+	private static void closeOthers(Map<Float, Sized> others) {
+		others.values().forEach(o -> {
+			o.set().close();
+			o.provider().close();
+		});
+		others.clear();
+	}
+
 	@Override
 	public void close() {
+		closeOthers(others);
 		fontSet.close();
 		styledSets.values().stream().distinct().forEach(FontSet::close);
 		owned.forEach(GlyphProvider::close);

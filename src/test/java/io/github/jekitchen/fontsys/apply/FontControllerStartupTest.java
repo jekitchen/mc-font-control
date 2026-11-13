@@ -18,7 +18,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Startup behaviour of the controller: new-system detection (5.6) and crash recovery (5.7). */
+/** Startup behavior of the controller: new-system detection (5.6) and crash recovery (5.7). */
 class FontControllerStartupTest {
 	private static final String HERE = SystemFingerprint.of(OsFamily.WINDOWS, "C:\\Users\\alex");
 

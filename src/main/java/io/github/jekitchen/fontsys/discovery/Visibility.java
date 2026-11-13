@@ -6,10 +6,10 @@ public enum Visibility {
 	VISIBLE(false, true),
 	/** No Basic Latin letters or digits. Hidden; revealed by "Show hidden fonts". */
 	NO_LATIN(true, true),
-	/** Colour font that also has outline glyphs. Hidden; revealed by "Show hidden fonts". */
+	/** Color font that also has outline glyphs. Hidden; revealed by "Show hidden fonts". */
 	COLOR(true, true),
 	/**
-	 * Never listed: no outline glyphs (bitmap-only, including bitmap colour fonts such as Apple
+	 * Never listed: no outline glyphs (bitmap-only, including bitmap color fonts such as Apple
 	 * Color Emoji), no Unicode character map (classic Symbol fonts such as Wingdings), or a
 	 * format FreeType can open but vanilla's provider cannot render.
 	 */
@@ -38,7 +38,7 @@ public enum Visibility {
 	 * @param hasOutlines   the font has {@code glyf}, {@code CFF } or {@code CFF2} outlines
 	 * @param hasUnicodeMap the font has a Unicode character map
 	 * @param hasLatin      'A', 'a' and '0' all map to glyphs
-	 * @param color         FreeType reports colour glyphs
+	 * @param color         FreeType reports color glyphs
 	 * @param renderable    the outline format is one vanilla's provider can render (TrueType or CFF)
 	 */
 	public static Visibility classify(boolean hasOutlines, boolean hasUnicodeMap, boolean hasLatin, boolean color, boolean renderable) {

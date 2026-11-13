@@ -15,7 +15,7 @@ packages:
   - libegl1
   - mesa-vulkan-drivers
   # The font set of a stock Ubuntu desktop, so discovery sees real families:
-  # four-style families (DejaVu, Liberation, Ubuntu), Noto, CJK collections and a colour emoji font.
+  # four-style families (DejaVu, Liberation, Ubuntu), Noto, CJK collections and a color emoji font.
   - fonts-dejavu
   - fonts-liberation
   - fonts-ubuntu

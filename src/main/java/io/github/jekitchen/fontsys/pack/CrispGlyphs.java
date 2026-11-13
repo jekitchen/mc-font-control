@@ -12,7 +12,7 @@ import org.lwjgl.util.freetype.FreeType;
  * <p>FreeType rasterizes the outline in its monochrome mode, hinted for monochrome output, and
  * each pixel becomes fully on or fully off. The glyph is measured with the same hinting
  * ({@code TrueTypeGlyphProviderMixin}), so the bitmap is exactly the size vanilla allocated in
- * the atlas. The atlas is sampled nearest-neighbour ({@code FontTexture}), and the oversample is
+ * the atlas. The atlas is sampled nearest-neighbor ({@code FontTexture}), and the oversample is
  * the GUI scale, so one glyph pixel lands on one screen pixel.
  */
 public final class CrispGlyphs {

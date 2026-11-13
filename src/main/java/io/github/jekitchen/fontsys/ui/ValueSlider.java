@@ -29,6 +29,13 @@ final class ValueSlider extends AbstractSliderButton {
 		return Mth.clamp(Math.round(raw / step) * step, min, max);
 	}
 
+	/** Moves the slider to {@code v} and reports the change, as dragging there would. */
+	void setCurrent(double v) {
+		value = (Mth.clamp(v, min, max) - min) / (max - min);
+		updateMessage();
+		applyValue();
+	}
+
 	/** Redraws the label, for when it depends on more than this slider's value. */
 	void refreshMessage() {
 		updateMessage();

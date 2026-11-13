@@ -9,20 +9,31 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - **Instance fonts folder.** Fonts in the instance's own `fonts/` folder (next to `mods/`) are listed alongside system fonts, marked **Instance**, so you can use a font in one instance without installing it on your computer. The mod creates the folder on start-up, and the new **Fonts folder** button opens it.
 - The font list rescans each time the settings screen opens.
 - **Crisp edges** for pixel-style fonts: glyphs are drawn with hard, square pixels and no smoothing, in menus and in the world. While it's on, sharpness follows the GUI scale so every font pixel lands on whole screen pixels.
-- The preview recognises pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.
+- The preview recognizes pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.
 - **Done asks before throwing away changes.** If you changed the settings but didn't press Apply, Done (or Esc) asks whether to apply them, discard them, or go back.
+- **F7 opens the settings** by default. You can change the key under Options → Controls → Key Binds → Fontsys.
+- **Fontsys Settings...** button in Options → Language → Font Settings, next to Force Unicode Font, so you can find the settings without Mod Menu.
+- **Size comparison in the preview:** a sample at the next size down, the current size and the next size up. Click one to use it. With Crisp edges and a pixel font, it steps between sizes that keep pixels square.
+- **Samples on the "Keep this font?" screen:** a sentence, look-alike characters (Il1 O0 rn m), digits, bold and italic in your new font, then chat, sign and tooltip samples, so you can judge it before you keep it.
+- **Recent fonts:** the last five fonts you applied and kept are listed first, marked **Recent**.
+- **Drag and drop:** drop font files onto the settings screen to copy them into the instance's fonts folder.
+- Tooltips explaining Size, Sharpness, Shift X and Y, Show hidden fonts, Rescan fonts and Reset to vanilla.
 
 ### Changed
 
-- **Fuller, cleaner text.** The smooth edges of letters are now blended by how much of each pixel the letter covers. Before, edges were dimmed twice, so light text on dark backgrounds (most menus, chat and the HUD) looked thin and grey around the edges.
+- **Fuller, cleaner text.** The smooth edges of letters are now blended by how much of each pixel the letter covers. Before, edges were dimmed twice, so light text on dark backgrounds (most menus, chat and the HUD) looked thin and gray around the edges.
 - **Thinner text shadow.** With a smooth font, the drop shadow now sits half as far from the text, in whole screen pixels, so letters no longer look doubled at high GUI scales. Crisp edges keeps Minecraft's classic shadow. Glowing sign outlines get thinner in the same way.
 - A config copied from another computer is kept if its font is in the instance's `fonts/` folder, since that font travels with the instance. Other copied configs still reset to the vanilla font.
 - The **Also replace the Unicode font** checkbox is now **Replace Unicode font**, with the full explanation in its tooltip, to make room for Crisp edges.
 - Long font names in the list are shortened with "…" instead of running under the **Instance** and hidden-font tags.
+- **Buttons regrouped:** Fonts folder and Rescan fonts on the left, Reset to vanilla on its own in the middle, Apply and Done on the right. Reset to vanilla is no longer cut off.
+- When another font mod turns Fontsys off, the settings screen says so in a banner, with what to do.
+- US spelling throughout ("color" fonts in the list, not "colour").
 
 ### Fixed
 
 - **Apply** now lights up as soon as you tick or untick **Replace Unicode font**; before, it waited for another change.
+- The tooltips on **Replace Unicode font** and **Crisp edges** never appeared. They now show, and the Unicode one says where Force Unicode Font is (Options → Language → Font Settings).
 
 ## [1.0.1] - 2026-11-12
 

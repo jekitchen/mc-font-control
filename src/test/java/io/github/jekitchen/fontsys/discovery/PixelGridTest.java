@@ -84,12 +84,12 @@ public class PixelGridTest {
 	}
 
 	@Test
-	void recognisesAPixelFont() {
+	void recognizesAPixelFont() {
 		Path font = pixelFont().orElse(null);
 		assumeTrue(font != null, "set FONTSYS_PIXEL_FONT to a pixel-style .ttf");
 		withFace(font, face -> {
 			OptionalInt cells = PixelGrid.detect(face);
-			assertTrue(cells.isPresent(), font.getFileName() + " not recognised");
+			assertTrue(cells.isPresent(), font.getFileName() + " not recognized");
 			assertTrue(cells.getAsInt() >= 5 && cells.getAsInt() <= 32, "grid " + cells);
 		});
 	}

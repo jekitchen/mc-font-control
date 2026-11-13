@@ -9,7 +9,7 @@ import org.lwjgl.util.freetype.FT_Vector;
 import org.lwjgl.util.freetype.FreeType;
 
 /**
- * Recognises pixel-style fonts, so the config screen can suggest crisp mode (PRD 5.5, AP-10).
+ * Recognizes pixel-style fonts, so the config screen can suggest crisp mode (PRD 5.5, AP-10).
  *
  * <p>A pixel font is drawn on a coarse square grid: its outlines have no curves, and every
  * point sits on a multiple of the grid's cell size in font units. The grid size is how many
