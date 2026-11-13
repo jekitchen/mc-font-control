@@ -43,6 +43,8 @@ public class RuntimePackGameTest implements FabricClientGameTest {
 
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
+			InWorldTextGameTest.buildScene(world);
+			world.getConnection().waitForChunksRender();
 			context.setScreen(() -> new ChatScreen("The quick brown fox jumps over the lazy dog 0123456789", false));
 			context.waitTicks(10);
 			context.takeScreenshot("m3-system-font-world-chat");
