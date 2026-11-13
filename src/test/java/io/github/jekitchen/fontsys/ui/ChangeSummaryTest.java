@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.Hinting;
 import io.github.jekitchen.fontsys.ui.ChangeSummary.Row;
 import io.github.jekitchen.fontsys.ui.ChangeSummary.Value;
 import java.util.List;
@@ -52,6 +53,40 @@ class ChangeSummaryTest {
 			new Row("fontsys.confirm.change.font", literal("Inter Regular"), literal("Inter Regular")),
 			new Row("fontsys.screen.crisp", key("fontsys.confirm.off"), key("fontsys.confirm.on"))),
 			ChangeSummary.rows(before, after), "crisp mode ignores sharpness, so it isn't listed");
+	}
+
+	@Test
+	void hinting() {
+		assertEquals(List.of(
+			new Row("fontsys.confirm.change.font", literal("Inter Regular"), literal("Inter Regular")),
+			new Row("fontsys.confirm.change.hinting", key("fontsys.advanced.hinting.full"), key("fontsys.advanced.hinting.light"))),
+			ChangeSummary.rows(INTER, INTER.withHinting(Hinting.LIGHT)));
+		// After Replace Unicode font and before Crisp edges, as on the screens.
+		List<Row> rows = ChangeSummary.rows(INTER.withHinting(Hinting.NONE), INTER.withApplyToUniform(true));
+		assertEquals(List.of("fontsys.confirm.change.font", "fontsys.screen.apply_to_uniform", "fontsys.confirm.change.hinting"),
+			rows.stream().map(Row::labelKey).toList());
+		assertEquals(new Row("fontsys.confirm.change.hinting", key("fontsys.advanced.hinting.none"), key("fontsys.advanced.hinting.full")), rows.get(2));
+	}
+
+	@Test
+	void crispEdgesHidesHinting() {
+		FontSettings light = INTER.withHinting(Hinting.LIGHT);
+		assertEquals(List.of(
+			new Row("fontsys.confirm.change.font", literal("Inter Regular"), literal("Inter Regular")),
+			new Row("fontsys.screen.crisp", key("fontsys.confirm.off"), key("fontsys.confirm.on"))),
+			ChangeSummary.rows(light, INTER.withCrispEdges(true)), "crisp mode ignores hinting, so it isn't listed");
+		assertEquals(List.of(
+			new Row("fontsys.confirm.change.font", literal("Inter Regular"), literal("Inter Regular")),
+			new Row("fontsys.screen.crisp", key("fontsys.confirm.on"), key("fontsys.confirm.off"))),
+			ChangeSummary.rows(INTER.withCrispEdges(true), light), "nor when crisp mode is turned off");
+	}
+
+	@Test
+	void fromVanillaListsHintingThatIsNotTheDefault() {
+		List<Row> rows = ChangeSummary.rows(INTER.withEnabled(false), GEORGIA.withHinting(Hinting.NONE));
+		assertEquals(List.of(
+			new Row("fontsys.confirm.change.font", key("fontsys.confirm.vanilla_font"), literal("Georgia Bold")),
+			new Row("fontsys.confirm.change.hinting", null, key("fontsys.advanced.hinting.none"))), rows);
 	}
 
 	@Test

@@ -286,7 +286,7 @@ public final class PreviewFont implements AutoCloseable {
 
 	/**
 	 * Same steps as vanilla's {@code TrueTypeGlyphProviderDefinition.load}, but with our face
-	 * index, style handling and crisp mode, laid out as Apply would at this GUI scale.
+	 * index, style handling, crisp mode and hinting, laid out as Apply would at this GUI scale.
 	 *
 	 * @param data the font file in native memory
 	 * @param ownsData the provider frees {@code data} when it closes; otherwise another provider
@@ -329,7 +329,7 @@ public final class PreviewFont implements AutoCloseable {
 				// its face still reads the shared data, which the owner frees after it closes.
 				TrueTypeGlyphProvider ttf = new TrueTypeGlyphProvider(ownsData ? data : MemoryUtil.memAlloc(1), face, settings.size(), settings.renderOversample(guiScale),
 					settings.renderShift(settings.shiftX(), guiScale), settings.renderShift(settings.shiftY(), guiScale), "");
-				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges()), grid, data, ttf);
+				return new Opened(new PrivateUseFilteringProvider(ttf, face, spec, settings.crispEdges(), settings.hinting()), grid, data, ttf);
 			}
 		} catch (IOException | RuntimeException e) {
 			if (face != null) {

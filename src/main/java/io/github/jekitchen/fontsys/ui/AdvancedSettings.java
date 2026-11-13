@@ -28,6 +28,9 @@ public final class AdvancedSettings {
 		if (settings.applyToUniform() != defaults.applyToUniform()) {
 			keys.add("fontsys.screen.apply_to_uniform");
 		}
+		if (settings.hinting() != defaults.hinting()) {
+			keys.add("fontsys.confirm.change.hinting");
+		}
 		return keys;
 	}
 
@@ -36,6 +39,7 @@ public final class AdvancedSettings {
 		FontSettings defaults = FontSettings.DEFAULTS;
 		return settings
 			.withLayout(settings.size(), settings.oversample(), defaults.shiftX(), defaults.shiftY())
-			.withApplyToUniform(defaults.applyToUniform());
+			.withApplyToUniform(defaults.applyToUniform())
+			.withHinting(defaults.hinting());
 	}
 }

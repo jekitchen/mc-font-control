@@ -18,8 +18,8 @@ import org.jspecify.annotations.Nullable;
  *   <li>Switching to the vanilla font lists only the font: the other settings don't apply to it.</li>
  *   <li>Switching from the vanilla font lists the settings that differ from the defaults, as
  *       new values only, since the vanilla font had none of them.</li>
- *   <li>Sharpness isn't listed while Crisp edges is on at either end: crisp mode ignores it
- *       (D34), and the Crisp edges row already says what changed.</li>
+ *   <li>Sharpness and hinting aren't listed while Crisp edges is on at either end: crisp mode
+ *       ignores them (D34, D53), and the Crisp edges row already says what changed.</li>
  * </ul>
  */
 public final class ChangeSummary {
@@ -60,6 +60,9 @@ public final class ChangeSummary {
 		add(rows, wasActive, "fontsys.confirm.change.shift_x", Value.literal(format(from.shiftX())), Value.literal(format(after.shiftX())));
 		add(rows, wasActive, "fontsys.confirm.change.shift_y", Value.literal(format(from.shiftY())), Value.literal(format(after.shiftY())));
 		add(rows, wasActive, "fontsys.screen.apply_to_uniform", onOff(from.applyToUniform()), onOff(after.applyToUniform()));
+		if (from.hintingApplies() && after.hintingApplies()) {
+			add(rows, wasActive, "fontsys.confirm.change.hinting", Value.translated(from.hinting().key()), Value.translated(after.hinting().key()));
+		}
 		add(rows, wasActive, "fontsys.screen.crisp", onOff(from.crispEdges()), onOff(after.crispEdges()));
 		return rows;
 	}
