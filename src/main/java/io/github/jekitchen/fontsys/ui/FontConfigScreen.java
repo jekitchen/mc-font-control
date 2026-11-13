@@ -257,6 +257,18 @@ public final class FontConfigScreen extends Screen {
 		return List.copyOf(tooltipped);
 	}
 
+	/**
+	 * The cursor starts in the search box, so players can type a font name straight away (UI-3).
+	 * When a screen opens after keyboard input (F7, or Enter on a button), 26.3 runs this after
+	 * {@link #init()}, and the default moves focus one Tab step on, out of the search box; so it
+	 * is overridden, as vanilla's own screens do. {@link #init()} also focuses the box, for the
+	 * rebuild after a resize, which doesn't call this.
+	 */
+	@Override
+	protected void setInitialFocus() {
+		setInitialFocus(searchBox);
+	}
+
 	private static String format(double v) {
 		return String.format(Locale.ROOT, v == Math.rint(v) ? "%.0f" : "%.1f", v);
 	}
@@ -490,6 +502,11 @@ public final class FontConfigScreen extends Screen {
 	/** The sizes the size strip shows now, ascending; empty before the preview is ready. */
 	public List<Float> stripSizes() {
 		return preview == null ? List.of() : preview.stripSizes();
+	}
+
+	/** The search box's text; read by the game tests. */
+	public String searchText() {
+		return search;
 	}
 
 	public float draftSize() {
