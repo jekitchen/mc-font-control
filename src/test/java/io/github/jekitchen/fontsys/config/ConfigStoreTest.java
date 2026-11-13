@@ -102,6 +102,47 @@ class ConfigStoreTest {
 		assertFalse(a.sameRendering(a.withEnabled(false)));
 		// Two disabled configurations both render vanilla.
 		assertTrue(FontSettings.DEFAULTS.sameRendering(a.withEnabled(false)));
+		// Hinting changes the glyphs, so it reloads the font and asks "Keep this font?" (D53).
+		assertFalse(a.sameRendering(a.withHinting(Hinting.LIGHT)));
+	}
+
+	/** Files from before the hinting setting load as Full, vanilla's hinting, so nobody's text changes (D53). */
+	@Test
+	void olderFilesLoadWithFullHinting(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("fontsys.json"), "{\"configVersion\": 1, \"enabled\": true, \"fontPath\": \"/f.ttf\","
+			+ " \"pending\": {\"enabled\": true, \"fontPath\": \"/g.ttf\", \"size\": 12}}");
+		ConfigStore.LoadResult r = new ConfigStore(file).load();
+		assertFalse(r.reset());
+		assertEquals(Hinting.FULL, r.config().hinting);
+		assertEquals(Hinting.FULL, r.config().settings().hinting());
+		assertEquals(Hinting.FULL, r.config().pending.hinting());
+		assertEquals(Hinting.FULL, FontSettings.DEFAULTS.hinting());
+	}
+
+	@Test
+	void hintingIsSavedAndLoaded(@TempDir Path dir) throws IOException {
+		ConfigStore store = new ConfigStore(dir.resolve("fontsys.json"));
+		FontConfig config = FontConfig.defaults();
+		config.setSettings(FontSettings.DEFAULTS.withEnabled(true).withFont("/f.ttf", 0, "F", "Regular").withHinting(Hinting.LIGHT));
+		config.pending = FontSettings.DEFAULTS.withEnabled(true).withFont("/g.ttf", 0, "G", "Regular").withHinting(Hinting.NONE);
+		store.save(config);
+		String json = Files.readString(store.file());
+		assertTrue(json.contains("\"hinting\": \"light\""), json);
+		assertTrue(json.contains("\"hinting\": \"none\""), json);
+		FontConfig loaded = store.load().config();
+		assertEquals(Hinting.LIGHT, loaded.settings().hinting());
+		assertEquals(Hinting.NONE, loaded.pending.hinting());
+	}
+
+	@Test
+	void unknownHintingReadsAsFull(@TempDir Path dir) throws IOException {
+		Path file = Files.writeString(dir.resolve("fontsys.json"), "{\"enabled\": true, \"fontPath\": \"/f.ttf\", \"hinting\": \"extra-crispy\","
+			+ " \"pending\": {\"fontPath\": \"/g.ttf\", \"hinting\": null}}");
+		ConfigStore.LoadResult r = new ConfigStore(file).load();
+		assertFalse(r.reset(), "a value from a newer version isn't a broken file");
+		assertEquals(Hinting.FULL, r.config().settings().hinting());
+		assertEquals(Hinting.FULL, r.config().hinting);
+		assertEquals(Hinting.FULL, r.config().pending.hinting());
 	}
 
 	@Test

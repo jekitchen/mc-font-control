@@ -28,11 +28,13 @@ public final class FontConfig {
 	public FontSettings pending;
 	/** Hard-edged glyphs for pixel-style fonts (PRD AP-10, D34). */
 	public boolean crispEdges;
+	/** How outlines are fitted to the pixel grid (D53). Missing in older files: Full, vanilla's hinting. */
+	public Hinting hinting = Hinting.DEFAULT;
 	/** Fonts applied and kept, newest first, for the top of the font list (UI-17). */
 	public List<RecentFont> recentFonts = new ArrayList<>();
 
 	public FontSettings settings() {
-		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges).sanitized();
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, hinting).sanitized();
 	}
 
 	public void setSettings(FontSettings s) {
@@ -48,6 +50,7 @@ public final class FontConfig {
 		shiftY = v.shiftY();
 		applyToUniform = v.applyToUniform();
 		crispEdges = v.crispEdges();
+		hinting = v.hinting();
 	}
 
 	public static FontConfig defaults() {

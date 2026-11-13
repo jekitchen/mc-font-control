@@ -27,6 +27,10 @@ import org.spongepowered.asm.mixin.injection.At;
  *   <li>Synthetic bold (AP-8, D24): for a face that FreeType emboldens, the outline is loaded
  *       without rendering, emboldened, then rendered, exactly as {@code TrueTypeGlyphProviderMixin}
  *       measured it, so the bitmap matches the size vanilla allocated.</li>
+ *   <li>Hinting (D53): the face's hinting flags ({@code SystemFaces.loadFlags}), the same ones
+ *       {@code TrueTypeGlyphProviderMixin} measured with, so a Light or None glyph is rendered
+ *       at the size and position vanilla allocated for it. Crisp faces don't come here: they
+ *       render through {@code CrispGlyphs}.</li>
  * </ul>
  */
 @Mixin(NativeImage.class)
@@ -36,10 +40,11 @@ abstract class NativeImageMixin {
 		if (!SystemFaces.contains(face)) {
 			return original.call(face, glyphIndex, flags);
 		}
+		int hinting = SystemFaces.loadFlags(face);
 		if (SystemFaces.isSyntheticBold(face)) {
-			int error = original.call(face, glyphIndex, FreeType.FT_LOAD_NO_BITMAP);
+			int error = original.call(face, glyphIndex, FreeType.FT_LOAD_NO_BITMAP | hinting);
 			return error != 0 ? error : SyntheticBold.emboldenAndRender(face);
 		}
-		return original.call(face, glyphIndex, flags | FreeType.FT_LOAD_NO_BITMAP);
+		return original.call(face, glyphIndex, flags | FreeType.FT_LOAD_NO_BITMAP | hinting);
 	}
 }

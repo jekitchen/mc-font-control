@@ -2,6 +2,7 @@ package io.github.jekitchen.fontsys.pack;
 
 import com.mojang.blaze3d.font.GlyphProvider;
 import com.mojang.blaze3d.font.UnbakedGlyph;
+import io.github.jekitchen.fontsys.config.Hinting;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.jspecify.annotations.Nullable;
@@ -36,10 +37,18 @@ public final class PrivateUseFilteringProvider implements GlyphProvider {
 	 * @param crisp render with hard edges (crisp mode, AP-10)
 	 */
 	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face, FaceSpec spec, boolean crisp) {
+		this(delegate, face, spec, crisp, Hinting.DEFAULT);
+	}
+
+	/**
+	 * As {@link #PrivateUseFilteringProvider(GlyphProvider, FT_Face, FaceSpec, boolean)}, with
+	 * the hinting the face is measured and rendered with (D53).
+	 */
+	public PrivateUseFilteringProvider(GlyphProvider delegate, FT_Face face, FaceSpec spec, boolean crisp, Hinting hinting) {
 		this.delegate = delegate;
 		this.face = face;
 		this.spec = spec;
-		SystemFaces.add(face, spec.syntheticBold(), crisp);
+		SystemFaces.add(face, spec.syntheticBold(), crisp, hinting);
 	}
 
 	/** U+E000–U+F8FF, plus the supplementary private-use planes 15 and 16. */

@@ -62,6 +62,7 @@ abstract class TrueTypeGlyphProviderDefinitionMixin {
 		}
 		PackContents.markProviderLoaded(location);
 		FT_Face face = provider instanceof TrueTypeGlyphProviderAccessor accessor ? accessor.fontsys$face() : null;
-		return new PrivateUseFilteringProvider(provider, face, PackContents.specFor(location), PackContents.loaded().crisp());
+		return new PrivateUseFilteringProvider(provider, face, PackContents.specFor(location), PackContents.loaded().crisp(),
+			PackContents.loaded().hinting());
 	}
 }

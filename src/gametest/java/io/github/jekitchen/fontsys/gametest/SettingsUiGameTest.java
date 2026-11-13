@@ -156,7 +156,7 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 
 	/**
 	 * Hovering each control with a tooltip draws a tooltip box: dark purple pixels that weren't
-	 * there before. Shift X, Shift Y and Replace Unicode font are on the Advanced screen (D52).
+	 * there before. Shift X, Shift Y, Replace Unicode font and Hinting are on the Advanced screen (D52, D53).
 	 */
 	private static void tooltips(ClientGameTestContext context) {
 		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
@@ -171,7 +171,7 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		context.waitTicks(10);
 		List<ScreenRectangle> advanced = context.computeOnClient(mc -> ((AdvancedFontScreen) mc.gui.screen()).tooltipWidgets().stream()
 			.map(AbstractWidget::getRectangle).toList());
-		require(advanced.size() == 4, "4 controls on the Advanced screen have tooltips, found " + advanced.size());
+		require(advanced.size() == 5, "5 controls on the Advanced screen have tooltips, found " + advanced.size());
 		requireTooltips(context, advanced, "ui19-advanced");
 		context.setScreen(TitleScreen::new);
 	}

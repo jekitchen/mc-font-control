@@ -1,6 +1,7 @@
 package io.github.jekitchen.fontsys.ui;
 
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.Hinting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -8,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
+import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -73,6 +75,7 @@ public final class AdvancedFontScreen extends Screen {
 			.selected(draft.applyToUniform())
 			.onValueChange((box, value) -> change(settings.draft().withApplyToUniform(value)))
 			.build(), "fontsys.screen.apply_to_uniform.tooltip"));
+		row(hintingButton(draft));
 		noteY = nextY + 2;
 
 		previewX0 = MARGIN + column + MARGIN;
@@ -87,6 +90,26 @@ public final class AdvancedFontScreen extends Screen {
 		doneButton = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
 			.bounds(width - MARGIN - doneWidth, bottom + 4, doneWidth, 20).build());
 		updateButtons();
+	}
+
+	/**
+	 * Hinting: Full / Light / None (D53). Crisp mode hints for monochrome output whatever this
+	 * says, so while Crisp edges is on the button is grayed out, reads "Crisp" and says why, the
+	 * way the Sharpness slider does on the settings screen.
+	 */
+	private CycleButton<Hinting> hintingButton(FontSettings draft) {
+		boolean applies = draft.hintingApplies();
+		String tooltip = applies ? "fontsys.advanced.hinting.tooltip" : "fontsys.advanced.hinting.tooltip.crisp";
+		// CycleButton replaces its tooltip on every click with withTooltip's, so give it the same one.
+		Tooltip shown = Tooltip.create(Component.translatable(tooltip));
+		CycleButton<Hinting> button = CycleButton.<Hinting>builder(
+				h -> Component.translatable(applies ? h.key() : "fontsys.advanced.hinting.crisp"), draft.hinting())
+			.withValues(Hinting.values())
+			.withTooltip(h -> shown)
+			.create(0, 0, column, 20, Component.translatable("fontsys.advanced.hinting"),
+				(b, value) -> change(settings.draft().withHinting(value)));
+		button.active = applies;
+		return tip(button, tooltip);
 	}
 
 	/** Puts a control on the next row of the left column; a taller one (a wrapped checkbox label) gets more room. */

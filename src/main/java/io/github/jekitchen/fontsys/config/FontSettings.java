@@ -8,6 +8,7 @@ import java.util.Objects;
  *
  * @param oversample rasterization oversampling; {@code 0} means automatic (the current GUI scale)
  * @param crispEdges hard-edged glyphs for pixel-style fonts (PRD AP-10, D34)
+ * @param hinting how outlines are fitted to the pixel grid (D53); crisp mode uses its own
  */
 public record FontSettings(
 	boolean enabled,
@@ -20,7 +21,8 @@ public record FontSettings(
 	float shiftX,
 	float shiftY,
 	boolean applyToUniform,
-	boolean crispEdges) {
+	boolean crispEdges,
+	Hinting hinting) {
 
 	public static final float DEFAULT_SIZE = 10.0F;
 	public static final float MIN_SIZE = 5.0F;
@@ -29,7 +31,13 @@ public record FontSettings(
 	public static final float MAX_OVERSAMPLE = 8.0F;
 	public static final float MAX_SHIFT = 4.0F;
 
-	public static final FontSettings DEFAULTS = new FontSettings(false, null, 0, null, null, DEFAULT_SIZE, AUTO_OVERSAMPLE, 0, 0, false, false);
+	public static final FontSettings DEFAULTS = new FontSettings(false, null, 0, null, null, DEFAULT_SIZE, AUTO_OVERSAMPLE, 0, 0, false, false, Hinting.DEFAULT);
+
+	/** Settings with the default hinting (Full), as before hinting was a setting. */
+	public FontSettings(boolean enabled, String fontPath, int faceIndex, String familyName, String styleName, float size,
+		float oversample, float shiftX, float shiftY, boolean applyToUniform, boolean crispEdges) {
+		this(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, Hinting.DEFAULT);
+	}
 
 	/** A font is selected and the master switch is on. */
 	public boolean isActive() {
@@ -52,33 +60,43 @@ public record FontSettings(
 			clamp(finiteOr(shiftX, 0), -MAX_SHIFT, MAX_SHIFT),
 			clamp(finiteOr(shiftY, 0), -MAX_SHIFT, MAX_SHIFT),
 			applyToUniform,
-			crispEdges);
+			crispEdges,
+			Hinting.orDefault(hinting));
 	}
 
 	/** The same settings with the font file at another path (instance fonts, FD-14). */
 	public FontSettings withFontPath(String path) {
-		return new FontSettings(enabled, path, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges);
+		return new FontSettings(enabled, path, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, hinting);
 	}
 
 	/** The same font choice, with a new on/off state. */
 	public FontSettings withEnabled(boolean value) {
-		return new FontSettings(value, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges);
+		return new FontSettings(value, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, hinting);
 	}
 
 	public FontSettings withFont(String path, int index, String family, String style) {
-		return new FontSettings(enabled, path, index, family, style, size, oversample, shiftX, shiftY, applyToUniform, crispEdges);
+		return new FontSettings(enabled, path, index, family, style, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, hinting);
 	}
 
 	public FontSettings withLayout(float newSize, float newOversample, float newShiftX, float newShiftY) {
-		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, newSize, newOversample, newShiftX, newShiftY, applyToUniform, crispEdges);
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, newSize, newOversample, newShiftX, newShiftY, applyToUniform, crispEdges, hinting);
 	}
 
 	public FontSettings withApplyToUniform(boolean value) {
-		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, value, crispEdges);
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, value, crispEdges, hinting);
 	}
 
 	public FontSettings withCrispEdges(boolean value) {
-		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, value);
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, value, hinting);
+	}
+
+	public FontSettings withHinting(Hinting value) {
+		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges, value);
+	}
+
+	/** Whether {@link #hinting} is used: crisp mode always hints for monochrome output instead (D34, D53). */
+	public boolean hintingApplies() {
+		return !crispEdges;
 	}
 
 	/**
@@ -120,7 +138,8 @@ public record FontSettings(
 			&& shiftX == other.shiftX
 			&& shiftY == other.shiftY
 			&& applyToUniform == other.applyToUniform
-			&& crispEdges == other.crispEdges;
+			&& crispEdges == other.crispEdges
+			&& hinting == other.hinting;
 	}
 
 	private static float finiteOr(float value, float fallback) {

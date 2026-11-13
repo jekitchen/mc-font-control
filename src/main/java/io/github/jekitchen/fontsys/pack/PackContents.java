@@ -2,6 +2,7 @@ package io.github.jekitchen.fontsys.pack;
 
 import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.Hinting;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.discovery.FontIndex;
@@ -46,11 +47,13 @@ public final class PackContents {
 	 * @param uniform  true if {@code uniform.json} uses the system font too
 	 * @param autoOversample the oversample follows the GUI scale, so a GUI-scale change reloads the font
 	 * @param crisp    glyphs are rendered with hard edges (AP-10, D34)
+	 * @param hinting  how glyph outlines are hinted, unless crisp (D53)
 	 */
 	public record Loaded(boolean active, int faceIndex, int guiScale, boolean autoOversample, boolean uniform, boolean crisp,
-		Map<Identifier, FaceSpec> files, Map<FontStyleSlot, StyledFaces.Variant> styles, Map<FontStyleSlot, FontStyleSlot> servedBy) {
+		Map<Identifier, FaceSpec> files, Map<FontStyleSlot, StyledFaces.Variant> styles, Map<FontStyleSlot, FontStyleSlot> servedBy,
+		Hinting hinting) {
 		static Loaded inactive(int guiScale) {
-			return new Loaded(false, 0, guiScale, false, false, false, Map.of(), Map.of(), Map.of());
+			return new Loaded(false, 0, guiScale, false, false, false, Map.of(), Map.of(), Map.of(), Hinting.DEFAULT);
 		}
 	}
 
@@ -163,7 +166,8 @@ public final class PackContents {
 			files.put(slot.file(), slot.spec(variant.get()));
 			servedBy.put(slot, slot);
 		}
-		loaded = new Loaded(true, font.faceIndex(), guiScale, auto, settings.applyToUniform(), settings.crispEdges(), Map.copyOf(files), Map.copyOf(styles), Map.copyOf(servedBy));
+		loaded = new Loaded(true, font.faceIndex(), guiScale, auto, settings.applyToUniform(), settings.crispEdges(), Map.copyOf(files), Map.copyOf(styles), Map.copyOf(servedBy),
+			settings.hinting());
 	}
 
 	/**

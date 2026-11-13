@@ -9,7 +9,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 - **Quick to find.** Press **F7** to open the settings. The search box is ready to type in, and the fonts you used last are listed first.
 - **One click, no restart.** Apply the font and it's used everywhere straight away.
 - **Can't get stuck.** You have 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog shows your new font in sample text, look-alike characters, chat, a sign and a tooltip, while its own text and buttons stay in the normal Minecraft font, so you can read it whatever you picked.
-- **Fine-tuning.** Adjust size and sharpness. Fonts that sit a little high or low get a baseline shift on the **Advanced** screen, which shows your font on a button next to Minecraft's.
+- **Fine-tuning.** Adjust size and sharpness. Fonts that sit a little high or low get a baseline shift on the **Advanced** screen, which shows your font on a button next to Minecraft's. There you can also choose the hinting: Full for the crispest letters, Light to keep the font's own shapes, or None for the softest, most faithful outlines.
 - **Crisp pixel fonts.** Turn on **Crisp edges** and pixel-style fonts get hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it.
 - **Works with Sodium and Iris.** Fontsys uses Minecraft's own font renderer, so it works alongside them and on both OpenGL and Vulkan.
 - **Client-only.** Servers don't need it. Server resource packs keep their custom HUD icons.
