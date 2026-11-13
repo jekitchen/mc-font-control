@@ -42,6 +42,7 @@ public final class FontController {
 	private long confirmDeadline;
 	private int guiScaleChangedTicks;
 	private boolean reloading;
+	private volatile int fontGeneration;
 
 	public FontController(ConfigStore store, Platform platform) {
 		this(store, platform, SystemFingerprint::current);
@@ -208,10 +209,19 @@ public final class FontController {
 		reloading = true;
 		return Minecraft.getInstance().reloadResourcePacks().whenComplete((ok, error) -> {
 			reloading = false;
+			fontGeneration++;
 			long ms = (System.nanoTime() - start) / 1_000_000;
 			lastApplyMillis = ms;
 			Fontsys.LOGGER.info("[{}] {} in {} ms.", Fontsys.DISPLAY_NAME, what, ms);
 		});
+	}
+
+	/**
+	 * Goes up each time a reload we triggered finishes, so screens laid out before it know their
+	 * text was measured in another font (UI-18).
+	 */
+	public int fontGeneration() {
+		return fontGeneration;
 	}
 
 	/** Duration of the last reload we triggered, or -1. */

@@ -24,6 +24,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.navigation.ScreenPosition;
@@ -31,6 +32,7 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.options.FontOptionsScreen;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The 1.1.0 settings-screen improvements, driven with the real mouse and keyboard:
@@ -50,16 +52,17 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		context.waitForScreen(TitleScreen.class);
 		defaultKey(context);
-		fontOptionsButton(context);
 		tooltips(context);
 		Optional<FaceInfo> pick = GameTestFonts.pick(context, "Segoe UI", "Arial", "Helvetica Neue", "DejaVu Sans");
 		if (pick.isEmpty()) {
-			Fontsys.LOGGER.warn("[gametest] No system fonts found; skipping the size strip, samples, recent and drop checks.");
+			fontOptionsButton(context, null);
+			Fontsys.LOGGER.warn("[gametest] No system fonts found; skipping the font-change, size strip, samples, recent and drop checks.");
 			return;
 		}
 		FontFamily family = Fontsys.fontIndex().families(false).stream()
 			.filter(f -> f.name().equals(pick.get().family())).findFirst().orElseThrow();
 		try {
+			fontOptionsButton(context, pick.get());
 			sizeStrip(context, family);
 			samplesAndRecent(context, family);
 			dropFonts(context, pick.get());
@@ -75,20 +78,54 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		require(key.getValue() == InputConstants.KEY_F7, "the settings key defaults to F7, not " + key.getName());
 	}
 
-	/** Options > Language > Font Settings has a button that opens Fontsys and returns there. */
-	private static void fontOptionsButton(ClientGameTestContext context) {
+	/**
+	 * Options > Language > Font Settings has one Fontsys button, which opens Fontsys and returns
+	 * there (UI-1). Coming back, the screen still has one button, and after a font change while
+	 * Fontsys was open it is built again in the new font: its title is not cut off (UI-18).
+	 */
+	private static void fontOptionsButton(ClientGameTestContext context, @Nullable FaceInfo face) {
 		context.setScreen(() -> new FontOptionsScreen(new TitleScreen(), net.minecraft.client.Minecraft.getInstance().options));
 		context.waitTicks(5);
 		context.takeScreenshot("ui1-font-options");
+		openFontsysFromFontOptions(context);
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(FontOptionsScreen.class);
+		require(fontsysButtons(context) == 1, "one Fontsys button after coming back, not " + fontsysButtons(context));
+
+		if (face != null) {
+			// A larger font applied while Fontsys is open over Font Settings.
+			openFontsysFromFontOptions(context);
+			GameTestFonts.apply(context, GameTestFonts.settingsFor(face).withLayout(14, FontSettings.AUTO_OVERSAMPLE, 0, 0));
+			context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+			context.waitForScreen(FontOptionsScreen.class);
+			context.waitTicks(5);
+			context.takeScreenshot("ui18-font-options-after-change");
+			require(fontsysButtons(context) == 1, "one Fontsys button after a font change, not " + fontsysButtons(context));
+			String cut = context.computeOnClient(mc -> widgets(mc.gui.screen()).stream()
+				.filter(w -> w instanceof StringWidget && w.getMessage().getString().equals(mc.gui.screen().getTitle().getString()))
+				.filter(w -> w.getWidth() < mc.font.width(w.getMessage()))
+				.map(w -> w.getWidth() + " < " + mc.font.width(w.getMessage())).findFirst().orElse(null));
+			require(cut == null, "the Font Settings title is cut off after the font change: " + cut);
+			GameTestFonts.apply(context, FontSettings.DEFAULTS);
+		}
+		context.setScreen(TitleScreen::new);
+	}
+
+	private static void openFontsysFromFontOptions(ClientGameTestContext context) {
 		ScreenRectangle button = context.computeOnClient(mc -> widgets(mc.gui.screen()).stream()
-			.filter(w -> w instanceof Button && w.getMessage().getString().equals(Component.translatable("fontsys.options.button").getString()))
+			.filter(SettingsUiGameTest::isFontsysButton)
 			.map(AbstractWidget::getRectangle).findFirst()
 			.orElseThrow(() -> new AssertionError("no Fontsys button in Font Settings")));
 		click(context, button.left() + button.width() / 2, button.top() + button.height() / 2);
 		context.waitForScreen(FontConfigScreen.class);
-		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
-		context.waitForScreen(FontOptionsScreen.class);
-		context.setScreen(TitleScreen::new);
+	}
+
+	private static int fontsysButtons(ClientGameTestContext context) {
+		return context.computeOnClient(mc -> (int) widgets(mc.gui.screen()).stream().filter(SettingsUiGameTest::isFontsysButton).count());
+	}
+
+	private static boolean isFontsysButton(AbstractWidget w) {
+		return w instanceof Button && w.getMessage().getString().equals(Component.translatable("fontsys.options.button").getString());
 	}
 
 	/** Hovering each control with a tooltip draws a tooltip box: dark purple pixels that weren't there before. */
