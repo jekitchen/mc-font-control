@@ -31,7 +31,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
 6. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
-7. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), or drag font files onto the settings screen to copy them there. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
+7. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), or drag font files onto the settings screen to copy them there; the first one you drop is selected. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 
