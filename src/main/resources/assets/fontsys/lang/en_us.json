@@ -10,6 +10,7 @@
 
 	"fontsys.screen.title": "Fontsys",
 	"fontsys.screen.search": "Search fonts",
+	"fontsys.screen.search.clear": "Clear search",
 	"fontsys.screen.show_hidden": "Show hidden fonts",
 	"fontsys.screen.show_hidden.tooltip": "Also lists fonts that are hidden because they can't draw Minecraft's text well: fonts without Latin letters, color emoji fonts, unsupported font types and the computer's own private fonts. A tag says why each one is hidden.",
 	"fontsys.screen.style": "Style: %s",

@@ -58,6 +58,8 @@ public final class FontConfigScreen extends Screen {
 	/** Space between buttons in a group, and between the groups along the bottom. */
 	private static final int BUTTON_GAP = 4;
 	private static final int GROUP_GAP = 14;
+	/** Width and height of the search box's clear button, and the search box's height. */
+	private static final int CLEAR_SIZE = 16;
 	/** Recently applied fonts listed first while the search box is empty (UI-17). */
 	private static final int RECENT_SHOWN = 5;
 
@@ -73,6 +75,8 @@ public final class FontConfigScreen extends Screen {
 	private int seenGeneration = -1;
 
 	private FamilyList list;
+	private EditBox searchBox;
+	private Button clearSearch;
 	private Button styleButton;
 	private Button prevStyle;
 	private Button nextStyle;
@@ -112,14 +116,23 @@ public final class FontConfigScreen extends Screen {
 		int bottom = height - 28;
 		tooltipped.clear();
 
-		EditBox searchBox = new EditBox(font, MARGIN, TOP, listWidth, 16, Component.translatable("fontsys.screen.search"));
+		// The search box, and a clear button at its right end while it has text (UI-3).
+		searchBox = new EditBox(font, MARGIN, TOP, listWidth - CLEAR_SIZE - 2, CLEAR_SIZE, Component.translatable("fontsys.screen.search"));
 		searchBox.setHint(Component.translatable("fontsys.screen.search").withStyle(EditBox.SEARCH_HINT_STYLE));
 		searchBox.setValue(search);
+		clearSearch = Button.builder(Component.literal("×"), b -> {
+			searchBox.setValue("");
+			setFocused(searchBox);
+		}).bounds(MARGIN + listWidth - CLEAR_SIZE, TOP, CLEAR_SIZE, CLEAR_SIZE).build();
+		clearSearch.setTooltip(Tooltip.create(Component.translatable("fontsys.screen.search.clear")));
+		clearSearch.visible = !search.isEmpty();
 		searchBox.setResponder(value -> {
 			search = value;
+			clearSearch.visible = !value.isEmpty();
 			refreshList();
 		});
 		addRenderableWidget(searchBox);
+		addRenderableWidget(clearSearch);
 
 		list = new FamilyList(minecraft, listWidth, bottom - 26 - (TOP + 20), TOP + 20);
 		list.updateSizeAndPosition(listWidth, bottom - 26 - (TOP + 20), MARGIN, TOP + 20);
@@ -324,6 +337,7 @@ public final class FontConfigScreen extends Screen {
 		}
 		int copied = 0;
 		int skipped = 0;
+		Path first = null;
 		try {
 			InstanceFonts.createDir(InstanceFonts.gameDir().orElseThrow());
 			for (Path path : paths) {
@@ -334,13 +348,16 @@ public final class FontConfigScreen extends Screen {
 				}
 				Files.copy(path, target);
 				copied++;
+				if (first == null) {
+					first = target.toRealPath();
+				}
 			}
 		} catch (IOException | RuntimeException e) {
 			Fontsys.LOGGER.warn("[{}] Could not copy dropped fonts to {}: {}", Fontsys.DISPLAY_NAME, dir.getFileName(), e.toString());
 			skipped = paths.size() - copied;
 		}
-		if (copied > 0) {
-			index.scan();
+		if (first != null) {
+			selectWhenScanned(first, true);
 		}
 		Component title = Component.translatable(copied > 0 ? "fontsys.drop.title" : "fontsys.drop.none_title");
 		Component message = copied == 0 ? Component.translatable("fontsys.drop.none", skipped)
@@ -401,6 +418,48 @@ public final class FontConfigScreen extends Screen {
 		draft = draft.withLayout((float) size, oversample, shiftX, shiftY).sanitized();
 		previewDirty = true;
 		updateButtons();
+	}
+
+	/**
+	 * Selects the family of a dropped font file once a scan has listed it (UI-16). A scan that
+	 * was already running when the file was copied may have missed it, so if the first scan
+	 * doesn't list it, one more is run. Nothing happens if the player has left the screen, or if
+	 * the font is hidden (no Latin letters, say) and hidden fonts aren't shown.
+	 */
+	private void selectWhenScanned(Path file, boolean retry) {
+		index.scan().thenRun(() -> minecraft.execute(() -> {
+			if (minecraft.gui.screen() != this) {
+				return;
+			}
+			FontFamily family = familyOf(file, index.families(true));
+			if (family == null) {
+				if (retry) {
+					selectWhenScanned(file, false);
+				}
+				return;
+			}
+			if (!index.families(controller.config().showHiddenFonts).contains(family)) {
+				return;
+			}
+			String needle = search.toLowerCase(Locale.ROOT).strip();
+			if (!needle.isEmpty() && !family.name().toLowerCase(Locale.ROOT).contains(needle)) {
+				searchBox.setValue(""); // so the selection is in view
+			}
+			selectFamily(family);
+			refreshList();
+		}));
+	}
+
+	/** The family with a face in {@code file}, if the index lists one. */
+	static @Nullable FontFamily familyOf(Path file, List<FontFamily> families) {
+		for (FontFamily family : families) {
+			for (FaceInfo face : family.styles()) {
+				if (Path.of(face.path()).equals(file)) {
+					return family;
+				}
+			}
+		}
+		return null;
 	}
 
 	/** A click on a size in the size strip selects that size (UI-15). */

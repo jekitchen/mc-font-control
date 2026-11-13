@@ -53,6 +53,7 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		context.waitForScreen(TitleScreen.class);
 		defaultKey(context);
 		tooltips(context);
+		clearSearch(context);
 		Optional<FaceInfo> pick = GameTestFonts.pick(context, "Segoe UI", "Arial", "Helvetica Neue", "DejaVu Sans");
 		if (pick.isEmpty()) {
 			fontOptionsButton(context, null);
@@ -201,39 +202,82 @@ public class SettingsUiGameTest implements FabricClientGameTest {
 		context.setScreen(TitleScreen::new);
 	}
 
-	/** Dropping a font file and a text file: the font is copied into fonts/, the text file is skipped. */
+	/**
+	 * Dropping two fonts and a text file while the search box filters both out (UI-16): the fonts
+	 * are copied into fonts/, the text file is skipped, and the first font is selected, with the
+	 * search cleared so it is in view.
+	 */
 	private static void dropFonts(ClientGameTestContext context, FaceInfo face) {
 		Path dir = InstanceFonts.dir().orElseThrow();
-		Path source = Path.of(face.path());
-		Path copy = dir.resolve("dropped-" + source.getFileName());
-		Path stagedFont;
-		Path stagedText;
+		FaceInfo second = Fontsys.fontIndex().families(false).stream()
+			.filter(f -> !f.name().equals(face.family()))
+			.map(FontFamily::defaultStyle)
+			.filter(f -> !f.path().equals(face.path()) && (f.path().toLowerCase(java.util.Locale.ROOT).endsWith(".ttf") || f.path().toLowerCase(java.util.Locale.ROOT).endsWith(".otf")))
+			.findFirst().orElseThrow();
+		List<Path> copies = List.of(dir.resolve("dropped-a-" + Path.of(face.path()).getFileName()),
+			dir.resolve("dropped-b-" + Path.of(second.path()).getFileName()));
+		List<Path> staged = new ArrayList<>();
 		try {
 			Path staging = Files.createTempDirectory("fontsys-drop");
-			stagedFont = Files.copy(source, staging.resolve(copy.getFileName()));
-			stagedText = Files.writeString(staging.resolve("readme.txt"), "not a font");
+			staged.add(Files.copy(Path.of(face.path()), staging.resolve(copies.get(0).getFileName())));
+			staged.add(Files.copy(Path.of(second.path()), staging.resolve(copies.get(1).getFileName())));
+			staged.add(Files.writeString(staging.resolve("readme.txt"), "not a font"));
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
 		try {
 			context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
 			context.waitTicks(5);
-			context.runOnClient(mc -> mc.gui.screen().onFilesDrop(List.of(stagedFont, stagedText)));
-			require(Files.isRegularFile(copy), "the dropped font was copied to " + copy);
+			context.getInput().typeChars("zzz-no-such-font");
+			context.waitTicks(2);
+			context.runOnClient(mc -> mc.gui.screen().onFilesDrop(List.copyOf(staged)));
+			require(Files.isRegularFile(copies.get(0)) && Files.isRegularFile(copies.get(1)), "both dropped fonts were copied to " + dir);
 			require(!Files.exists(dir.resolve("readme.txt")), "the text file was skipped");
+			context.waitFor(mc -> {
+				FontFamily selected = ((FontConfigScreen) mc.gui.screen()).listSelection();
+				return selected != null && selected.instance() && selected.name().equals(face.family());
+			}, 20 * 30);
+			require(context.computeOnClient(mc -> !((FontConfigScreen) mc.gui.screen()).listedFamilies().isEmpty()),
+				"the search was cleared so the dropped font is in view");
 			context.waitTicks(5);
-			context.takeScreenshot("ui16-dropped");
+			context.takeScreenshot("ui16-dropped-selected");
 		} finally {
 			context.setScreen(TitleScreen::new);
 			try {
-				Files.deleteIfExists(copy);
-				Files.deleteIfExists(stagedFont);
-				Files.deleteIfExists(stagedText);
+				for (Path path : copies) {
+					Files.deleteIfExists(path);
+				}
+				for (Path path : staged) {
+					Files.deleteIfExists(path);
+				}
 				Fontsys.fontIndex().scan();
 			} catch (IOException e) {
-				Fontsys.LOGGER.warn("[gametest] Could not clean up {}: {}", copy, e.toString());
+				Fontsys.LOGGER.warn("[gametest] Could not clean up the dropped fonts: {}", e.toString());
 			}
 		}
+	}
+
+	/** The search box's × button clears it and shows the whole list again; it hides while the box is empty (UI-3). */
+	private static void clearSearch(ClientGameTestContext context) {
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(5);
+		require(clearButton(context) == null, "no clear button while the search box is empty");
+		context.getInput().typeChars("zzz-no-such-font");
+		context.waitTicks(2);
+		require(context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).listedFamilies().isEmpty()), "the search filters the list");
+		ScreenRectangle clear = clearButton(context);
+		require(clear != null, "a clear button while the search box has text");
+		context.takeScreenshot("ui3-search-clear");
+		click(context, clear.left() + clear.width() / 2, clear.top() + clear.height() / 2);
+		require(context.computeOnClient(mc -> !((FontConfigScreen) mc.gui.screen()).listedFamilies().isEmpty()), "clearing shows the list again");
+		require(clearButton(context) == null, "the clear button hides again");
+		context.setScreen(TitleScreen::new);
+	}
+
+	private static @Nullable ScreenRectangle clearButton(ClientGameTestContext context) {
+		return context.computeOnClient(mc -> widgets(mc.gui.screen()).stream()
+			.filter(w -> w instanceof Button && w.visible && w.getMessage().getString().equals("×"))
+			.map(AbstractWidget::getRectangle).findFirst().orElse(null));
 	}
 
 	// ---- helpers -------------------------------------------------------------------------------

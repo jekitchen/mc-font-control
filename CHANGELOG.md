@@ -16,7 +16,8 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 - **Size comparison in the preview:** a sample at the next size down, the current size and the next size up. Click one to use it. With Crisp edges and a pixel font, it steps between sizes that keep pixels square.
 - **Samples on the "Keep this font?" screen:** a sentence, look-alike characters (Il1 O0 rn m), digits, bold and italic in your new font, then chat, sign and tooltip samples, so you can judge it before you keep it.
 - **Recent fonts:** the last five fonts you applied and kept are listed first, marked **Recent**.
-- **Drag and drop:** drop font files onto the settings screen to copy them into the instance's fonts folder.
+- **Drag and drop:** drop one or more font files onto the settings screen to copy them into the instance's fonts folder. The first one is selected once it's listed.
+- A **×** button clears the font search.
 - Tooltips explaining Size, Sharpness, Shift X and Y, Show hidden fonts, Rescan fonts and Reset to vanilla.
 
 ### Changed
