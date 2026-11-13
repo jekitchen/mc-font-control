@@ -37,7 +37,7 @@ Upload in this order. Each image needs a title; descriptions are optional. Mark 
 | `03-config-preview.png` | Live preview | Search your fonts and preview one (here Georgia) with bold, italic, chat, tooltip and sign samples, and side by side at the next size down and up, before applying it. |
 | `04-world-chat-inter.png` | Chat, HUD, signs and name tags | Inter in the world. Bold rank tags and the italic whisper use Inter's real Bold and Italic faces. |
 | `05-world-chat-vanilla.png` | The same scene in vanilla | Vanilla bold draws each letter twice, one pixel apart. |
-| `06-signs-georgia.png` | Any font, including serifs | Signs, glow ink, a text display and a name tag in Georgia. |
+| `06-signs-georgia.png` | Any font, including serifs | Signs, glow ink, a text display and name tags in Georgia. |
 | `07-tooltip-inter.png` | Tooltips | An enchanted item's tooltip in Inter; the lore line uses Inter's italic face. |
 | `08-keep-georgia.png` | Keep this font? | Before you keep a font, samples show it in a sentence, look-alike characters, bold, italic, chat, a sign and a tooltip. The dialog itself stays in Minecraft's font. |
 
