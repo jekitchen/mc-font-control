@@ -33,6 +33,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 ### Fixed
 
 - **Apply** now lights up as soon as you tick or untick **Replace Unicode font**; before, it waited for another change.
+- Titles on screens you return to after changing the font (such as Font Settings) are no longer cut short.
 - The tooltips on **Replace Unicode font** and **Crisp edges** never appeared. They now show, and the Unicode one says where Force Unicode Font is (Options → Language → Font Settings).
 
 ## [1.0.1] - 2026-11-12

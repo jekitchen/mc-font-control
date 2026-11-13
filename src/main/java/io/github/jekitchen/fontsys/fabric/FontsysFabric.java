@@ -2,7 +2,11 @@ package io.github.jekitchen.fontsys.fabric;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.jekitchen.fontsys.Fontsys;
+import io.github.jekitchen.fontsys.ui.FontChangeRefresh;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -23,6 +27,9 @@ import net.minecraft.resources.Identifier;
 
 /** Fabric client entry point. Keeps Fabric-specific wiring out of the common code (PRD D8). */
 public final class FontsysFabric implements ClientModInitializer {
+	/** Option lists that already have the Fontsys button. Weak: lists go when their screen does. */
+	private static final Set<OptionsList> WITH_BUTTON = Collections.newSetFromMap(new WeakHashMap<>());
+
 	private KeyMapping openKey;
 	private boolean conflictToastShown;
 
@@ -36,13 +43,19 @@ public final class FontsysFabric implements ClientModInitializer {
 		openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.fontsys.open", InputConstants.KEY_F7, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
-		ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> addToFontOptions(screen));
+		// Labels laid out in the old font are refit when the player returns to a screen (UI-18).
+		ScreenEvents.BEFORE_INIT.register((mc, screen, width, height) -> FontChangeRefresh.beforeInit(screen));
+		ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
+			FontChangeRefresh.afterInit(screen);
+			addToFontOptions(screen);
+		});
 	}
 
 	/**
 	 * A Fontsys button in Options > Language > Font Settings, under Force Unicode Font, so the
 	 * settings can be found without Mod Menu (UI-1). It goes into the screen's own option list,
-	 * which lays it out and scrolls it with the vanilla options.
+	 * which lays it out and scrolls it with the vanilla options. AFTER_INIT also fires when the
+	 * player comes back to the screen, which keeps its list, so each list gets the button once.
 	 */
 	private static void addToFontOptions(Screen screen) {
 		if (!(screen instanceof FontOptionsScreen)) {
@@ -50,6 +63,9 @@ public final class FontsysFabric implements ClientModInitializer {
 		}
 		for (GuiEventListener child : screen.children()) {
 			if (child instanceof OptionsList options) {
+				if (!WITH_BUTTON.add(options)) {
+					return;
+				}
 				options.addBig(Button.builder(Component.translatable("fontsys.options.button"), b -> Minecraft.getInstance().gui.setScreen(new FontConfigScreen(screen)))
 					.tooltip(Tooltip.create(Component.translatable("fontsys.options.button.tooltip")))
 					.width(Button.BIG_WIDTH)
