@@ -43,6 +43,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 - `scripts/linux-vm.sh test` runs the build and both game-test runs in an Ubuntu VM through Multipass (Windows or macOS host); results land in `build/reports/linux-vm/`. `up`, `stop` and `down` manage the VM (PRD D27).
 - `FONTSYS_SHADERPACK=/path/to/pack.zip ./gradlew runClientGameTest -PwithSodiumIris` also renders the sign scene with that Iris shader pack and fails if Iris has no program for a pipeline Fontsys draws with (PRD D30). Shader packs can't be redistributed, so CI skips it.
 - `FONTSYS_PIXEL_FONT=/path/to/pixel.ttf` points the crisp-mode tests (PRD D34) at a pixel-style font, such as Press Start 2P or Silkscreen (SIL OFL), for `./gradlew test` and `runClientGameTest`. Fonts can't be committed, so without it those checks use an installed system font or skip.
+- **Test world.** Every game test that opens a world builds the shared scene with `InWorldTextGameTest.buildScene(world)`: two signs (one with glow ink), a text display, and three sitting dogs named Asher, Ozzie and Ellie the Aussie. Use it for new tests too, so screenshots stay comparable; change the scene there, not per test.
 - `FONTSYS_STORE_SCREENSHOTS=1 ./gradlew runClientGameTest` also captures the store gallery screenshots into `build/store-screenshots/` (PRD D28; copy keepers to `docs/store/gallery/`).
 - `./gradlew genSources` decompiles vanilla for API checks; the sources jar lands under `.gradle/loom-cache/minecraftMaven/`.
 

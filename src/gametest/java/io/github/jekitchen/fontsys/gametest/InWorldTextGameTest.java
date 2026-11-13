@@ -50,7 +50,7 @@ public class InWorldTextGameTest implements FabricClientGameTest {
 		context.waitForScreen(TitleScreen.class);
 	}
 
-	/** A sign, a glowing sign, a text display and a named pig in front of the player at (0.5, -60, -2.5). */
+	/** A sign, a glowing sign, a text display and three named dogs in front of the player at (0.5, -60, -2.5). */
 	static void buildScene(TestSingleplayerContext world) {
 		var server = world.getServer();
 		server.runCommand("time set noon");
@@ -61,7 +61,16 @@ public class InWorldTextGameTest implements FabricClientGameTest {
 		server.runCommand("setblock -1 -60 3 oak_sign[rotation=8]{front_text:{messages:[\"Welcome home!\",\"Signs use\",\"the system font\",\"0123456789\"]}}");
 		server.runCommand("setblock 1 -60 3 dark_oak_sign[rotation=8]{front_text:{color:\"light_blue\",has_glowing_text:1b,messages:[\"Glow ink\",\"on a\",\"dark oak sign\",\"\"]}}");
 		server.runCommand("summon text_display 0.5 -58.2 5.9 {text:\"Text display: The quick brown fox\",background:1073741824,Rotation:[180f,0f]}");
-		server.runCommand("summon pig 2.5 -61 4.5 {CustomName:\"Named pig\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Rotation:[180f,0f]}");
+		// Three dogs sitting side by side, facing the player, about three blocks apart so their name
+		// tags (about three blocks wide each) don't overlap. Left to right: Asher (woods: gray, white
+		// and brown), Ozzie (ashen, the closest coat to black and white) and Ellie (spotted: black,
+		// white and brown).
+		server.runCommand("summon wolf 3.6 -61 4.5 {CustomName:\"Asher the Aussie\",variant:\"minecraft:woods\",CustomNameVisible:1b,Sitting:1b,NoAI:1b,Silent:1b,Rotation:[180f,0f]}");
+		server.runCommand("summon wolf 0.4 -61 4.5 {CustomName:\"Ozzie the Aussie\",variant:\"minecraft:ashen\",CustomNameVisible:1b,Sitting:1b,NoAI:1b,Silent:1b,Rotation:[180f,0f]}");
+		server.runCommand("summon wolf -2.8 -61 4.5 {CustomName:\"Ellie the Aussie\",variant:\"minecraft:spotted\",CustomNameVisible:1b,Sitting:1b,NoAI:1b,Silent:1b,Rotation:[180f,0f]}");
+		// Turn each dog toward the camera. Facing straight north, the outer dogs look side-on:
+		// at Minecraft's wide field of view, a snout near the edge of the picture is stretched outward.
+		server.runCommand("execute as @e[type=wolf] at @s run tp @s ~ ~ ~ facing 0.5 -60.4 -0.6");
 		server.runCommand("tp @a 0.5 -60 -1.5 0 5");
 	}
 }
