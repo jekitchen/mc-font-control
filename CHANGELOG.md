@@ -6,7 +6,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 
 ### Added
 
-- **Instance fonts folder.** Fonts in the instance's own `fonts/` folder (next to `mods/`) are listed alongside system fonts, marked **Instance**, so you can use a font in one instance without installing it on your computer. The new **Fonts folder** button opens it.
+- **Instance fonts folder.** Fonts in the instance's own `fonts/` folder (next to `mods/`) are listed alongside system fonts, marked **Instance**, so you can use a font in one instance without installing it on your computer. The mod creates the folder on start-up, and the new **Fonts folder** button opens it.
 - The font list rescans each time the settings screen opens.
 - **Crisp edges** for pixel-style fonts: glyphs are drawn with hard, square pixels and no smoothing, in menus and in the world. While it's on, sharpness follows the GUI scale so every font pixel lands on whole screen pixels.
 - The preview recognises pixel-style fonts and suggests Crisp edges, and a font size that keeps every pixel square. It never changes a setting by itself.

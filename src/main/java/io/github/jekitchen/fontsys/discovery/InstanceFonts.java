@@ -1,5 +1,7 @@
 package io.github.jekitchen.fontsys.discovery;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -40,6 +42,18 @@ public final class InstanceFonts {
 
 	public static Path dirOf(Path gameDir) {
 		return gameDir.toAbsolutePath().normalize().resolve(FOLDER);
+	}
+
+	/**
+	 * Creates {@code <game folder>/fonts} if it is missing, so players find it next to
+	 * {@code mods/} and {@code resourcepacks/} the way vanilla's own folders appear (D38).
+	 * Does nothing if it already exists.
+	 *
+	 * @throws IOException if it can't be created, for example on a read-only game folder or
+	 *     when a file named {@code fonts} is in the way
+	 */
+	public static Path createDir(Path gameDir) throws IOException {
+		return Files.createDirectories(dirOf(gameDir));
 	}
 
 	/** Whether the font file is inside this instance's fonts folder. */

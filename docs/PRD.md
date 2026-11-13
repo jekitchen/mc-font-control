@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.30: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34) and text quality (AP-13, D36, D37) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
+| **Status** | v0.31: Fontsys 1.0.0 released for Minecraft 26.3 (D29); 1.0.1 fixes sign text with shader packs (D30). Crisp mode (M8, D34) and text quality (AP-13, D36, D37) built for 1.1.0. Verified on Windows 11 and macOS (automated suite and the owner's manual checks) and on Linux (Ubuntu 26.04 VM, D27); manual Linux desktop checks pending. |
 | **Owner** | Jim Kitchen |
 | **Last updated** | 2026-11-12 |
 | **Source of truth** | This file (`docs/PRD.md`). Change it through pull requests; see [Maintaining this document](#maintaining-this-document). |
@@ -130,7 +130,7 @@ Priority key: **P0** = required for v1.0 definition of done; **P1** = v1.0 if fe
 | FD-11 | Linux (optional): read extra font folders from fontconfig config files. Standard folders alone are acceptable for the first Linux release. | P2 |
 | FD-12 | **Variable fonts:** list each named instance (e.g. SF Pro Light / Regular / Semibold / Bold) as a selectable style. FreeType addresses named instances through the upper bits of the face index (`faceIndex = (instance << 16) \| face`), so the same D1 mixin covers them. | P0 |
 | FD-13 | **Hidden by default:** symbol fonts (symbol `cmap` encoding or no Latin coverage, e.g. Wingdings, Webdings) and colour fonts. Symbol fonts and colour fonts that also carry outline glyphs can be revealed with the **Show hidden fonts** toggle (UI-10). Bitmap-only colour fonts (e.g. Apple Color Emoji) stay hidden always, because they can't render in vanilla's grayscale atlas. macOS system-private fonts (family name starting with a dot) are never listed (D25). | P0 |
-| FD-14 | **Instance fonts folder:** also scan `<game folder>/fonts/` (next to `mods/` and `resourcepacks/`, subfolders included) on every OS, so a player can use a font in one instance without installing it on the computer. Its families are listed separately from system families of the same name and marked **Instance**; bold and italic faces come only from the same folder. The config saves these fonts as paths relative to the game folder (`fonts/MyFont.ttf`). | P1 |
+| FD-14 | **Instance fonts folder:** also scan `<game folder>/fonts/` (next to `mods/` and `resourcepacks/`, subfolders included) on every OS, creating the empty folder on start-up if it is missing (D38), so a player can use a font in one instance without installing it on the computer. Its families are listed separately from system families of the same name and marked **Instance**; bold and italic faces come only from the same folder. The config saves these fonts as paths relative to the game folder (`fonts/MyFont.ttf`). | P1 |
 
 ### 5.2 Applying the font (`RuntimeFontPack`)
 
@@ -398,6 +398,7 @@ No telemetry, so success is read from public signals: download and follower grow
 
 | D36 | Linear coverage | System-font glyphs are uploaded as white with alpha = coverage, the way vanilla's own font images store glyphs, instead of D30's `(c, c, c, c)`. The text shader multiplies the texel by the text colour and the text pipelines blend with `SRC_ALPHA, ONE_MINUS_SRC_ALPHA`, so `(c, c, c, c)` applied coverage twice: an edge pixel of white text got c² of the colour instead of c, a loss of up to a quarter of full brightness at half coverage. Light text on dark backgrounds (most of Minecraft's UI) looked thin and grey-edged. Dark text on light backgrounds was unaffected. Vanilla's own grayscale TrueType path has the same flaw; D30's "pixels match" was true but matched the flaw. | 2026-11-12. Built for 1.1.0 (planned as 1.2.0; folded into 1.1.0 by the owner). `TextQualityGameTest` draws white-on-black and black-on-white and checks every pixel pair sums to white (worst error 0; the old upload failed 1,535 of 1,578 edge pixels, worst off by 64/255). |
 | D37 | Text shadow | Vanilla offsets the drop shadow one GUI unit (`GlyphInfo.getShadowOffset()`): one design pixel of the vanilla font, but 3–4 screen pixels at GUI scale 3–4, which doubles thin vector glyphs. Smooth system-font glyphs use half a GUI unit, rounded to whole screen pixels (at least 1) so its edges stay sharp: 1 px at scale 2, 2 px at 3–4, 3 px at 5–6. The offset is read when text is laid out, so a GUI-scale change applies at once. Automatic, with no setting, to keep the screen simple; a "classic shadow" option waits for player demand. Crisp glyphs keep the full unit, which matches a pixel font's design pixel. The glowing-sign outline uses the same offset and gets thinner in proportion. | 2026-11-12. Built for 1.1.0 (planned as 1.2.0; folded into 1.1.0 by the owner). `TextQualityGameTest` measures the shadow from screenshots (smooth and crisp). |
+| D38 | Create the instance fonts folder on start-up | Owner request (2026-11-12): the mod creates `<game folder>/fonts/` on start-up when it is missing, as vanilla does for `resourcepacks/` and `screenshots/`, so players find it without opening the settings screen first. An existing folder is left alone. If it can't be created (read-only game folder, a file named `fonts` in the way) the mod logs one warning and carries on; the Fonts folder button (UI-12) still tries again. | 2026-11-12. Built for 1.1.0; unit tests in `InstanceFontsTest`, and `InstanceFontsGameTest` checks the folder exists at the title screen. |
 
 ### Still open
 
@@ -461,3 +462,4 @@ Not planned: ClearType-style subpixel rendering (needs per-channel blending the 
 | v0.28 | 2026-11-12 | Text quality for 1.2.0: linear coverage (AP-13, D36) and a thinner shadow for smooth fonts (D37); future improvements listed in section 10. |
 | v0.29 | 2026-11-12 | Text quality (D36, D37) folded into 1.1.0 at the owner's request. |
 | v0.30 | 2026-11-12 | Other mod loaders (NeoForge first, then Forge and Quilt) added to future improvements. |
+| v0.31 | 2026-11-12 | The instance `fonts/` folder is created on start-up (FD-14, D38). |

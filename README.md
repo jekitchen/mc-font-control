@@ -11,7 +11,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 ## Features
 
 - Lists every font installed on your computer, including the faces inside `.ttc` collections (most macOS system fonts) and the named weights of variable fonts such as SF Pro, Segoe UI Variable and Inter.
-- Also lists fonts you put in the instance's own `fonts/` folder, for one-off fonts you don't want to install on your computer.
+- Also lists fonts you put in the instance's own `fonts/` folder, which the mod creates on first start, for one-off fonts you don't want to install on your computer.
 - Uses the font's own Bold, Italic and Bold Italic faces for styled text, the way a word processor does, instead of Minecraft's simulated bold and slant.
 - Shows a live preview before anything changes, with bold and italic, chat, tooltip and sign samples.
 - Applies the font everywhere with one click, no restart.
@@ -30,7 +30,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
 5. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
-6. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), creating it if needed. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
+6. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`). `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 
