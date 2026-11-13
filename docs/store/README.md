@@ -4,7 +4,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 
 | File | Use |
 |---|---|
-| [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor (both accept Markdown). |
+| [`description.md`](description.md) | Long description: paste into Modrinth's Description tab and CurseForge's description editor. Modrinth takes Markdown as is. On CurseForge, switch the description editor from WYSIWYG to **Markdown** first, or the page shows the raw Markdown. |
 | [`gallery/`](gallery/) | Gallery screenshots, 1920×1080 PNG, all under 2.1 MB. |
 | [`icon/`](icon/) | Icon: `icon-512.png`, `icon-400.png` (CurseForge avatar size), `icon-128.png`. |
 | [`logo/`](logo/) | `fontsys-logo.png`, 1280×320: the horizontal logo, used at the top of the README. `fontsys-social.png`, 1280×640: the GitHub social preview (repository Settings → General → Social preview), with everything inside GitHub's 80 px safe border. |
@@ -34,11 +34,12 @@ Upload in this order. Each image needs a title; descriptions are optional. Mark 
 |---|---|---|
 | `01-title-inter.png` | Your font, everywhere | The title screen in Inter, a font installed on this computer. |
 | `02-title-vanilla.png` | The same screen in vanilla | Minecraft's built-in font, for comparison. |
-| `03-config-preview.png` | Live preview | Search your fonts and preview one (here Georgia) with bold, italic, chat, tooltip and sign samples before applying it. |
+| `03-config-preview.png` | Live preview | Search your fonts and preview one (here Georgia) with bold, italic, chat, tooltip and sign samples, and side by side at the next size down and up, before applying it. |
 | `04-world-chat-inter.png` | Chat, HUD, signs and name tags | Inter in the world. Bold rank tags and the italic whisper use Inter's real Bold and Italic faces. |
 | `05-world-chat-vanilla.png` | The same scene in vanilla | Vanilla bold draws each letter twice, one pixel apart. |
 | `06-signs-georgia.png` | Any font, including serifs | Signs, glow ink, a text display and a name tag in Georgia. |
 | `07-tooltip-inter.png` | Tooltips | An enchanted item's tooltip in Inter; the lore line uses Inter's italic face. |
+| `08-keep-georgia.png` | Keep this font? | Before you keep a font, samples show it in a sentence, look-alike characters, bold, italic, chat, a sign and a tooltip. The dialog itself stays in Minecraft's font. |
 
 The screenshots are real game renders captured by `StoreScreenshotsGameTest` on Windows 11 (Minecraft 26.3, GUI scale Auto for the menus and 3 in the world). To retake them, for example after a UI change:
 

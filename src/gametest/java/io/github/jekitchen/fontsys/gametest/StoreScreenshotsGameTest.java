@@ -1,10 +1,12 @@
 package io.github.jekitchen.fontsys.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
+import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -50,16 +52,28 @@ public class StoreScreenshotsGameTest implements FabricClientGameTest {
 		GameTestFonts.apply(context, GameTestFonts.settingsFor(main.get()));
 		shot(context, "01-title-" + slug(main.get().family()));
 
-		// Config screen: searching for and previewing a serif font while the UI uses the main font.
+		// Config screen: previewing a serif font while the UI uses the main font. The search box
+		// stays empty, so the list shows the fonts around the selection, not just one.
 		FontFamily serifFamily = Fontsys.fontIndex().families(false).stream()
 			.filter(f -> f.name().equals(serif.get().family())).findFirst().orElseThrow();
 		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
 		context.waitTicks(10);
-		context.getInput().typeChars(serifFamily.name());
-		context.waitTicks(5);
 		context.runOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).selectFamily(serifFamily));
+		// Typing and deleting a letter refreshes the list, which highlights and centers the selection.
+		context.getInput().typeChars("x");
+		context.waitTicks(2);
+		context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
 		context.waitTicks(20);
 		shot(context, "03-config-preview");
+
+		// The "Keep this font?" dialog with its samples in the serif font (UI-11); kept, so the
+		// title screen behind it is in that font too.
+		context.clickScreenButton("fontsys.screen.apply");
+		context.waitForScreen(KeepOrRevertScreen.class);
+		context.waitFor(mc -> mc.gui.overlay() == null, 20 * 30);
+		context.waitTicks(20);
+		shot(context, "08-keep-" + slug(serif.get().family()));
+		context.getInput().pressKey(InputConstants.KEY_RETURN);
 		context.setScreen(TitleScreen::new);
 
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {

@@ -39,6 +39,7 @@ jobs:
           ref: ${{ env.TAG }}
       # The jar comes from the GitHub release, so the stores get exactly the reviewed file.
       - name: Download the release jar and notes
+        id: download
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -77,8 +78,10 @@ jobs:
           dependencies: |
             fabric-api(required)
             modmenu(optional)
+      # Runs even if the Modrinth upload failed, so one store's problem doesn't hold up the
+      # other (PRD D46). The job still fails, and the failed store can be rerun on its own.
       - name: CurseForge
-        if: vars.CURSEFORGE_PROJECT_ID != '' && env.STORES != 'modrinth'
+        if: "!cancelled() && steps.download.outcome == 'success' && vars.CURSEFORGE_PROJECT_ID != '' && env.STORES != 'modrinth'"
         uses: Kir-Antipov/mc-publish@c23376546a97f5ba7984e94445da359459b14419
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}

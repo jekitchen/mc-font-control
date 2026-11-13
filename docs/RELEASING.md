@@ -35,8 +35,8 @@ The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-
    - Loader: Fabric. Game versions: `publish_game_versions` in `gradle.properties`. Java 25.
    - Dependencies: Fabric API (required), Mod Menu (optional).
    - It needs, in the repository's Actions settings: variables `MODRINTH_PROJECT_ID` and `CURSEFORGE_PROJECT_ID` (the numeric or base-62 project IDs shown on each project page, not the slug), and secrets `MODRINTH_TOKEN` (a Modrinth personal access token with the "Create versions" scope) and `CURSEFORGE_TOKEN` (a CurseForge API token from the account's API tokens page). A store whose project ID variable is empty is skipped.
-   - If an upload fails, fix the cause and rerun it from Actions → publish → Run workflow, with the tag and the store.
-3. Check both project pages. Modrinth's AI-content disclosures (D28) are project settings, so they carry over to new versions.
+   - The CurseForge upload runs even if the Modrinth one fails (PRD D46); the run is then marked failed. Fix the cause and rerun the failed store from Actions → publish → Run workflow, with the tag and that store only, so the other store doesn't get a duplicate.
+3. Check both project pages. The upload doesn't touch the project description: if `docs/store/description.md` changed, paste it into both sites by hand (on CurseForge, in the Markdown editor; see [`docs/store/`](store/README.md)). Modrinth's AI-content disclosures (D28) are project settings, so they carry over to new versions.
 
 Manual upload, if the workflow is unavailable: the same jar and metadata through each site's upload form (environment: client required, server unsupported).
 
