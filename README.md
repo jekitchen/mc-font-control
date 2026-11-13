@@ -17,7 +17,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 - Shows a live preview before anything changes, with bold and italic, chat, tooltip and sign samples.
 - Applies the font everywhere with one click, no restart.
 - Gives you 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog always uses the normal Minecraft font, so you can read it whatever you picked.
-- Adjusts size, sharpness and baseline offset.
+- Adjusts size and sharpness, with fine-tuning (baseline offset, the Unicode font) on an **Advanced** screen.
 - Blends the smooth edges of letters by true coverage and uses a lighter drop shadow, so light text on dark menus keeps its full weight and doesn't look doubled.
 - **Crisp edges** for pixel-style fonts: hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it, with a size that keeps every pixel square.
 - Uses the game's own font renderer, so it works alongside Sodium and Iris.
@@ -32,7 +32,8 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
 6. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
-7. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), or drag font files onto the settings screen to copy them there; the first one you drop is selected. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
+7. **Advanced...** opens settings most fonts don't need: **Shift X** and **Shift Y** move the letters if they sit off-center on buttons, and **Replace Unicode font** uses your font when Force Unicode Font is on. Its preview shows a button in your font next to one in Minecraft's font. Changes there take effect when you press **Apply** back on the settings screen, and the button shows how many settings you changed, such as **Advanced (1)...**.
+8. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), or drag font files onto the settings screen to copy them there; the first one you drop is selected. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 

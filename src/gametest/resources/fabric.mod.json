@@ -12,6 +12,7 @@
 			"io.github.jekitchen.fontsys.gametest.FaceSelectionGameTest",
 			"io.github.jekitchen.fontsys.gametest.ConfigScreenGameTest",
 			"io.github.jekitchen.fontsys.gametest.SettingsUiGameTest",
+			"io.github.jekitchen.fontsys.gametest.AdvancedScreenGameTest",
 			"io.github.jekitchen.fontsys.gametest.InstanceFontsGameTest",
 			"io.github.jekitchen.fontsys.gametest.FontNamesGameTest",
 			"io.github.jekitchen.fontsys.gametest.CrispModeGameTest",
