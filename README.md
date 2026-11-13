@@ -26,8 +26,8 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 
 ## Using it
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`.
-2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
+1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`. A NeoForge version is coming in 1.2.0: install [NeoForge](https://neoforged.net/) 26.3.0.103 or later and drop the jar ending in `-neoforge` into `mods/` instead.
+2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu) (on NeoForge, from Mods → Fontsys → Config). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
 3. Search for a font, pick a style, check the preview and press **Apply**. The preview also shows the next size down and up; click one to use it. The fonts you used last are listed first, marked **Recent**.
 4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
@@ -69,7 +69,11 @@ Requires Java 25. The Gradle wrapper downloads everything else.
 ./gradlew runClientGameTest                   # boot the client and run the automated game tests
 ./gradlew runClientGameTest -PwithSodiumIris  # the same, with Sodium and Iris installed
 ./gradlew runClientGameTest --args="--graphicsBackend vulkan"  # the same, on the Vulkan renderer
+./gradlew :neoforge:runNeoforgeClient         # launch Minecraft with the NeoForge build
+./gradlew :neoforge:neoforgeSmokeTest         # boot the NeoForge client, apply a font, check it and quit
 ```
+
+`./gradlew build` also builds the NeoForge jar, in `neoforge/build/libs/` (it ends in `-neoforge`). The NeoForge build compiles the same sources as the Fabric one, minus the `fabric` package, plus its own `neoforge` folder.
 
 Game test screenshots land in `build/run/clientGameTest/screenshots/`. Performance and memory measurements land in `build/reports/measurements/`.
 

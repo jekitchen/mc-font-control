@@ -4,7 +4,8 @@
 #
 #   scripts/linux-vm.sh up       create the VM if needed (first boot installs Java, Mesa, fonts), and start it
 #   scripts/linux-vm.sh test     copy this working tree in, run the build, unit tests and both
-#                                client game-test runs (vanilla, Sodium + Iris), fetch the results
+#                                client game-test runs (vanilla, Sodium + Iris) and the NeoForge
+#                                smoke test, fetch the results
 #   scripts/linux-vm.sh sync     copy this working tree into the VM only
 #   scripts/linux-vm.sh fetch    copy the last results out of the VM
 #   scripts/linux-vm.sh shell    open a shell in the VM

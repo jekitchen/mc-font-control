@@ -10,3 +10,6 @@ pluginManagement {
 }
 
 rootProject.name = 'fontsys'
+
+// NeoForge build (PRD D51): compiles the shared code in src/main plus neoforge/src.
+include 'neoforge'

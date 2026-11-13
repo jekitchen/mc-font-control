@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs inside the Linux test VM (see scripts/linux-vm.sh): the build with unit tests, then the
-# client game tests twice (vanilla, Sodium + Iris), headless with the same display setup as CI.
+# client game tests twice (vanilla, Sodium + Iris) and the NeoForge smoke test, headless with the
+# same display setup as CI.
 # Everything worth keeping is collected in ~/linux-vm-results/ (outside build/, which `clean` deletes).
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -29,7 +30,16 @@ for mods in vanilla sodium-iris; do
 	[ -e build/reports/measurements ] && cp -r build/reports/measurements "$out/"
 done
 
-for log in "$R/build.log" "$R"/gametest-*.log; do
+# NeoForge build (PRD D51): boots the NeoForge client, applies a font, checks it and quits.
+SDL_VIDEO_FORCE_EGL=1 timeout 30m xvfb-run -a -s "-screen 0 1920x1080x24" \
+	./gradlew :neoforge:neoforgeSmokeTest --console=plain > "$R/neoforge-smoketest.log" 2>&1 || status=1
+out="$R/neoforge-smoketest"
+mkdir -p "$out"
+for d in screenshots logs crash-reports fontsys-smoketest.txt; do
+	[ -e "neoforge/build/run/smokeTest/$d" ] && cp -r "neoforge/build/run/smokeTest/$d" "$out/"
+done
+
+for log in "$R/build.log" "$R"/gametest-*.log "$R/neoforge-smoketest.log"; do
 	printf '%-28s %s\n' "$(basename "$log")" "$(grep -h -oE 'BUILD (SUCCESSFUL|FAILED)( in .*)?' "$log" | tail -1)"
 done
 exit $status
