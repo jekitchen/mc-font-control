@@ -16,7 +16,7 @@ Everything needed to fill in the Fontsys project pages. The publishing steps the
 | Name | Fontsys |
 | Summary (Modrinth) / short description (CurseForge) | Use any font installed on your computer for all of Minecraft's text, with real bold and italic, a live preview and an automatic revert. |
 | Slug | `fontsys` |
-| Licence | MIT |
+| License | MIT |
 | Source | https://github.com/jekitchen/mc-fontsys |
 | Issues | https://github.com/jekitchen/mc-fontsys/issues |
 | Loader | Fabric |

@@ -2,6 +2,7 @@ package io.github.jekitchen.fontsys.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -78,6 +80,11 @@ public final class ConfigStore {
 					if (config.pending != null) {
 						config.pending = config.pending.withFontPath(InstanceFonts.toAbsolute(config.pending.fontPath(), gameDir)).sanitized();
 					}
+					config.recentFonts = config.recentFonts == null ? new ArrayList<>() : config.recentFonts.stream()
+						.filter(r -> r != null && r.familyName() != null)
+						.map(r -> new RecentFont(r.familyName(), InstanceFonts.toAbsolute(r.fontPath(), gameDir)))
+						.limit(RecentFont.MAX)
+						.collect(Collectors.toCollection(ArrayList::new));
 					return new LoadResult(config, warnings, false);
 				}
 			}
@@ -121,6 +128,13 @@ public final class ConfigStore {
 		storeRelative(json);
 		if (json.get("pending") instanceof JsonObject pending) {
 			storeRelative(pending);
+		}
+		if (json.get("recentFonts") instanceof JsonArray recent) {
+			recent.forEach(r -> {
+				if (r instanceof JsonObject obj) {
+					storeRelative(obj);
+				}
+			});
 		}
 		try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
 			GSON.toJson(json, writer);

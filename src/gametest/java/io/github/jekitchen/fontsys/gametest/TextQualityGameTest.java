@@ -21,7 +21,7 @@ import net.minecraft.network.chat.Component;
  * Text quality for smooth fonts, from screenshots:
  *
  * <ul>
- *   <li>Linear coverage (PRD D36): an edge pixel gets exactly its coverage of the text colour.
+ *   <li>Linear coverage (PRD D36): an edge pixel gets exactly its coverage of the text color.
  *       So white text on black and black text on white, drawn in the same place, add up to
  *       white at every pixel. With coverage applied twice, as vanilla's grayscale glyphs do,
  *       the light text's edges come out much darker and the sums fall short.</li>

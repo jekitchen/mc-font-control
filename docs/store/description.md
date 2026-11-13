@@ -12,12 +12,12 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 - **Crisp pixel fonts.** Turn on **Crisp edges** and pixel-style fonts get hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it.
 - **Works with Sodium and Iris.** Fontsys uses Minecraft's own font renderer, so it works alongside them and on both OpenGL and Vulkan.
 - **Client-only.** Servers don't need it. Server resource packs keep their custom HUD icons.
-- **Your fonts stay where they are.** Fontsys reads fonts from where your system keeps them. It never copies or bundles font files, and makes no network connections.
+- **Your fonts stay where they are.** Fontsys reads fonts from where your system keeps them. It never bundles font files and makes no network connections. The only copy it makes is when you drop a font onto the settings screen, into the instance's fonts folder.
 
 ## How to use
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api), then drop the Fontsys jar into your `mods` folder.
-2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
+2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu).
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font at any time.
 5. **Fonts folder** opens this instance's `fonts` folder. Fonts you put there are listed with an **Instance** tag.
@@ -30,7 +30,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 ## Known limitations
 
 - **Complex scripts** such as Arabic and Devanagari don't render correctly. Minecraft doesn't join or reorder glyphs, whatever font is used.
-- **Colour emoji fonts** can't be used, because Minecraft's text renderer is greyscale. They're hidden unless you turn on **Show hidden fonts**.
+- **Color emoji fonts** can't be used, because Minecraft's text renderer is grayscale. They're hidden unless you turn on **Show hidden fonts**.
 - **Symbol fonts** such as Wingdings are never listed, because Minecraft can't draw them.
 - **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.
 - **Text far away in the world** (signs, name tags) can look thin at a distance. Minecraft's glyph atlas has no mipmaps; built-in fonts behave the same.
@@ -39,4 +39,4 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 
 ## Source and issues
 
-Fontsys is open source under the MIT licence: [github.com/jekitchen/mc-fontsys](https://github.com/jekitchen/mc-fontsys). Please report problems in the [issue tracker](https://github.com/jekitchen/mc-fontsys/issues).
+Fontsys is open source under the MIT license: [github.com/jekitchen/mc-fontsys](https://github.com/jekitchen/mc-fontsys). Please report problems in the [issue tracker](https://github.com/jekitchen/mc-fontsys/issues).

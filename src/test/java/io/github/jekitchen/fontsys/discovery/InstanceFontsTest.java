@@ -33,7 +33,7 @@ class InstanceFontsTest {
 	}
 
 	@Test
-	void recognisesFilesInTheFontsFolderAndItsSubfolders() {
+	void recognizesFilesInTheFontsFolderAndItsSubfolders() {
 		assertTrue(InstanceFonts.contains(inFonts("Comic.ttf"), game));
 		assertTrue(InstanceFonts.contains(inFonts("pixel", "Pixel.otf"), game));
 		assertFalse(InstanceFonts.contains(game.resolve("mods").resolve("Comic.ttf").toString(), game));

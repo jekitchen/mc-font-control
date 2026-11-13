@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -125,6 +126,46 @@ class ConfigStoreTest {
 		FontConfig loaded = new ConfigStore(copy, moved).load().config();
 		assertEquals(moved.resolve("fonts").resolve("pixel").resolve("Pixel.otf").toString(), loaded.settings().fontPath());
 		assertEquals(moved.resolve("fonts").resolve("Comic.ttf").toString(), loaded.pending.fontPath());
+	}
+
+	@Test
+	void recentFontsRoundTripWithInstancePathsRelative(@TempDir Path game, @TempDir Path moved) throws IOException {
+		String instance = game.resolve("fonts").resolve("Pixel.otf").toString();
+		String system = game.getRoot().resolve("Windows").resolve("Fonts").resolve("arial.ttf").toString();
+		ConfigStore store = new ConfigStore(game.resolve("config").resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.recentFonts = List.of(new RecentFont("Pixel", instance), new RecentFont("Arial", system));
+		store.save(config);
+		String json = Files.readString(store.file());
+		assertTrue(json.contains("\"fontPath\": \"fonts/Pixel.otf\""), json);
+
+		Path copy = moved.resolve("config").resolve("fontsys.json");
+		Files.createDirectories(copy.getParent());
+		Files.copy(store.file(), copy);
+		List<RecentFont> loaded = new ConfigStore(copy, moved).load().config().recentFonts;
+		assertEquals(List.of(new RecentFont("Pixel", moved.resolve("fonts").resolve("Pixel.otf").toString()), new RecentFont("Arial", system)), loaded);
+	}
+
+	@Test
+	void missingOrNullRecentFontsLoadAsEmpty(@TempDir Path dir) throws IOException {
+		Path file = dir.resolve("fontsys.json");
+		Files.writeString(file, "{\"configVersion\":1}");
+		assertEquals(List.of(), new ConfigStore(file).load().config().recentFonts);
+		Files.writeString(file, "{\"configVersion\":1,\"recentFonts\":null}");
+		assertEquals(List.of(), new ConfigStore(file).load().config().recentFonts);
+		Files.writeString(file, "{\"configVersion\":1,\"recentFonts\":[null,{\"fontPath\":\"/a.ttf\"},{\"familyName\":\"Inter\"}]}");
+		assertEquals(List.of(new RecentFont("Inter", null)), new ConfigStore(file).load().config().recentFonts);
+	}
+
+	@Test
+	void pushingARecentFontMovesItFirstAndKeepsFive() {
+		List<RecentFont> recent = List.of();
+		for (String name : List.of("A", "B", "C", "D", "E", "F")) {
+			recent = RecentFont.push(recent, new RecentFont(name, "/sys/" + name + ".ttf"));
+		}
+		assertEquals(List.of("F", "E", "D", "C", "B"), recent.stream().map(RecentFont::familyName).toList());
+		recent = RecentFont.push(recent, new RecentFont("c", "/sys/C-Bold.ttf"));
+		assertEquals(List.of("c", "F", "E", "D", "B"), recent.stream().map(RecentFont::familyName).toList(), "same family, any face, moves to the top");
 	}
 
 	@Test

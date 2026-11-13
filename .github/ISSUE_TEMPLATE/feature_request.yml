@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Fontsys aims to stay small: pick an installed font and use it everywhere, with nothing to set up.
-        Ideas that keep it simple have the best chance; per-screen fonts, colour themes and font packs are out of scope.
+        Ideas that keep it simple have the best chance; per-screen fonts, color themes and font packs are out of scope.
   - type: textarea
     id: problem
     attributes:

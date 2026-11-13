@@ -1,5 +1,8 @@
 package io.github.jekitchen.fontsys.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Contents of {@code config/fontsys.json} (PRD 5.3). Field names are the JSON keys.
  * Defaults: disabled, vanilla font.
@@ -25,6 +28,8 @@ public final class FontConfig {
 	public FontSettings pending;
 	/** Hard-edged glyphs for pixel-style fonts (PRD AP-10, D34). */
 	public boolean crispEdges;
+	/** Fonts applied and kept, newest first, for the top of the font list (UI-17). */
+	public List<RecentFont> recentFonts = new ArrayList<>();
 
 	public FontSettings settings() {
 		return new FontSettings(enabled, fontPath, faceIndex, familyName, styleName, size, oversample, shiftX, shiftY, applyToUniform, crispEdges).sanitized();

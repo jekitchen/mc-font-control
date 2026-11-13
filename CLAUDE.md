@@ -10,7 +10,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
   - bump the version in the header,
   - add a change-log line at the bottom.
 - If the PRD and anything else (project notes, Claude Docs copies, older instructions) disagree, the PRD wins unless Jim says otherwise; point out the conflict.
-- Keep the scope narrow. Turn down feature creep (font packs, colour themes, per-element fonts) unless Jim asks for it. Approved additions are listed in the PRD.
+- Keep the scope narrow. Turn down feature creep (font packs, color themes, per-element fonts) unless Jim asks for it. Approved additions are listed in the PRD.
 
 ## Identity (PRD D18)
 
@@ -61,15 +61,15 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 - **Verify APIs; never invent them.** The game ships unobfuscated since 26.1: use Mojang's official names, no Yarn, Intermediary or remapping. Before touching `Font`, `FontManager`, `FontSet`, glyph providers, GUI classes or `Minecraft`, check current names against the 26.x NeoForge porting primers and Fabric docs, and read the real code: run `./gradlew genSources` and inspect the decompiled vanilla classes. If something still isn't clear, say so rather than guessing.
 - **Toolchain.** Java 25, Gradle 9.x, current non-remapping Loom (`net.fabricmc.fabric-loom`), matching Fabric Loader and Fabric API. Look up exact versions on the Fabric develop site; never guess version numbers.
 - **Rendering.** Never make raw OpenGL calls. Go through Blaze3D and vanilla's glyph and atlas pipeline so the mod works on both OpenGL and Vulkan.
-- **Fonts.** Use vanilla's FreeType-backed `ttf` provider and the LWJGL FreeType bindings the game bundles. Never use AWT (`GraphicsEnvironment`, `java.awt.Font`). Never write a new rasterizer. Never copy, bundle or redistribute font files.
+- **Fonts.** Use vanilla's FreeType-backed `ttf` provider and the LWJGL FreeType bindings the game bundles. Never use AWT (`GraphicsEnvironment`, `java.awt.Font`). Never write a new rasterizer. Never bundle or redistribute font files; the only copy the mod makes is one the player asks for, dropping a font into their own instance's `fonts/` folder (PRD UI-16).
 - **Input.** 26.3 moved window and input handling from GLFW to SDL3; check keybind and input code against 26.3.
 - **Mixins.** Only where the PRD calls for them. Each mixin gets a comment naming the vanilla method it targets and why it exists.
 - **Client-only.** `"environment": "client"`. The mod must never be needed on a server and must not break joining vanilla servers.
 - **Failure handling.** Anything that goes wrong with a font falls back to vanilla with one clear log warning; never crash, never spam the log.
 - **Privacy.** No telemetry, network calls or auto-updaters.
-- **Strings.** All user-facing strings go in the lang file.
+- **Strings.** All user-facing strings go in the lang file. Write US English everywhere (color, gray, behavior, license), in strings, docs and comments (PRD D41).
 - **Loader split.** Keep loader-specific code in its own package so a later NeoForge port is cheap.
 
-## Licence
+## License
 
-MIT (`LICENSE`, and `"license": "MIT"` in `fabric.mod.json`). MIT prior art (Caxton, SAH TTF Sign Fix) may be reused with attribution. Never copy GPL code (e.g. CustomFontFix) into this repo. Treat code whose licence is unknown (e.g. Glyph) as all rights reserved.
+MIT (`LICENSE`, and `"license": "MIT"` in `fabric.mod.json`). MIT prior art (Caxton, SAH TTF Sign Fix) may be reused with attribution. Never copy GPL code (e.g. CustomFontFix) into this repo. Treat code whose license is unknown (e.g. Glyph) as all rights reserved.

@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SS = 4  # supersampling factor
 
 BACKGROUND = ((46, 64, 92), (22, 31, 47))
-PIXEL_COLOUR = (236, 238, 242)
+PIXEL_COLOR = (236, 238, 242)
 PIXEL_SHADOW = (78, 86, 104)
 SMOOTH_FILL = ((120, 236, 186), (52, 196, 150))
 
@@ -105,7 +105,7 @@ def draw_pixel_font(img, left, top, cell, gap_cells=1):
     """"Font" in pixel letters with Minecraft's hard shadow: the same shape offset down-right, darker."""
     draw = ImageDraw.Draw(img)
     offset = round(cell * 0.5)
-    for d, colour in ((offset, PIXEL_SHADOW), (0, PIXEL_COLOUR)):
+    for d, color in ((offset, PIXEL_SHADOW), (0, PIXEL_COLOR)):
         x0 = left
         for rows in FONT:
             for r, line in enumerate(rows):
@@ -113,7 +113,7 @@ def draw_pixel_font(img, left, top, cell, gap_cells=1):
                     if ch == "#":
                         x = x0 + c * cell + d
                         y = top + r * cell + d
-                        draw.rectangle((x, y, x + cell - 1, y + cell - 1), fill=colour)
+                        draw.rectangle((x, y, x + cell - 1, y + cell - 1), fill=color)
             x0 += (len(rows[0]) + gap_cells) * cell
 
 
@@ -134,7 +134,7 @@ def clip(img, mask):
 
 
 def draw_icon(font_path):
-    """Square icon: "Font" above, "sys" below, both centred."""
+    """Square icon: "Font" above, "sys" below, both centered."""
     s = SS
     size = 512 * s
     img, mask = canvas(size, size, 104 * s)
@@ -188,7 +188,7 @@ def draw_social(font_path):
     draw_pixel_font(img, x, baseline - ROWS * cell, cell)
     draw_smooth(img, "sys", font, x + pixel_width(cell) + gap - left, baseline)
     draw = ImageDraw.Draw(img)
-    draw.text((width // 2, 448 * s), SOCIAL_TAGLINE, font=inter(font_path, 38 * s, 600), fill=PIXEL_COLOUR, anchor="ms")
+    draw.text((width // 2, 448 * s), SOCIAL_TAGLINE, font=inter(font_path, 38 * s, 600), fill=PIXEL_COLOR, anchor="ms")
     draw.text((width // 2, 506 * s), SOCIAL_DETAILS, font=inter(font_path, 28 * s, 500), fill=SOCIAL_MUTED, anchor="ms")
     return img.resize((1280, 640), Image.LANCZOS)
 

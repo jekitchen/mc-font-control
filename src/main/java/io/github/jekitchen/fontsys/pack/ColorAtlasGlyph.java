@@ -10,23 +10,23 @@ import net.minecraft.client.gui.font.glyphs.BakedGlyph;
 import org.lwjgl.util.freetype.FT_Face;
 
 /**
- * Puts a system-font glyph in vanilla's colour glyph atlas instead of the grayscale one
+ * Puts a system-font glyph in vanilla's color glyph atlas instead of the grayscale one
  * (PRD D30).
  *
  * <p>Vanilla's {@code ttf} provider renders glyphs as 8-bit coverage and reports them as not
- * coloured, so {@code FontTexture} stores them in an {@code R8} atlas and draws them with the
+ * colored, so {@code FontTexture} stores them in an {@code R8} atlas and draws them with the
  * {@code text_grayscale*} pipelines. Vanilla's own font never uses those pipelines (its glyphs
  * are PNG bitmaps), and shader mods don't fully support them: Iris 1.11.7 has no shader-pack
  * program for {@code text_grayscale_polygon_offset}, the pipeline for sign text, so with a
  * shader pack on, signs drew as streaks across the screen.
  *
- * <p>This glyph reports itself as coloured, so it lands in the RGBA atlas and draws with the
+ * <p>This glyph reports itself as colored, so it lands in the RGBA atlas and draws with the
  * same {@code text*} pipelines as vanilla's font.
  *
  * <p>Each coverage value {@code c} is uploaded as white with alpha {@code c}, the way vanilla's
  * own font images store their glyphs (D36). The text shader multiplies the texel by the text
- * colour and the pipeline blends by alpha ({@code SRC_ALPHA, ONE_MINUS_SRC_ALPHA}), so an edge
- * pixel gets exactly {@code c} of the text colour. Vanilla's grayscale path samples
+ * color and the pipeline blends by alpha ({@code SRC_ALPHA, ONE_MINUS_SRC_ALPHA}), so an edge
+ * pixel gets exactly {@code c} of the text color. Vanilla's grayscale path samples
  * {@code (c, c, c, c)} ({@code core/text.fsh}, {@code IS_GRAYSCALE}), which applies coverage
  * twice: light text on a dark background lost most of its edge pixels and looked thin.
  *

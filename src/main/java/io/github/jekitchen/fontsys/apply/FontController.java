@@ -5,6 +5,7 @@ import io.github.jekitchen.fontsys.compat.KnownFontMods;
 import io.github.jekitchen.fontsys.config.ConfigStore;
 import io.github.jekitchen.fontsys.config.FontConfig;
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.RecentFont;
 import io.github.jekitchen.fontsys.config.SystemFingerprint;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
 import io.github.jekitchen.fontsys.pack.PackContents;
@@ -14,6 +15,7 @@ import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -110,6 +112,11 @@ public final class FontController {
 		return config.settings();
 	}
 
+	/** Fonts applied and kept, newest first (UI-17). */
+	public synchronized List<RecentFont> recentFonts() {
+		return config.recentFonts == null ? List.of() : List.copyOf(config.recentFonts);
+	}
+
 	public Optional<KnownFontMods.KnownMod> conflict() {
 		return conflict;
 	}
@@ -156,10 +163,14 @@ public final class FontController {
 		}));
 	}
 
-	/** Keep the new font (Enter / Keep changes). */
+	/** Keep the new font (Enter / Keep changes). A kept font goes to the top of the recent list (UI-17). */
 	public void confirm() {
 		synchronized (this) {
 			config.pending = null;
+			FontSettings kept = config.settings();
+			if (kept.isActive() && kept.familyName() != null) {
+				config.recentFonts = RecentFont.push(config.recentFonts, new RecentFont(kept.familyName(), kept.fontPath()));
+			}
 		}
 		confirmDeadline = 0;
 		save();

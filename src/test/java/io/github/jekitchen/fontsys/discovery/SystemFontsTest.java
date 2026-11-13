@@ -61,7 +61,7 @@ class SystemFontsTest {
 	}
 
 	@Test
-	void colourEmojiIsHiddenButRevealable() throws IOException {
+	void colorEmojiIsHiddenButRevealable() throws IOException {
 		List<FaceInfo> faces = read(windowsFont("seguiemj.ttf"));
 		assertEquals(Visibility.COLOR, faces.getFirst().visibility());
 	}
@@ -102,7 +102,7 @@ class SystemFontsTest {
 	}
 
 	@Test
-	void macBitmapColourEmojiIsNeverListed() throws IOException {
+	void macBitmapColorEmojiIsNeverListed() throws IOException {
 		List<FaceInfo> faces = read(macFont("Apple Color Emoji.ttc"));
 		assertTrue(faces.stream().noneMatch(f -> f.visibility().isShown(true)));
 	}
@@ -211,7 +211,7 @@ class SystemFontsTest {
 	}
 
 	@Test
-	void linuxColourEmojiIsHidden() throws IOException {
+	void linuxColorEmojiIsHidden() throws IOException {
 		FaceInfo emoji = read(linuxFont("truetype/noto/NotoColorEmoji.ttf")).getFirst();
 		assertFalse(emoji.visibility().isShown(false));
 	}

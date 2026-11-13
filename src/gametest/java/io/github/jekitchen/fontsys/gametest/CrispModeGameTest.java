@@ -24,7 +24,7 @@ import net.minecraft.network.chat.Component;
 
 /**
  * Crisp mode (PRD AP-10, D34), acceptance criteria 1 and 4: white text on black, screenshotted.
- * Crisp, every text pixel is fully on or off; turned off, antialiasing (grey edge pixels) is back.
+ * Crisp, every text pixel is fully on or off; turned off, antialiasing (gray edge pixels) is back.
  *
  * <p>Uses the pixel font named by {@code FONTSYS_PIXEL_FONT} when set (copied into the test
  * instance's fonts folder, never committed), otherwise an installed system font.
@@ -51,7 +51,7 @@ public class CrispModeGameTest implements FabricClientGameTest {
 			require(PackContents.providerLoaded() && PackContents.loaded().crisp(), "the crisp font is applied");
 			long[] crisp = probe(context, "ap10-crisp");
 			require(crisp[1] > 0, "the probe found the text");
-			require(crisp[0] == 0, crisp[0] + " grey pixels in crisp text");
+			require(crisp[0] == 0, crisp[0] + " gray pixels in crisp text");
 			// The screen with crisp on: the slider steps aside, and a pixel font gets a size hint.
 			context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
 			context.waitTicks(10);
@@ -60,7 +60,7 @@ public class CrispModeGameTest implements FabricClientGameTest {
 			GameTestFonts.apply(context, smooth);
 			long[] antialiased = probe(context, "ap10-smooth");
 			require(antialiased[0] > 0, "antialiasing is back when crisp mode is off");
-			Fontsys.LOGGER.info("[gametest] Crisp text: {} lit, 0 grey. Smooth text: {} grey pixels.", crisp[1], antialiased[0]);
+			Fontsys.LOGGER.info("[gametest] Crisp text: {} lit, 0 gray. Smooth text: {} gray pixels.", crisp[1], antialiased[0]);
 		} finally {
 			GameTestFonts.apply(context, FontSettings.DEFAULTS);
 			context.setScreen(TitleScreen::new);
@@ -75,14 +75,14 @@ public class CrispModeGameTest implements FabricClientGameTest {
 		}
 	}
 
-	/** Draws the sample, screenshots it, and counts {grey, lit} pixels in the text area. */
+	/** Draws the sample, screenshots it, and counts {gray, lit} pixels in the text area. */
 	private static long[] probe(ClientGameTestContext context, String name) {
 		context.setScreen(ProbeScreen::new);
 		context.waitTicks(5);
 		int scale = context.computeOnClient(mc -> mc.getWindow().getGuiScale());
 		Path shot = context.takeScreenshot(name);
 		try (InputStream in = Files.newInputStream(shot); NativeImage image = NativeImage.read(in)) {
-			long grey = 0;
+			long gray = 0;
 			long lit = 0;
 			int x1 = Math.min(image.getWidth(), 400 * scale);
 			int y1 = Math.min(image.getHeight(), 40 * scale);
@@ -95,11 +95,11 @@ public class CrispModeGameTest implements FabricClientGameTest {
 					if (r == 255 && g == 255 && b == 255) {
 						lit++;
 					} else if (r != 0 || g != 0 || b != 0) {
-						grey++;
+						gray++;
 					}
 				}
 			}
-			return new long[] {grey, lit};
+			return new long[] {gray, lit};
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}

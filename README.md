@@ -6,7 +6,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 
 - **Status:** 1.0.0 for Minecraft 26.3. See the [changelog](CHANGELOG.md); requirements and decisions live in the [PRD](docs/PRD.md).
 - **Downloads:** [Modrinth](https://modrinth.com/mod/fontsys) (primary) and [CurseForge](https://www.curseforge.com/minecraft/mc-mods/fontsys).
-- **Licence:** [MIT](LICENSE).
+- **License:** [MIT](LICENSE).
 
 ## Features
 
@@ -20,17 +20,18 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 - Blends the smooth edges of letters by true coverage and uses a lighter drop shadow, so light text on dark menus keeps its full weight and doesn't look doubled.
 - **Crisp edges** for pixel-style fonts: hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it, with a size that keeps every pixel square.
 - Uses the game's own font renderer, so it works alongside Sodium and Iris.
-- Never copies or bundles font files: fonts are read from where your system keeps them, or from the instance's `fonts/` folder.
+- Never bundles font files: fonts are read from where your system keeps them, or from the instance's `fonts/` folder. The only copy it makes is when you drop a font file onto the settings screen, into that folder.
 - Is client-only. Servers don't need it, and server resource packs keep their custom HUD glyphs.
 
 ## Using it
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`.
-2. Open the settings from [Mod Menu](https://modrinth.com/mod/modmenu), or bind a key to **Open font settings** under Options → Controls → Key Binds → Fontsys.
-3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it. If you press **Done** without applying, you're asked whether to apply or discard your changes.
-4. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running.
-5. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
-6. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`). `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
+2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
+3. Search for a font, pick a style, check the preview and press **Apply**. The preview also shows the next size down and up; click one to use it. The fonts you used last are listed first, marked **Recent**.
+4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
+5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
+6. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.
+7. **Fonts folder** opens this instance's `fonts/` folder (next to `mods/`), or drag font files onto the settings screen to copy them there. `.ttf`, `.otf`, `.ttc` and `.otc` files there are listed only in this instance and marked **Instance**. The setting is saved relative to the instance, so it keeps working if you copy or move the instance.
 
 Debug commands: `/fontsys fonts [filter]` lists discovered families; `/fontsys rescan` rescans.
 
@@ -47,7 +48,7 @@ Settings are stored in `config/fontsys.json`. The font list cache is `config/fon
 ## Known limitations
 
 - **Complex scripts** such as Arabic and Devanagari don't render correctly. Minecraft doesn't join or reorder glyphs, whatever font is used.
-- **Colour emoji** fonts can't be used. Minecraft's text renderer is greyscale. Colour fonts are hidden unless you turn on **Show hidden fonts**, and then only their outline glyphs are drawn.
+- **Color emoji** fonts can't be used. Minecraft's text renderer is grayscale. Color fonts are hidden unless you turn on **Show hidden fonts**, and then only their outline glyphs are drawn.
 - **macOS system font names:** the copy of SF Pro built into macOS calls itself **System Font**. It is listed under that name and also as **SF Pro**; both are the same font. If you have installed SF Pro from Apple, that one is listed as SF Pro instead. Apple's private system fonts (names starting with a dot, such as `.SF Arabic` or `.LastResort`) and Apple Color Emoji are never listed.
 - **Classic Symbol fonts** (Wingdings, Webdings) are never listed. They have no Unicode character map, so Minecraft can't draw them.
 - **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.

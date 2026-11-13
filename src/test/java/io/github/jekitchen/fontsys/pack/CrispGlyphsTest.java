@@ -53,7 +53,7 @@ class CrispGlyphsTest {
 	}
 
 	@Test
-	void monochromeGlyphsMatchTheMeasuredSizeAndHaveNoGrey() {
+	void monochromeGlyphsMatchTheMeasuredSizeAndHaveNoGray() {
 		Path arial = Path.of(System.getenv().getOrDefault("WINDIR", "C:\\Windows"), "Fonts", "arial.ttf");
 		checkFont(arial, false);
 		checkFont(arial, true);
@@ -70,7 +70,7 @@ class CrispGlyphsTest {
 					int[] size = measure(face, index, syntheticBold);
 					int[] on = {0};
 					boolean ok = CrispGlyphs.render(face, index, syntheticBold, size[0], size[1], (x, y, coverage) -> {
-						assertTrue(coverage == 0 || coverage == 255, "grey pixel in '" + c + "'");
+						assertTrue(coverage == 0 || coverage == 255, "gray pixel in '" + c + "'");
 						on[0] += coverage == 255 ? 1 : 0;
 					});
 					assertTrue(ok);

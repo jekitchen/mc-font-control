@@ -28,7 +28,7 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 	// FreeType counts named instances in 15 bits. macOS's SF Pro (SFNS.ttf) has 369 (widths x
 	// weights), so this cap only guards against corrupt files.
 	private static final int MAX_INSTANCES_PER_FACE = 1024;
-	/** How many mapped characters to sample when checking a colour font for real outlines. */
+	/** How many mapped characters to sample when checking a color font for real outlines. */
 	private static final int OUTLINE_SAMPLE = 128;
 
 	private final long library;
@@ -144,7 +144,7 @@ public final class FreeTypeFaceReader implements AutoCloseable {
 		boolean color = (faceFlags & FreeType.FT_FACE_FLAG_COLOR) != 0;
 		boolean outlines = hasTable(face, "glyf") || hasTable(face, "CFF ") || hasTable(face, "CFF2");
 		if (outlines && color && (hasTable(face, "sbix") || hasTable(face, "CBDT"))) {
-			// Bitmap colour fonts can carry a glyf table of empty placeholders (Apple Color Emoji's
+			// Bitmap color fonts can carry a glyf table of empty placeholders (Apple Color Emoji's
 			// have two points each), so the table alone doesn't prove the font draws in grayscale.
 			outlines = hasDrawableOutlines(face);
 		}

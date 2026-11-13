@@ -20,7 +20,7 @@ import net.minecraft.network.chat.Component;
  * <p>Vanilla puts FreeType glyphs in a grayscale atlas and draws them with the
  * {@code text_grayscale*} pipelines. Iris 1.11.7 has no shader-pack program for
  * {@code text_grayscale_polygon_offset}, the one used for sign text, so with a shader pack on,
- * signs drew as streaks across the screen. Fontsys glyphs go in the colour atlas instead, which
+ * signs drew as streaks across the screen. Fontsys glyphs go in the color atlas instead, which
  * every shader mod handles because vanilla's own font uses it.
  */
 @SuppressWarnings("UnstableApiUsage")
