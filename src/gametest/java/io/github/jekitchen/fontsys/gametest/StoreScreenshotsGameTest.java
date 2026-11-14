@@ -5,6 +5,7 @@ import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.config.FontSettings;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
+import io.github.jekitchen.fontsys.ui.AdvancedFontScreen;
 import io.github.jekitchen.fontsys.ui.FontConfigScreen;
 import io.github.jekitchen.fontsys.ui.KeepOrRevertScreen;
 import java.nio.file.Path;
@@ -65,6 +66,15 @@ public class StoreScreenshotsGameTest implements FabricClientGameTest {
 		context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
 		context.waitTicks(20);
 		shot(context, "03-config-preview");
+
+		// The Advanced screen (UI-19): shifts, hinting and Replace Unicode font, with its preview.
+		context.clickScreenButton("fontsys.screen.advanced");
+		context.waitForScreen(AdvancedFontScreen.class);
+		context.waitTicks(20);
+		shot(context, "09-advanced");
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(FontConfigScreen.class);
+		context.waitTicks(10);
 
 		// The "Keep this font?" dialog with its samples in the serif font (UI-11); kept, so the
 		// title screen behind it is in that font too.

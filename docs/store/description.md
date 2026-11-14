@@ -6,12 +6,15 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 - **Real bold and italic.** Bold and italic text uses the font's own Bold, Italic and Bold Italic faces, the way a word processor does, instead of Minecraft's doubled-up bold and slant. Server rank tags and chat formatting look clean and solid.
 - **Fonts just for this instance.** Drag font files onto the settings screen, or put them in the instance's `fonts` folder (the **Fonts folder** button opens it), and they're listed alongside your system fonts, without installing them on your computer.
 - **Live preview.** See the font with chat, tooltip, sign, bold and italic samples before anything changes, side by side with the next size down and up. Click a size to use it.
+- **See every font before you pick it.** The font list shows each name in its own font, so you can browse by looks.
 - **Quick to find.** Press **F7** to open the settings. The search box is ready to type in, and the fonts you used last are listed first.
+- **Each font remembers its settings.** Size, sharpness, shifts and hinting are kept per font: pick a font you've used before and its settings come back.
 - **One click, no restart.** Apply the font and it's used everywhere straight away.
 - **Can't get stuck.** You have 30 seconds to confirm a new font, or it switches back on its own. The confirmation dialog shows your new font in sample text, look-alike characters, chat, a sign and a tooltip, while its own text and buttons stay in the normal Minecraft font, so you can read it whatever you picked.
 - **Fine-tuning.** Adjust size and sharpness. Fonts that sit a little high or low get a baseline shift on the **Advanced** screen, which shows your font on a button next to Minecraft's. There you can also choose the hinting: Full for the crispest letters, Light to keep the font's own shapes, or None for the softest, most faithful outlines.
 - **Crisp pixel fonts.** Turn on **Crisp edges** and pixel-style fonts get hard, square pixels with no smoothing, like Minecraft's own font. The preview spots pixel fonts and suggests it.
-- **Works with Sodium and Iris.** Fontsys uses Minecraft's own font renderer, so it works alongside them and on both OpenGL and Vulkan.
+- **Clear text at a distance.** Signs, name tags and text displays in your font stay dark and whole as you walk away, instead of breaking up.
+- **Works with Sodium and Iris.** Fontsys uses Minecraft's own font renderer, so it works alongside them and on both OpenGL and Vulkan. On NeoForge, the current Sodium 0.9.3 betas need an Iris that isn't released yet, so use Sodium on its own there for now.
 - **Client-only.** Servers don't need it. Server resource packs keep their custom HUD icons.
 - **Your fonts stay where they are.** Fontsys reads fonts from where your system keeps them. It never bundles font files and makes no network connections. The only copy it makes is when you drop a font onto the settings screen, into the instance's fonts folder.
 
