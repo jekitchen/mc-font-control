@@ -501,7 +501,7 @@ Not planned: ClearType-style subpixel rendering (needs per-channel blending the 
 | v0.38 | 2026-11-13 | The keep-or-revert dialog lists what changed (5.7, D47); future improvement 9, logo colors in the settings title. |
 | v0.39 | 2026-11-13 | Logo colors in the settings title: "sys" drawn in the logo's green (D48); future improvement 9 built. |
 | v0.40 | 2026-11-13 | Font names in their own font in the font list (UI-3, D49; future improvement 8 built); memory note in section 6. |
+| v0.42 | 2026-11-13 | NeoForge build: `neoforge` subproject, shared mixins and client hooks, NeoForge smoke test in CI (D51); future improvement 6 updated. |
 | v0.43 | 2026-11-13 | Advanced font settings screen: Shift X, Shift Y and Replace Unicode font move there, behind an Advanced... button that counts changed settings (UI-4, UI-14, UI-19, D52). |
 | v0.44 | 2026-11-13 | Hinting choice, Full / Light / None, on the Advanced screen (5.3, UI-14, UI-19, 5.7, D53); future improvement 2 built. |
-| v0.42 | 2026-11-13 | NeoForge build: `neoforge` subproject, shared mixins and client hooks, NeoForge smoke test in CI (D51); future improvement 6 updated. |
 | v0.45 | 2026-11-13 | One jar for Fabric and NeoForge, listed for both loaders on Modrinth and CurseForge with per-store Fabric API dependency (D54); D51 and future improvement 6 updated. |
