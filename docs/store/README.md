@@ -40,6 +40,7 @@ Upload in this order. Each image needs a title; descriptions are optional. Mark 
 | `06-signs-georgia.png` | Any font, including serifs | Signs, glow ink, a text display and name tags in Georgia. |
 | `07-tooltip-inter.png` | Tooltips | An enchanted item's tooltip in Inter; the lore line uses Inter's italic face. |
 | `08-keep-georgia.png` | Keep this font? | Before you keep a font, samples show it in a sentence, look-alike characters, bold, italic, chat, a sign and a tooltip. The dialog itself stays in Minecraft's font. |
+| `09-advanced.png` | Advanced settings | Fine-tuning most fonts don't need: baseline shifts, hinting and the Unicode font, with a preview of your font on a button next to Minecraft's. |
 
 The screenshots are real game renders captured by `StoreScreenshotsGameTest` on Windows 11 (Minecraft 26.3, GUI scale Auto for the menus and 3 in the world). To retake them, for example after a UI change:
 
