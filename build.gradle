@@ -22,6 +22,12 @@ repositories {
 		url = 'https://maven.terraformersmc.com/releases/'
 		content { includeGroup 'com.terraformersmc' }
 	}
+	// Quilt Loader, for the Quilt compatibility run only (runQuiltClientGameTest, PRD D57).
+	maven {
+		name = 'Quilt'
+		url = 'https://maven.quiltmc.org/repository/release/'
+		content { includeGroup 'org.quiltmc' }
+	}
 }
 
 dependencies {
@@ -103,6 +109,68 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 	// CI wraps this task in its own xvfb-run (see .github/workflows/build.yml); don't start a second display.
 	useXVFB = false
 	// A test run, not a build step: run it every time, even when the jars haven't changed.
+	outputs.upToDateWhen { false }
+}
+
+// Quilt compatibility check (PRD D57): ./gradlew runQuiltClientGameTest
+// The production-style run above with Quilt Loader in place of Fabric Loader: the same built
+// jar, Fabric API (Quilt has no Quilted Fabric API for 26.3) and game-test jar, the same JVM
+// arguments (D56), the full game-test suite. The jars go in the run's mods/ folder, as a
+// launcher's instance has them: Quilt reads loader.addMods, not Loom's fabric.addMods.
+// Classpath as Quilt's launcher profile gives it
+// (https://meta.quiltmc.org/v3/versions/loader/26.3/<version>/profile/json): Minecraft and its
+// libraries, then Quilt's libraries instead of Fabric Loader and its sponge-mixin build.
+// -PquiltLoaderVersion=<version> tries another Quilt Loader; quilt_loader_version is the default.
+abstract class QuiltClientProductionRunTask extends net.fabricmc.loom.task.prod.ClientProductionRunTask {
+	@InputFiles
+	abstract ConfigurableFileCollection getQuiltLibraries()
+
+	QuiltClientProductionRunTask() {
+		getMainClass().set('org.quiltmc.loader.impl.launch.knot.KnotClient')
+		// No -Dfabric.addMods list: the mods come from the run's mods/ folder.
+		getMods().setFrom()
+	}
+
+	@Override
+	protected java.util.stream.Stream<File> streamClasspath() {
+		java.util.stream.Stream.concat(
+			super.streamClasspath().filter { File f -> !(f.name ==~ /^(fabric-loader|sponge-mixin)-.*\.jar$/) },
+			getQuiltLibraries().files.stream())
+	}
+}
+
+def quiltLoaderVersion = project.findProperty('quiltLoaderVersion') ?: project.quilt_loader_version
+def quiltLibrariesScope = configurations.dependencyScope('quiltLibraries')
+def quiltLibrariesFiles = configurations.resolvable('quiltLibrariesFiles') {
+	extendsFrom(quiltLibrariesScope.get())
+	transitive = false
+}
+dependencies {
+	quiltLibraries "org.quiltmc:quilt-loader:${quiltLoaderVersion}"
+	quiltLibraries "org.quiltmc:quilt-json5:${project.quilt_json5_version}"
+	quiltLibraries "org.quiltmc:quilt-config:${project.quilt_config_version}"
+	quiltLibraries "net.fabricmc:sponge-mixin:${project.quilt_mixin_version}"
+}
+def quiltRunDir = layout.buildDirectory.dir('run/quiltClientGameTest')
+def installQuiltMods = tasks.register('installQuiltMods', Sync) {
+	from(tasks.named('jar'))
+	from(gametestJar)
+	from(configurations.named('productionRuntimeMods'))
+	into(quiltRunDir.map { it.dir('mods') })
+}
+tasks.register('runQuiltClientGameTest', QuiltClientProductionRunTask) {
+	group = 'verification'
+	description = 'Runs the client game tests against the built jar on Quilt Loader (PRD D57).'
+	dependsOn installQuiltMods
+	quiltLibraries.from(quiltLibrariesFiles)
+	runDir = quiltRunDir
+	jvmArgs.addAll(mojangJvmArgs)
+	jvmArgs.add("-Dfabric.client.gametest")
+	jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
+	// Quilt shows a failed start in a window of its own and waits for it to be closed; a test
+	// run must end instead (the crash report and log have the same text).
+	jvmArgs.add("-Dloader.noGui=true")
+	useXVFB = false
 	outputs.upToDateWhen { false }
 }
 

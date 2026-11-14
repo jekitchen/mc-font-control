@@ -33,6 +33,15 @@ class ModMetadataTest {
 		assertTrue(read("/fabric.mod.json").contains("\"license\": \"MIT\""));
 	}
 
+	/**
+	 * Quilt Loader tells Fabric mods it is Fabric Loader 0.19.5, so a higher floor stops Fontsys
+	 * loading on Quilt, as 0.20.1 did (D57). Raise it only for a Fabric Loader feature Fontsys uses.
+	 */
+	@Test
+	void fabricLoaderFloorAllowsQuilt() throws IOException {
+		assertTrue(read("/fabric.mod.json").contains("\"fabricloader\": \">=0.19.5\""), "fabricloader must stay >=0.19.5 (PRD D57)");
+	}
+
 	@Test
 	void langFileExists() throws IOException {
 		assertTrue(read("/assets/fontsys/lang/en_us.json").contains("Fontsys"));

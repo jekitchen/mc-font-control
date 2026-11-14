@@ -17,6 +17,7 @@ All notable changes to Fontsys. Versions follow [semantic versioning](https://se
 ### Changed
 
 - **Advanced settings get their own screen.** Shift X, Shift Y and Replace Unicode font, which most fonts don't need, moved to **Advanced...** on the settings screen, leaving more room for the preview. Its preview shows your font on a button next to Minecraft's, so you can line them up, and **Reset to defaults** puts those settings back. Changes there are applied with **Apply** as before, and the button shows how many you changed, such as **Advanced (1)...**.
+- **Works with Fabric Loader 0.19.5 and later**, instead of asking for 0.20.1, which it didn't need. That also lets Fontsys start on Quilt Loader with Fabric API installed. Quilt isn't officially supported yet.
 
 ## [1.1.0] - 2026-11-13
 
