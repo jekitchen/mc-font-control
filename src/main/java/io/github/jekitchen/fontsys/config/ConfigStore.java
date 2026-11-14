@@ -82,7 +82,7 @@ public final class ConfigStore {
 					}
 					config.recentFonts = config.recentFonts == null ? new ArrayList<>() : config.recentFonts.stream()
 						.filter(r -> r != null && r.familyName() != null)
-						.map(r -> new RecentFont(r.familyName(), InstanceFonts.toAbsolute(r.fontPath(), gameDir)))
+						.map(r -> new RecentFont(r.familyName(), InstanceFonts.toAbsolute(r.fontPath(), gameDir), r.tuning() == null ? null : r.tuning().sanitized()))
 						.limit(RecentFont.MAX)
 						.collect(Collectors.toCollection(ArrayList::new));
 					return new LoadResult(config, warnings, false);

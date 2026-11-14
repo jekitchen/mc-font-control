@@ -210,6 +210,53 @@ class ConfigStoreTest {
 	}
 
 	@Test
+	void recentFontsRememberTheirTuning(@TempDir Path game) throws IOException {
+		String system = game.getRoot().resolve("Windows").resolve("Fonts").resolve("georgia.ttf").toString();
+		FontTuning tuning = new FontTuning(12, 4, 0.5F, -1, true, false, Hinting.LIGHT);
+		ConfigStore store = new ConfigStore(game.resolve("fontsys.json"), game);
+		FontConfig config = FontConfig.defaults();
+		config.recentFonts = List.of(new RecentFont("Georgia", system, tuning), new RecentFont("Arial", system));
+		store.save(config);
+		String json = Files.readString(store.file());
+		assertTrue(json.contains("\"hinting\": \"light\""), json);
+		List<RecentFont> loaded = store.load().config().recentFonts;
+		assertEquals(tuning, loaded.get(0).tuning());
+		assertEquals(null, loaded.get(1).tuning(), "a recent font kept before 1.2.0 has no remembered tuning");
+	}
+
+	@Test
+	void rememberedTuningIsClampedOnLoad(@TempDir Path dir) throws IOException {
+		Path file = dir.resolve("fontsys.json");
+		Files.writeString(file, "{\"configVersion\":1,\"recentFonts\":[{\"familyName\":\"Inter\",\"tuning\":{\"size\":99,\"shiftY\":-50,\"hinting\":\"sideways\"}}]}");
+		FontTuning loaded = new ConfigStore(file).load().config().recentFonts.get(0).tuning();
+		assertEquals(FontSettings.MAX_SIZE, loaded.size());
+		assertEquals(-FontSettings.MAX_SHIFT, loaded.shiftY());
+		assertEquals(Hinting.DEFAULT, loaded.hinting(), "an unknown hinting value reads as the default");
+	}
+
+	@Test
+	void tuningIsFoundForTheSameFamilyOnly() {
+		FontTuning georgia = new FontTuning(12, 0, 0, 1, false, false, Hinting.NONE);
+		List<RecentFont> recent = List.of(new RecentFont("Georgia", "/sys/georgia.ttf", georgia), new RecentFont("Arial", "/sys/arial.ttf"));
+		assertEquals(georgia, RecentFont.tuningFor(recent, "georgia", "/sys/georgiab.ttf"), "any face of the family, any case");
+		assertEquals(null, RecentFont.tuningFor(recent, "Arial", "/sys/arial.ttf"), "kept before tuning was remembered");
+		assertEquals(null, RecentFont.tuningFor(recent, "Inter", "/sys/inter.ttf"), "never kept");
+		assertEquals(null, RecentFont.tuningFor(null, "Georgia", "/sys/georgia.ttf"));
+	}
+
+	@Test
+	void tuningRoundTripsThroughSettingsAndKeepsTheFont() {
+		FontSettings inter = FontSettings.DEFAULTS.withEnabled(true).withFont("/sys/inter.ttf", 0, "Inter", "Regular");
+		FontTuning tuning = new FontTuning(13, 3, -0.5F, 1.5F, true, true, Hinting.LIGHT);
+		FontSettings tuned = tuning.applyTo(inter);
+		assertEquals("Inter", tuned.familyName());
+		assertTrue(tuned.enabled());
+		assertEquals(tuning, FontTuning.of(tuned));
+		assertEquals(FontTuning.of(FontSettings.DEFAULTS), FontTuning.DEFAULTS);
+		assertEquals(inter, FontTuning.DEFAULTS.applyTo(inter), "the defaults on a default font change nothing");
+	}
+
+	@Test
 	void systemFontsStayAbsolute(@TempDir Path game) throws IOException {
 		String system = game.getRoot().resolve("Windows").resolve("Fonts").resolve("arial.ttf").toString();
 		ConfigStore store = new ConfigStore(game.resolve("fontsys.json"), game);

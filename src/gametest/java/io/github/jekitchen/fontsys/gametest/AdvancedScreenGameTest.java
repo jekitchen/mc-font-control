@@ -30,6 +30,8 @@ import net.minecraft.network.chat.Component;
  *   <li>Done on the settings screen then asks "Apply your changes?" (UI-13, D35);</li>
  *   <li>Apply lists Shift Y in the keep-or-revert dialog's summary (D47);</li>
  *   <li>Reset to defaults puts the shifts back, and Done there returns with nothing to apply;</li>
+ *   <li>each font keeps its own tuning (D55): a shift made on one font doesn't follow the player
+ *       to another, comes back on returning, and is remembered once that font is kept;</li>
  *   <li>both screens lay out at the smallest GUI, GUI scale 1 and GUI scale 4.</li>
  * </ul>
  */
@@ -47,6 +49,10 @@ public class AdvancedScreenGameTest implements FabricClientGameTest {
 			GameTestFonts.apply(context, GameTestFonts.settingsFor(pick.get()));
 			shiftKeptAndApplied(context);
 			resetToDefaults(context);
+			GameTestFonts.pick(context, "Georgia", "Times New Roman", "DejaVu Serif", "Arial")
+				.filter(other -> !other.family().equals(pick.get().family()))
+				.ifPresentOrElse(other -> eachFontKeepsItsTuning(context, pick.get(), other),
+					() -> Fontsys.LOGGER.warn("[gametest] Only one font family found; skipping the per-font tuning check."));
 			layout(context);
 		} finally {
 			GameTestFonts.apply(context, FontSettings.DEFAULTS);
@@ -181,6 +187,84 @@ public class AdvancedScreenGameTest implements FabricClientGameTest {
 		context.waitFor(mc -> mc.gui.overlay() == null && mc.gui.screen() instanceof FontConfigScreen);
 		require(Fontsys.controller().appliedSettings().shiftY() == 0, "Esc reverted the shift");
 		context.setScreen(TitleScreen::new);
+	}
+
+	/**
+	 * Per-font tuning (D55). With {@code first} applied: Shift Y 1 on it, unapplied; picking
+	 * {@code second} (never kept) shows the defaults; picking {@code first} again brings the shift
+	 * back. Then {@code first} is kept with the shift and {@code second} applied, and in a new
+	 * visit to the screen picking {@code first} restores the shift it was kept with.
+	 */
+	private static void eachFontKeepsItsTuning(ClientGameTestContext context, FaceInfo first, FaceInfo second) {
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(10);
+		setShiftY(context, "1");
+		require(draft(context).shiftY() == 1 && draft(context).familyName().equals(first.family()), "Shift Y 1 on " + first.family());
+
+		selectFamily(context, second.family());
+		require(draft(context).familyName().equals(second.family()), "picked " + second.family());
+		require(draft(context).shiftY() == 0, "a font never kept starts at the defaults, not with the other font's shift: " + draft(context));
+		require(advancedLabel(context).equals(Component.translatable("fontsys.screen.advanced").getString()),
+			"no count on Advanced... for a font at its defaults: " + advancedLabel(context));
+
+		selectFamily(context, first.family());
+		require(draft(context).shiftY() == 1, "going back to " + first.family() + " brings back its unapplied shift: " + draft(context));
+
+		// Keep the first font with its shift, then apply the second one.
+		applyAndKeep(context);
+		require(Fontsys.controller().appliedSettings().shiftY() == 1, "kept with the shift");
+		selectFamily(context, second.family());
+		require(draft(context).shiftY() == 0, "the second font is still at the defaults");
+		applyAndKeep(context);
+		require(Fontsys.controller().appliedSettings().familyName().equals(second.family()), second.family() + " is applied");
+
+		// A new visit: the first font is no longer applied, so its shift comes from the recent list.
+		context.setScreen(() -> new FontConfigScreen(new TitleScreen()));
+		context.waitTicks(10);
+		require(draft(context).shiftY() == 0, "the screen opens on " + second.family() + " at the defaults");
+		selectFamily(context, first.family());
+		require(draft(context).shiftY() == 1, first.family() + " comes back with the shift it was kept with: " + draft(context));
+		require(advancedLabel(context).equals(Component.translatable("fontsys.screen.advanced.changed", 1).getString()),
+			"Advanced... counts the remembered shift: " + advancedLabel(context));
+		context.takeScreenshot("d55-remembered-tuning");
+		context.setScreen(TitleScreen::new);
+	}
+
+	private static FontSettings draft(ClientGameTestContext context) {
+		return context.computeOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).draft());
+	}
+
+	private static void selectFamily(ClientGameTestContext context, String name) {
+		context.runOnClient(mc -> ((FontConfigScreen) mc.gui.screen()).selectFamily(Fontsys.fontIndex().families(false).stream()
+			.filter(f -> f.name().equals(name)).findFirst().orElseThrow()));
+		context.waitTicks(3);
+	}
+
+	/** Opens Advanced, moves Shift Y to {@code value} from the keyboard and goes back. */
+	private static void setShiftY(ClientGameTestContext context, String value) {
+		context.clickScreenButton("fontsys.screen.advanced");
+		context.waitForScreen(AdvancedFontScreen.class);
+		context.waitTicks(5);
+		context.getInput().pressKey(InputConstants.KEY_TAB);
+		context.getInput().pressKey(InputConstants.KEY_TAB);
+		String target = Component.translatable("fontsys.screen.shift_y", value).getString();
+		for (int i = 0; i < 400 && !sliderLabel(context, "Shift Y").equals(target); i++) {
+			context.getInput().pressKey(InputConstants.KEY_RIGHT);
+		}
+		require(sliderLabel(context, "Shift Y").equals(target), "Shift Y reaches " + value + ": " + sliderLabel(context, "Shift Y"));
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(FontConfigScreen.class);
+	}
+
+	/** Apply, then Enter on Keep this font?, back on the settings screen. */
+	private static void applyAndKeep(ClientGameTestContext context) {
+		context.clickScreenButton("fontsys.screen.apply");
+		context.waitForScreen(KeepOrRevertScreen.class);
+		context.waitFor(mc -> mc.gui.overlay() == null);
+		context.waitTicks(5);
+		context.getInput().pressKey(InputConstants.KEY_RETURN);
+		context.waitFor(mc -> mc.gui.overlay() == null && mc.gui.screen() instanceof FontConfigScreen);
+		context.waitTicks(5);
 	}
 
 	private static void resetToDefaults(ClientGameTestContext context) {

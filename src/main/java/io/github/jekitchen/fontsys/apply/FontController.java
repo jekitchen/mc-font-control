@@ -5,6 +5,7 @@ import io.github.jekitchen.fontsys.compat.KnownFontMods;
 import io.github.jekitchen.fontsys.config.ConfigStore;
 import io.github.jekitchen.fontsys.config.FontConfig;
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.FontTuning;
 import io.github.jekitchen.fontsys.config.RecentFont;
 import io.github.jekitchen.fontsys.config.SystemFingerprint;
 import io.github.jekitchen.fontsys.discovery.InstanceFonts;
@@ -119,6 +120,19 @@ public final class FontController {
 		return config.pending;
 	}
 
+	/**
+	 * The tuning remembered for a family (D55): the applied settings if it's the applied font,
+	 * otherwise what it was last kept with, if it's a recent font; null for a font never kept.
+	 */
+	public synchronized @Nullable FontTuning rememberedTuning(String familyName, @Nullable String fontPath) {
+		FontSettings applied = config.settings();
+		if (applied.isActive() && applied.familyName() != null
+			&& new RecentFont(applied.familyName(), applied.fontPath()).sameFamily(new RecentFont(familyName, fontPath))) {
+			return FontTuning.of(applied);
+		}
+		return RecentFont.tuningFor(config.recentFonts, familyName, fontPath);
+	}
+
 	/** Fonts applied and kept, newest first (UI-17). */
 	public synchronized List<RecentFont> recentFonts() {
 		return config.recentFonts == null ? List.of() : List.copyOf(config.recentFonts);
@@ -176,7 +190,7 @@ public final class FontController {
 			config.pending = null;
 			FontSettings kept = config.settings();
 			if (kept.isActive() && kept.familyName() != null) {
-				config.recentFonts = RecentFont.push(config.recentFonts, new RecentFont(kept.familyName(), kept.fontPath()));
+				config.recentFonts = RecentFont.push(config.recentFonts, new RecentFont(kept.familyName(), kept.fontPath(), FontTuning.of(kept)));
 			}
 		}
 		confirmDeadline = 0;
