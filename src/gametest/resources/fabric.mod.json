@@ -19,6 +19,7 @@
 			"io.github.jekitchen.fontsys.gametest.CrispModeGameTest",
 			"io.github.jekitchen.fontsys.gametest.TextQualityGameTest",
 			"io.github.jekitchen.fontsys.gametest.RobustnessGameTest",
+			"io.github.jekitchen.fontsys.gametest.ReloadStressGameTest",
 			"io.github.jekitchen.fontsys.gametest.InWorldTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.DistantTextGameTest",
 			"io.github.jekitchen.fontsys.gametest.ShaderPackGameTest",

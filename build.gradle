@@ -72,17 +72,38 @@ def gametestJar = tasks.register('gametestJar', Jar) {
 	destinationDirectory = layout.buildDirectory.dir('gametest-libs')
 }
 
+// The JVM arguments Mojang's version metadata gives every launcher (its "arguments.jvm"),
+// minus the ones a launcher fills in (${...}, -cp) and the per-OS ones. Read from Loom's copy,
+// so they follow the Minecraft version; the 26.3 list is the fallback. PRD D56.
+def mojangJvmArgs = {
+	def meta = new File(gradle.gradleUserHomeDir, "caches/fabric-loom/${project.minecraft_version}/mojang_minecraft_info.json")
+	if (!meta.isFile()) {
+		return ['-XX:StackShadowPages=32', '--enable-native-access=ALL-UNNAMED', '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED']
+	}
+	List<String> plain = (new groovy.json.JsonSlurper().parse(meta).arguments?.jvm ?: [])
+		.findAll { it instanceof String && !it.contains('${') }.collect { it as String }
+	plain.remove('-cp')
+	return plain
+}()
+
 // The same game tests against the finished jar (the one that also carries the NeoForge parts,
 // PRD D54) on a production-style Fabric client: Fabric Loader's real launcher, mods loaded
 // from jars, no dev classpath. Loom adds the jar task's output and productionRuntimeMods.
 tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
 	mods.from(gametestJar)
 	runDir = layout.buildDirectory.dir('run/productionClientGameTest')
+	// Launch like a real launcher (PRD D56): Loom's production run passes none of the JVM
+	// arguments in Mojang's version metadata, which every launcher passes. Without
+	// -XX:StackShadowPages=32 the client, vanilla included, dies on Windows with an access
+	// violation and no hs_err file during the first resource reload.
+	jvmArgs.addAll(mojangJvmArgs)
 	jvmArgs.add("-Dfabric.client.gametest")
 	// Known GitHub Actions issue with the network synchronizer (Fabric docs).
 	jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
 	// CI wraps this task in its own xvfb-run (see .github/workflows/build.yml); don't start a second display.
 	useXVFB = false
+	// A test run, not a build step: run it every time, even when the jars haven't changed.
+	outputs.upToDateWhen { false }
 }
 
 // CI runs the client under its own xvfb-run; stop Loom wrapping dev runs in a second, 8-bit display.
