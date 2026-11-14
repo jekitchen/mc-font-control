@@ -6,6 +6,7 @@
 		"FontManagerAccessor",
 		"FontMixin",
 		"FontSetAccessor",
+		"GlyphStitcherMixin",
 		"MinecraftAccessor",
 		"MinecraftMixin",
 		"NativeImageMixin",

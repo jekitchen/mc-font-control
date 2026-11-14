@@ -34,7 +34,7 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 - **Color emoji fonts** can't be used, because Minecraft's text renderer is grayscale. They're hidden unless you turn on **Show hidden fonts**.
 - **Symbol fonts** such as Wingdings are never listed, because Minecraft can't draw them.
 - **Fonts without a Bold or Italic face:** bold text is thickened by FreeType, as word processors do; italic text uses Minecraft's slant. The preview shows which applies.
-- **Text far away in the world** (signs, name tags) can look thin at a distance. Minecraft's glyph atlas has no mipmaps; built-in fonts behave the same.
+- **Text far away in the world** (signs, name tags) fades evenly as it gets smaller, but is hard to read beyond about 20 blocks. In Crisp edges mode it keeps hard pixels, so it can break up at a distance, as Minecraft's own fonts do.
 - **Large text sizes** can be clipped in tight spots such as buttons and the scoreboard. Lower the size if that happens.
 - **Other font mods:** if Caxton, Font, FontSwap or Modern UI is installed, Fontsys turns itself off and tells you, rather than fighting over the font.
 
