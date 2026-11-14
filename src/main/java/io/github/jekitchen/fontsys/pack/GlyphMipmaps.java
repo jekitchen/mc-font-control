@@ -27,27 +27,63 @@ public final class GlyphMipmaps {
 		return (size + 2 * MARGIN + BLOCK - 1) / BLOCK * BLOCK;
 	}
 
+	/** The mip chain of one block, with the contrast {@link #boost}. */
+	public static int[][] chain(int[] coverage, int width, int height) {
+		return chain(coverage, width, height, true);
+	}
+
 	/**
-	 * The mip chain of one block. Level 0 is {@code coverage} itself; each further level halves
-	 * the one before, every texel the rounded mean of the four beneath it. Coverage is linear
-	 * (D36), so averaging it is what the GPU's own filter would do: distant text fades evenly
-	 * instead of losing whole strokes.
+	 * The mip chain of one block. Level 0 is {@code coverage} itself, uploaded unchanged. Each
+	 * further level starts from the mean of the coverage beneath it (every texel the rounded
+	 * mean of the four beneath it in the level before). Coverage is linear (D36), so averaging
+	 * it is what the GPU's own filter would do: distant text fades evenly instead of losing
+	 * whole strokes. With {@code boost}, levels 1 and up are then darkened ({@link #boost}) so
+	 * distant strokes keep their contrast.
 	 *
 	 * @param coverage row-major coverage, 0 to 255, {@code width * height} values
 	 * @param width    a multiple of {@link #BLOCK}
 	 * @param height   a multiple of {@link #BLOCK}
+	 * @param boost    whether to apply {@link #boost}; false only to measure the plain mean
 	 * @return {@link #LEVELS} arrays; level {@code n} is {@code (width >> n) * (height >> n)}
 	 */
-	public static int[][] chain(int[] coverage, int width, int height) {
+	public static int[][] chain(int[] coverage, int width, int height, boolean boost) {
 		if (width % BLOCK != 0 || height % BLOCK != 0 || coverage.length != width * height) {
 			throw new IllegalArgumentException("block " + width + "x" + height + " is not aligned to " + BLOCK);
 		}
 		int[][] levels = new int[LEVELS][];
 		levels[0] = coverage;
+		int[] mean = coverage;
 		for (int level = 1; level < LEVELS; level++) {
-			levels[level] = halve(levels[level - 1], width >> (level - 1), height >> (level - 1));
+			mean = halve(mean, width >> (level - 1), height >> (level - 1));
+			if (boost) {
+				int[] boosted = new int[mean.length];
+				for (int i = 0; i < mean.length; i++) {
+					boosted[i] = boost(level, mean[i]);
+				}
+				levels[level] = boosted;
+			} else {
+				levels[level] = mean;
+			}
 		}
 		return levels;
+	}
+
+	/**
+	 * The contrast boost for level {@code level} (1 and up): the mean coverage times
+	 * {@code 1 + level / 2}, so 1.5, 2 and 2.5, capped at full.
+	 *
+	 * <p>Why: the mean is the true average, but a thin stroke averaged over 4, 16 or 64 texels
+	 * turns pale, and vanilla's text shader drops every pixel under 10% alpha
+	 * ({@code core/text.fsh}). With the plain mean, text 8 blocks away had about 77% of 1.1.0's
+	 * ink and text 20 blocks away about half. The gain grows with the level because each level
+	 * spreads a stroke over four times the area. {@code DistantTextGameTest} compared it with a
+	 * gamma curve, an "any sample hits ink" curve, a mean/max blend and twice this gain: this
+	 * one brings distant text back to at least 1.1.0's darkness while keeping strokes apart, and
+	 * it shimmers even less than the plain mean, because fewer pixels sit at the 10% cutoff.
+	 * Zero stays zero, so the margins stay transparent and neighbors still never bleed.
+	 */
+	static int boost(int level, int mean) {
+		return Math.min(255, (mean * (2 + level) + 1) / 2);
 	}
 
 	/** One 2x2 box-filter step; {@code width} and {@code height} are even. */

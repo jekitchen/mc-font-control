@@ -22,9 +22,10 @@ import net.minecraft.util.ARGB;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One mipmapped glyph atlas page for system-font glyphs (PRD D50). It mirrors vanilla's
- * {@code FontTexture} (a 256x256 RGBA page, drawn with the same {@code text*} render types and
- * {@code GUI_TEXT} pipeline, D30), with three differences:
+ * One mipmapped glyph atlas page for system-font glyphs (PRD D50), which in-world text draws
+ * from; GUI text keeps drawing the same glyphs from vanilla's pages ({@link MipmappedSheetGlyph}).
+ * It mirrors vanilla's {@code FontTexture} (a 256x256 RGBA page, drawn with the same
+ * {@code text*} render types, D30), with three differences:
  *
  * <ul>
  *   <li>The texture has {@link GlyphMipmaps#LEVELS} mip levels, filled on the CPU per glyph
@@ -34,10 +35,7 @@ import org.jspecify.annotations.Nullable;
  *       ({@link GlyphMipmaps}), instead of 1 px apart.</li>
  *   <li>The texture's own sampler, which in-world text uses (signs, name tags, text displays),
  *       minifies trilinearly ({@code LINEAR} with mipmaps) and magnifies {@code NEAREST} as
- *       vanilla does, so close-up text is unchanged. GUI text never uses this sampler:
- *       {@code GlyphRenderState.textureSetup()} binds every glyph atlas with
- *       {@code getClampToEdge(NEAREST)}, whose maximum level of detail is 0, so menus, chat
- *       and the HUD keep sampling the full-size level exactly as before.</li>
+ *       vanilla does, so close-up text is unchanged.</li>
  * </ul>
  */
 final class MipmappedGlyphPage extends AbstractTexture implements Dumpable {
@@ -58,8 +56,12 @@ final class MipmappedGlyphPage extends AbstractTexture implements Dumpable {
 		this.renderTypes = GlyphRenderTypes.createForColorTexture(name);
 	}
 
-	/** Places, renders and uploads a glyph; null if this page has no room for it. */
-	@Nullable BakedSheetGlyph add(GlyphInfo info, MipmappableBitmap bitmap) {
+	/**
+	 * Places, renders and uploads a glyph; null if this page has no room for it.
+	 *
+	 * @param gui the same glyph on vanilla's page, which GUI text keeps drawing from
+	 */
+	@Nullable BakedSheetGlyph add(GlyphInfo info, MipmappableBitmap bitmap, BakedSheetGlyph gui) {
 		int width = bitmap.getPixelWidth();
 		int height = bitmap.getPixelHeight();
 		int blockWidth = GlyphMipmaps.blockSize(width);
@@ -74,8 +76,8 @@ final class MipmappedGlyphPage extends AbstractTexture implements Dumpable {
 
 		float x = blockX + GlyphMipmaps.MARGIN;
 		float y = blockY + GlyphMipmaps.MARGIN;
-		return new BakedSheetGlyph(
-			info, renderTypes, getTextureView(),
+		return new MipmappedSheetGlyph(
+			gui, info, renderTypes, getTextureView(),
 			(x + INSET) / SIZE, (x - INSET + width) / SIZE, (y + INSET) / SIZE, (y - INSET + height) / SIZE,
 			bitmap.getLeft(), bitmap.getRight(), bitmap.getTop(), bitmap.getBottom());
 	}
@@ -94,7 +96,7 @@ final class MipmappedGlyphPage extends AbstractTexture implements Dumpable {
 				coverage[(py + GlyphMipmaps.MARGIN) * blockWidth + px + GlyphMipmaps.MARGIN] = c;
 			}
 		});
-		int[][] levels = GlyphMipmaps.chain(coverage, blockWidth, blockHeight);
+		int[][] levels = GlyphMipmaps.chain(coverage, blockWidth, blockHeight, MipmappedGlyphPages.contrastBoost());
 		CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 		for (int level = 0; level < levels.length; level++) {
 			int w = blockWidth >> level;

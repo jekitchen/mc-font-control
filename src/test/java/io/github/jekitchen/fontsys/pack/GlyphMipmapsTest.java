@@ -52,28 +52,60 @@ class GlyphMipmapsTest {
 	@Test
 	void coverageFadesEvenlyInsteadOfDroppingStrokes() {
 		// A one-texel vertical stroke: nearest-neighbor sampling at half size keeps it or loses
-		// it depending on where it falls; the mean keeps half of it either way.
+		// it depending on where it falls; the mean keeps half of it either way, and the boost
+		// darkens that half the same way wherever the stroke falls.
 		for (int column = 0; column < 2; column++) {
 			int[] stroke = new int[8 * 8];
 			for (int y = 0; y < 8; y++) {
 				stroke[y * 8 + 2 + column] = 255;
 			}
-			int[] half = GlyphMipmaps.chain(stroke, 8, 8)[1];
+			int[] plain = GlyphMipmaps.chain(stroke, 8, 8, false)[1];
+			int[] boosted = GlyphMipmaps.chain(stroke, 8, 8)[1];
 			for (int y = 0; y < 4; y++) {
-				assertEquals(128, half[y * 4 + 1], "column " + column + ", row " + y);
+				assertEquals(128, plain[y * 4 + 1], "column " + column + ", row " + y);
+				assertEquals(192, boosted[y * 4 + 1], "column " + column + ", row " + y);
 			}
 		}
 	}
 
 	@Test
-	void totalCoverageIsKeptAtEveryLevel() {
+	void withoutTheBoostTotalCoverageIsKeptAtEveryLevel() {
 		int[] coverage = glyph(32, 40);
-		int[][] chain = GlyphMipmaps.chain(coverage, 32, 40);
+		int[][] chain = GlyphMipmaps.chain(coverage, 32, 40, false);
 		long full = sum(chain[0]);
 		for (int level = 1; level < chain.length; level++) {
 			long scaled = sum(chain[level]) << (2 * level);
 			assertTrue(Math.abs(scaled - full) <= ((long) level * chain[level].length) << (2 * level), "level " + level + ": " + scaled + " vs " + full);
 		}
+	}
+
+	@Test
+	void theBoostDarkensSmallerLevelsMoreAndKeepsEmptyAndFull() {
+		for (int level = 1; level < GlyphMipmaps.LEVELS; level++) {
+			assertEquals(0, GlyphMipmaps.boost(level, 0), "empty stays empty at level " + level);
+			assertEquals(255, GlyphMipmaps.boost(level, 255), "full stays full at level " + level);
+			int previous = -1;
+			for (int mean = 0; mean <= 255; mean++) {
+				int boosted = GlyphMipmaps.boost(level, mean);
+				assertTrue(boosted >= mean, "never lighter: level " + level + ", mean " + mean);
+				assertTrue(boosted >= previous, "monotonic: level " + level + ", mean " + mean);
+				previous = boosted;
+			}
+		}
+		assertEquals(96, GlyphMipmaps.boost(1, 64), "x1.5 at 1/2 size");
+		assertEquals(128, GlyphMipmaps.boost(2, 64), "x2 at 1/4 size");
+		assertEquals(160, GlyphMipmaps.boost(3, 64), "x2.5 at 1/8 size");
+		assertTrue(GlyphMipmaps.boost(3, 20) > GlyphMipmaps.boost(2, 20));
+		assertTrue(GlyphMipmaps.boost(2, 20) > GlyphMipmaps.boost(1, 20));
+	}
+
+	@Test
+	void theBoostLeavesLevelZeroAlone() {
+		int[] coverage = glyph(16, 16);
+		int[] copy = coverage.clone();
+		int[][] chain = GlyphMipmaps.chain(coverage, 16, 16);
+		assertSame(coverage, chain[0]);
+		assertArrayEquals(copy, chain[0], "level 0 is uploaded byte for byte as before");
 	}
 
 	@Test

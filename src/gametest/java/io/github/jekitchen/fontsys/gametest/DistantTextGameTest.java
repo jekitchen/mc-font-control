@@ -1,6 +1,7 @@
 package io.github.jekitchen.fontsys.gametest;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
@@ -39,22 +40,27 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.ChatVisiblity;
 import org.joml.Matrix3x2f;
+import org.joml.Matrix4f;
 
 /**
  * Clearer distant in-world text (PRD D50): system-font glyphs on mipmapped atlas pages.
  *
  * <p>Renders the {@link InWorldTextGameTest} scene (signs, a text display and a name tag) at
- * 1, 8 and 20 blocks, looking straight at the oak sign from the height of its text, once with mipmapped pages switched off ("before", vanilla's atlas) and
- * once on ("after"), each from four camera positions a third of a screen pixel apart. A third
- * set of shots with the text removed isolates the text: its "ink" is the difference. Checks:
+ * 1, 8 and 20 blocks, looking straight at the oak sign from the height of its text, in three
+ * modes: mipmapped pages off ("before", 1.1.0's vanilla atlas), on with plain averaged levels
+ * ("plain mean", for the trade-off numbers) and on as shipped, with the contrast boost
+ * ("after"). Each from four camera positions a third of a screen pixel apart. A last set of
+ * shots with the text removed isolates the text: its "ink" is the difference. Checks:
  *
  * <ul>
  *   <li>Up close (magnified), the sign text is pixel-identical before and after.</li>
- *   <li>At 20 blocks, the text shimmers less between the sub-pixel camera positions (pixels
- *       flipping on and off) and its total ink varies less: it fades evenly instead of
- *       breaking up.</li>
+ *   <li>At 8 and 20 blocks, the text shimmers less between the sub-pixel camera positions
+ *       (pixels flipping on and off) and its total ink varies less: it fades evenly instead of
+ *       breaking up. The boost darkens it compared with the plain mean, and at 8 blocks it has
+ *       at least 90% of 1.1.0's ink.</li>
  *   <li>GUI text, at 1:1 and scaled down like a smaller chat, is pixel-identical before and
- *       after: GUI text always samples the full-size level.</li>
+ *       after, and sends exactly the same vertices: GUI text still draws from vanilla's
+ *       pages.</li>
  *   <li>The atlas pages are what D50 says: 4 mip levels and a trilinear sampler for system
  *       glyphs, vanilla's single level for vanilla's own glyphs, and a GUI sampler with no
  *       mipmaps.</li>
@@ -99,21 +105,27 @@ public class DistantTextGameTest implements FabricClientGameTest {
 				mc.options.textBackgroundOpacity().set(0.0);
 				// Command feedback in chat would differ between shots.
 				mc.options.chatVisibility().set(ChatVisiblity.HIDDEN);
+				// The "Saving world" indicator appears on a timer, so its glyphs would join
+				// vanilla's pages at a different moment in each mode and shuffle them.
+				mc.options.showAutosaveIndicator().set(false);
 			});
 			InWorldTextGameTest.buildScene(world);
 			world.getServer().runCommand("gamemode spectator @a");
 			world.getServer().runCommand("data merge entity @e[type=text_display,limit=1] {background:0}");
 			world.getConnection().waitForChunksRender();
 			context.waitTicks(20);
+			settle(context, world);
 
-			Shots before = shoot(context, world, settings, false, suffix, report);
-			Shots after = shoot(context, world, settings, true, suffix, report);
+			Shots before = shoot(context, world, settings, false, false, "before", suffix, report);
+			Shots plain = shoot(context, world, settings, true, false, "plain", suffix, report);
+			Shots after = shoot(context, world, settings, true, true, "after", suffix, report);
 
 			// The same views with the text removed: what is left is everything but the text.
 			world.getServer().runCommand("data merge block -1 -60 3 {front_text:{messages:[\"\",\"\",\"\",\"\"]}}");
 			world.getServer().runCommand("data merge block 1 -60 3 {front_text:{messages:[\"\",\"\",\"\",\"\"]}}");
 			world.getServer().runCommand("data merge entity @e[type=text_display,limit=1] {text:\"\"}");
-			world.getServer().runCommand("data merge entity @e[type=pig,limit=1] {CustomNameVisible:0b}");
+			// Any named mob in the scene (a pig, or dogs once the shared scene has them).
+			world.getServer().runCommand("execute as @e[type=!player,type=!text_display] run data merge entity @s {CustomNameVisible:0b}");
 			context.waitTicks(10);
 			int[][][][] blank = new int[DISTANCES.length][OFFSETS][][];
 			for (int d = 0; d < DISTANCES.length; d++) {
@@ -122,9 +134,10 @@ public class DistantTextGameTest implements FabricClientGameTest {
 				}
 			}
 
-			compare(before, after, blank, report);
+			compare(before, plain, after, blank, report);
 		} finally {
 			MipmappedGlyphPages.setEnabled(true);
+			MipmappedGlyphPages.setContrastBoost(true);
 			context.runOnClient(saved::restore);
 			GameTestFonts.apply(context, FontSettings.DEFAULTS);
 		}
@@ -132,20 +145,32 @@ public class DistantTextGameTest implements FabricClientGameTest {
 		write(report.toString());
 	}
 
-	/** Screenshots of one mode: the GUI probe and every distance and camera offset. */
-	private static Shots shoot(ClientGameTestContext context, TestSingleplayerContext world, FontSettings settings, boolean mipmaps, String suffix, StringBuilder report) {
-		String mode = mipmaps ? "after" : "before";
+	/**
+	 * Screenshots of one mode: the GUI probe and every distance and camera offset.
+	 *
+	 * @param mipmaps system glyphs on mipmapped pages (off: 1.1.0's vanilla pages only)
+	 * @param boost   the contrast boost of the smaller levels (off: the plain mean)
+	 */
+	private static Shots shoot(ClientGameTestContext context, TestSingleplayerContext world, FontSettings settings, boolean mipmaps, boolean boost,
+		String mode, String suffix, StringBuilder report) {
 		MipmappedGlyphPages.setEnabled(mipmaps);
+		MipmappedGlyphPages.setContrastBoost(boost);
+		// Apply looking at the sky, then open the probe first, so every mode puts glyphs on
+		// vanilla's pages in the same order: the GUI probe's, then the world's. In-world text is
+		// drawn sorted by distance, so applying in view of it would order the pages by where the
+		// camera happened to be, and that alone moves GUI glyphs to other texels.
+		world.getServer().runCommand(String.format(Locale.ROOT, "tp @a %.4f %.4f %.4f 0 -90", TARGET_X, CAMERA_Y, SIGN_Z - DISTANCES[0]));
+		context.waitTicks(6);
 		GameTestFonts.apply(context, settings);
-		world.getConnection().waitForChunksRender();
-
-		Shots shots = new Shots();
 		context.setScreen(ProbeScreen::new);
 		context.waitTicks(5);
+		Shots shots = new Shots();
 		shots.gui = luma(context.takeScreenshot("d50-gui-" + mode + suffix));
 		shots.guiScale = context.computeOnClient(mc -> mc.getWindow().getGuiScale());
+		shots.guiVertices = context.computeOnClient(DistantTextGameTest::guiVertices);
 		pages(context, mipmaps);
 		context.setScreen(() -> null);
+		world.getConnection().waitForChunksRender();
 		context.waitTicks(10);
 
 		shots.world = new int[DISTANCES.length][OFFSETS][][];
@@ -160,6 +185,24 @@ public class DistantTextGameTest implements FabricClientGameTest {
 		return shots;
 	}
 
+	/**
+	 * The vertices GUI text sends for the probe's sample: atlas page, positions and texture
+	 * coordinates of every glyph, as {@code GlyphRenderState} draws them ({@code flat = true}).
+	 * Identical strings mean identical GUI draws, whatever the GPU's rounding.
+	 */
+	private static String guiVertices(Minecraft mc) {
+		StringBuilder out = new StringBuilder();
+		mc.font.prepareText(Component.literal(SAMPLE).getVisualOrderText(), 0.0F, 0.0F, -1, true, false, 0).visit(new Font.GlyphVisitor() {
+			@Override
+			public void acceptGlyph(TextRenderable.Styled glyph) {
+				out.append(glyph.textureView().texture().getLabel()).append(':');
+				glyph.render(new Matrix4f(), new RecordingVertices(out), 0, true);
+				out.append('\n');
+			}
+		});
+		return out.toString();
+	}
+
 	/** Moves the camera to distance {@code d}, offset {@code k} thirds of a pixel sideways, and screenshots. */
 	private static Path view(ClientGameTestContext context, TestSingleplayerContext world, int d, int k, String name) {
 		double distance = DISTANCES[d];
@@ -172,55 +215,79 @@ public class DistantTextGameTest implements FabricClientGameTest {
 		return context.takeScreenshot(name);
 	}
 
-	private static void compare(Shots before, Shots after, int[][][][] blank, StringBuilder report) {
-		// GUI at 1:1 and 3/4 scale: identical. At exactly half scale every sample lands on a
-		// texel boundary, so float rounding (which depends on where the glyph sits in the atlas)
-		// can pick the neighboring texel: a few pixels flip, but nothing blurs.
-		int split = HALF_SCALE_Y * before.guiScale;
+	/**
+	 * Waits until the close-up view stops changing: light from the freshly built scene can take
+	 * a few seconds to settle, more on a busy machine, and would otherwise show up as "ink".
+	 */
+	private static void settle(ClientGameTestContext context, TestSingleplayerContext world) {
+		int[][] previous = luma(view(context, world, 0, 0, "d50-settle"));
+		for (int attempt = 0; attempt < 30; attempt++) {
+			context.waitTicks(20);
+			int[][] current = luma(view(context, world, 0, 0, "d50-settle"));
+			if (differing(previous, current, 0, 0, current[0].length, current.length) == 0) {
+				return;
+			}
+			previous = current;
+		}
+		Fontsys.LOGGER.warn("[gametest] The scene kept changing; distant text measurements may be noisy.");
+	}
+
+	private static void compare(Shots before, Shots plain, Shots after, int[][][][] blank, StringBuilder report) {
+		// GUI text at 1:1, 3/4 and half scale: GUI text draws from vanilla's pages, which hold
+		// the same glyphs at the same places as before, so nothing may change at all.
+		int bottom = Math.min((HALF_SCALE_Y + 8) * before.guiScale, before.gui.length);
 		int width = before.gui[0].length;
-		int guiDiff = differing(before.gui, after.gui, 0, 0, width, split);
-		// Only the half-scale line's rows: the "Saving world" indicator fades in the bottom corner.
-		int halfDiff = differing(before.gui, after.gui, 0, split, width, Math.min(split + 8 * before.guiScale, before.gui.length));
-		int halfLit = lit(before.gui, split, split + 8 * before.guiScale);
-		// Blur (a lower mip level or a linear filter) would turn fully lit pixels gray.
-		int fullBefore = full(before.gui, split, split + 8 * before.guiScale);
-		int fullAfter = full(after.gui, split, split + 8 * before.guiScale);
-		report.append("gui differing pixels before vs after: ").append(guiDiff).append(" at 1:1 and 3/4 scale; ")
-			.append(halfDiff).append(" of ").append(halfLit).append(" text pixels at half scale (texel-boundary rounding; fully lit ").append(fullBefore).append(" -> ").append(fullAfter).append(")\n");
+		int guiLit = lit(before.gui, 0, bottom);
+		int guiPlain = differing(before.gui, plain.gui, 0, 0, width, bottom);
+		int guiDiff = differing(before.gui, after.gui, 0, 0, width, bottom);
+		boolean sameVertices = before.guiVertices.equals(after.guiVertices) && before.guiVertices.equals(plain.guiVertices);
+		report.append("gui text (1:1, 3/4 and half scale, ").append(guiLit).append(" text pixels): ").append(guiDiff).append(" pixels changed (")
+			.append(guiPlain).append(" with the plain mean); vertex data ").append(sameVertices ? "identical" : "DIFFERENT").append('\n');
 
 		// Near: the sign text in the middle of the view is magnified, so it must not change.
 		int[][] nearBefore = before.world[0][0];
 		int w = nearBefore[0].length;
 		int h = nearBefore.length;
 		int nearDiff = differing(nearBefore, after.world[0][0], w / 4, h * 3 / 8, w * 3 / 4, h * 5 / 8);
-		report.append("near (1 block) sign text differing pixels before vs after: ").append(nearDiff).append('\n');
+		int nearPlain = differing(nearBefore, plain.world[0][0], w / 4, h * 3 / 8, w * 3 / 4, h * 5 / 8);
+		report.append("near (1 block) sign text: ").append(nearDiff).append(" pixels changed (").append(nearPlain).append(" with the plain mean)\n");
 
-		Metrics[] metricsBefore = new Metrics[DISTANCES.length];
-		Metrics[] metricsAfter = new Metrics[DISTANCES.length];
+		Metrics[][] metrics = new Metrics[3][DISTANCES.length];
 		for (int d = 0; d < DISTANCES.length; d++) {
-			metricsBefore[d] = Metrics.of(before.world[d], blank[d]);
-			metricsAfter[d] = Metrics.of(after.world[d], blank[d]);
-			report.append(String.format(Locale.ROOT, "%s: before %s | after %s%n", LABELS[d], metricsBefore[d], metricsAfter[d]));
+			metrics[0][d] = Metrics.of(before.world[d], blank[d]);
+			metrics[1][d] = Metrics.of(plain.world[d], blank[d]);
+			metrics[2][d] = Metrics.of(after.world[d], blank[d]);
+			report.append(String.format(Locale.ROOT, "%s:%n  before (1.1.0)   %s%n  plain mean       %s, ink %.2fx before%n  after (boosted)  %s, ink %.2fx before%n",
+				LABELS[d], metrics[0][d], metrics[1][d], ratio(metrics[1][d], metrics[0][d]), metrics[2][d], ratio(metrics[2][d], metrics[0][d])));
 		}
 		Fontsys.LOGGER.info("[measurement] distant text:\n{}", report.toString().strip());
 
-		require(guiDiff == 0, guiDiff + " GUI pixels changed; GUI text must look exactly as before");
-		require(halfDiff * 20 <= halfLit, halfDiff + " of " + halfLit + " half-scale GUI text pixels changed");
-		require(Math.abs(fullAfter - fullBefore) * 20 <= fullBefore, "half-scale GUI text blurred: " + fullBefore + " fully lit pixels before, " + fullAfter + " after");
-		require(nearDiff == 0, nearDiff + " pixels of close-up sign text changed; magnified text must look exactly as before");
-		Metrics far0 = metricsBefore[2];
-		Metrics far1 = metricsAfter[2];
-		require(far0.ink > 0 && far1.ink > 0, "the 20-block shots show text");
-		require(far1.shimmer < far0.shimmer, "distant text should shimmer less: " + far1.shimmer + " vs " + far0.shimmer);
-		require(far1.variation <= far0.variation, "distant text coverage should vary less: " + far1.variation + " vs " + far0.variation);
+		require(sameVertices, "GUI text vertex data changed; GUI text must draw exactly as before:\n" + before.guiVertices + "vs\n" + after.guiVertices);
+		require(guiDiff == 0 && guiPlain == 0, guiDiff + " GUI pixels changed (" + guiPlain + " with the plain mean); GUI text must look exactly as before");
+		require(nearDiff == 0 && nearPlain == 0, nearDiff + " pixels of close-up sign text changed (" + nearPlain + " with the plain mean); magnified text must look exactly as before");
+		for (int d = 1; d < DISTANCES.length; d++) {
+			Metrics old = metrics[0][d];
+			Metrics now = metrics[2][d];
+			require(old.ink > 0 && now.ink > 0, LABELS[d] + " shots show text");
+			require(now.shimmer < old.shimmer, LABELS[d] + ": text should shimmer less: " + now.shimmer + " vs " + old.shimmer);
+			require(now.variation <= old.variation, LABELS[d] + ": text coverage should vary less: " + now.variation + " vs " + old.variation);
+			require(now.ink >= metrics[1][d].ink, LABELS[d] + ": the boost should darken text: " + now.ink + " vs " + metrics[1][d].ink);
+		}
+		require(ratio(metrics[2][1], metrics[0][1]) >= 0.9, "text 8 blocks away should be about as dark as before: " + ratio(metrics[2][1], metrics[0][1]) + "x the ink");
+	}
+
+	private static double ratio(Metrics a, Metrics b) {
+		return b.ink == 0 ? 0 : a.ink / b.ink;
 	}
 
 	/**
 	 * Text "ink" per camera offset (difference from the shot without text), and how steady it is:
 	 * {@code shimmer} is how much of the ink changes between neighboring offsets (pixels popping
-	 * in and out), {@code variation} the coefficient of variation of the total ink.
+	 * in and out), {@code variation} the coefficient of variation of the total ink, and
+	 * {@code contrast} the text's darkest strokes against the background: the mean difference of
+	 * its strongest tenth of pixels, as a share of the strongest difference in the shot.
 	 */
-	private record Metrics(double ink, double shimmer, double variation) {
+	private record Metrics(double ink, double shimmer, double variation, double contrast) {
 		/** Differences up to this (of 765, three channels) are rendering noise, not text. */
 		private static final int NOISE = 6;
 
@@ -228,16 +295,28 @@ public class DistantTextGameTest implements FabricClientGameTest {
 			int n = shots.length;
 			int[][][] ink = new int[n][][];
 			double[] totals = new double[n];
+			double contrast = 0;
 			for (int k = 0; k < n; k++) {
 				ink[k] = new int[shots[k].length][shots[k][0].length];
+				List<Integer> lit = new ArrayList<>();
 				for (int y = 0; y < ink[k].length; y++) {
 					for (int x = 0; x < ink[k][y].length; x++) {
 						int difference = Math.abs(shots[k][y][x] - blank[k][y][x]);
 						// The sky can drift by a step or two between shots; that is not text.
 						ink[k][y][x] = difference > NOISE ? difference : 0;
 						totals[k] += ink[k][y][x];
+						if (ink[k][y][x] > 0) {
+							lit.add(ink[k][y][x]);
+						}
 					}
 				}
+				lit.sort(null);
+				int top = Math.max(1, lit.size() / 10);
+				double sum = 0;
+				for (int i = lit.size() - top; i < lit.size(); i++) {
+					sum += i < 0 ? 0 : lit.get(i);
+				}
+				contrast += lit.isEmpty() ? 0 : sum / top / 765.0 / n;
 			}
 			double change = 0;
 			for (int k = 0; k + 1 < n; k++) {
@@ -255,12 +334,12 @@ public class DistantTextGameTest implements FabricClientGameTest {
 			for (double t : totals) {
 				variance += (t - mean) * (t - mean) / n;
 			}
-			return new Metrics(mean, mean == 0 ? 0 : change / (n - 1) / mean, mean == 0 ? 0 : Math.sqrt(variance) / mean);
+			return new Metrics(mean, mean == 0 ? 0 : change / (n - 1) / mean, mean == 0 ? 0 : Math.sqrt(variance) / mean, contrast);
 		}
 
 		@Override
 		public String toString() {
-			return String.format(Locale.ROOT, "ink %.0f, shimmer %.3f, ink variation %.4f", ink, shimmer, variation);
+			return String.format(Locale.ROOT, "ink %.0f, contrast %.3f, shimmer %.3f, ink variation %.4f", ink, contrast, shimmer, variation);
 		}
 	}
 
@@ -282,10 +361,14 @@ public class DistantTextGameTest implements FabricClientGameTest {
 				found.add("no glyphs prepared");
 			}
 			for (TextRenderable.Styled glyph : glyphs) {
-				int levels = glyph.textureView().texture().getMipLevels();
+				int guiLevels = glyph.textureView().texture().getMipLevels();
+				if (guiLevels != 1) {
+					found.add("GUI text draws from a page with " + guiLevels + " mip levels, expected vanilla's 1");
+				}
+				int levels = MipmappedGlyphPages.worldTextureView(glyph).texture().getMipLevels();
 				int expected = mipmaps ? GlyphMipmaps.LEVELS : 1;
 				if (levels != expected) {
-					found.add("glyph page has " + levels + " mip levels, expected " + expected);
+					found.add("in-world glyph page has " + levels + " mip levels, expected " + expected);
 				}
 				TextureSetup gui = new GlyphRenderState(new Matrix3x2f(), glyph, null).textureSetup();
 				GpuSampler guiSampler = gui.sampler0();
@@ -379,19 +462,6 @@ public class DistantTextGameTest implements FabricClientGameTest {
 		return count;
 	}
 
-	/** Pixels in rows {@code y0} to {@code y1} at full white (the probe's half-scale text is white). */
-	private static int full(int[][] image, int y0, int y1) {
-		int count = 0;
-		for (int y = y0; y < Math.min(y1, image.length); y++) {
-			for (int value : image[y]) {
-				if (value == 3 * 255) {
-					count++;
-				}
-			}
-		}
-		return count;
-	}
-
 	/** Sum of the three color channels of every pixel. */
 	private static int[][] luma(Path shot) {
 		try (InputStream in = Files.newInputStream(shot); NativeImage image = NativeImage.read(in)) {
@@ -427,13 +497,65 @@ public class DistantTextGameTest implements FabricClientGameTest {
 	private static final class Shots {
 		int[][] gui;
 		int guiScale;
+		String guiVertices;
 		int[][][][] world;
 	}
 
+	/** Writes each vertex's position and texture coordinates as text. */
+	private record RecordingVertices(StringBuilder out) implements VertexConsumer {
+		@Override
+		public VertexConsumer addVertex(float x, float y, float z) {
+			out.append(" (").append(x).append(' ').append(y).append(' ').append(z).append(')');
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv(float u, float v) {
+			out.append(" uv ").append(u).append(' ').append(v);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setColor(int r, int g, int b, int a) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setColor(int color) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv1(int u, int v) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv2(int u, int v) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv3(float u, float v) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setNormal(float x, float y, float z) {
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setLineWidth(float width) {
+			return this;
+		}
+	}
+
 	/** Options the test changes, restored afterwards. */
-	private record SavedOptions(CloudStatus clouds, boolean backgroundForChatOnly, double textBackground, ChatVisiblity chat) {
+	private record SavedOptions(CloudStatus clouds, boolean backgroundForChatOnly, double textBackground, ChatVisiblity chat, boolean autosaveIndicator) {
 		static SavedOptions save(Minecraft mc) {
-			return new SavedOptions(mc.options.cloudStatus().get(), mc.options.backgroundForChatOnly().get(), mc.options.textBackgroundOpacity().get(), mc.options.chatVisibility().get());
+			return new SavedOptions(mc.options.cloudStatus().get(), mc.options.backgroundForChatOnly().get(), mc.options.textBackgroundOpacity().get(), mc.options.chatVisibility().get(),
+				mc.options.showAutosaveIndicator().get());
 		}
 
 		void restore(Minecraft mc) {
@@ -441,6 +563,7 @@ public class DistantTextGameTest implements FabricClientGameTest {
 			mc.options.backgroundForChatOnly().set(backgroundForChatOnly);
 			mc.options.textBackgroundOpacity().set(textBackground);
 			mc.options.chatVisibility().set(chat);
+			mc.options.showAutosaveIndicator().set(autosaveIndicator);
 		}
 	}
 

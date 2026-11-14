@@ -18,25 +18,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Puts smooth system-font glyphs on mipmapped atlas pages, so distant in-world text fades evenly
- * instead of breaking up (PRD D50).
+ * Also puts smooth system-font glyphs on mipmapped atlas pages, so distant in-world text fades
+ * evenly instead of breaking up (PRD D50).
  *
  * <p>Targets:
  *
  * <ul>
- *   <li>{@code GlyphStitcher.stitch(GlyphInfo, GlyphBitmap)}: where every glyph of a font set
- *       goes onto an atlas page. Vanilla creates its {@code FontTexture} pages here with one mip
- *       level, a {@code NEAREST} sampler and 1 px between glyphs, and {@code FontTexture} has no
- *       way to ask for more. A glyph that {@link MipmappedGlyphPages#wants} is stitched onto
- *       Fontsys's own pages instead; every other glyph (vanilla's fonts, server-pack glyphs,
- *       crisp mode) takes vanilla's path unchanged, as does a glyph Fontsys's pages refuse.</li>
+ *   <li>{@code GlyphStitcher.stitch(GlyphInfo, GlyphBitmap)}, at RETURN: where every glyph of a
+ *       font set goes onto an atlas page. Vanilla creates its {@code FontTexture} pages here
+ *       with one mip level, a {@code NEAREST} sampler and 1 px between glyphs, and
+ *       {@code FontTexture} has no way to ask for more. Vanilla stitches every glyph as usual,
+ *       so its pages, and with them GUI text, stay exactly as in 1.1.0. A glyph that
+ *       {@link MipmappedGlyphPages#wants} is then also put on Fontsys's own pages, and the
+ *       returned glyph draws in-world text from there ({@code MipmappedSheetGlyph}). Every
+ *       other glyph (vanilla's fonts, server-pack glyphs, crisp mode) is left alone.</li>
  *   <li>{@code GlyphStitcher.reset()}: vanilla releases its pages here on every font reload,
  *       and {@code close()} calls it too. Fontsys's pages are released with them.</li>
  * </ul>
  *
  * <p>This replaces the {@code FontTexture} mixin the PRD first sketched: changing vanilla's
  * pages would mipmap vanilla and server-pack glyphs too, and the stitcher is the one place that
- * sees each glyph before a page is chosen.
+ * sees each glyph and its page.
  */
 @Mixin(GlyphStitcher.class)
 abstract class GlyphStitcherMixin {
@@ -51,15 +53,16 @@ abstract class GlyphStitcherMixin {
 	@Unique
 	private @Nullable MipmappedGlyphPages fontsys$mipmappedPages;
 
-	@Inject(method = "stitch", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "stitch", at = @At("RETURN"), cancellable = true)
 	private void fontsys$stitchMipmapped(GlyphInfo info, GlyphBitmap bitmap, CallbackInfoReturnable<BakedSheetGlyph> cir) {
-		if (!MipmappedGlyphPages.wants(bitmap)) {
+		BakedSheetGlyph gui = cir.getReturnValue();
+		if (gui == null || !MipmappedGlyphPages.wants(bitmap)) {
 			return;
 		}
 		if (fontsys$mipmappedPages == null) {
 			fontsys$mipmappedPages = new MipmappedGlyphPages(textureManager, texturePrefix);
 		}
-		BakedSheetGlyph glyph = fontsys$mipmappedPages.stitch(info, bitmap);
+		BakedSheetGlyph glyph = fontsys$mipmappedPages.stitch(info, bitmap, gui);
 		if (glyph != null) {
 			cir.setReturnValue(glyph);
 		}
