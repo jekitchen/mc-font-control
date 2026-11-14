@@ -1,0 +1,17 @@
+# Test-only mod for ./gradlew :neoforge:neoforgeSmokeTest (PRD D51). Never shipped.
+license="MIT"
+
+[[mods]]
+modId="fontsys_smoketest"
+version="1.0.0"
+displayName="Fontsys smoke test"
+description='''
+Drives the NeoForge client through Fontsys's checks and quits.
+'''
+
+[[dependencies.fontsys_smoketest]]
+modId="fontsys"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="CLIENT"

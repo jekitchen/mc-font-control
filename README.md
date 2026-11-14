@@ -26,8 +26,10 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
 
 ## Using it
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) for Minecraft 26.3, then drop the Fontsys jar into `mods/`.
-2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
+1. Drop the Fontsys jar into the `mods/` folder of a Minecraft 26.3 instance. From 1.2.0 the same jar works on both loaders:
+   - **Fabric:** with [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api).
+   - **NeoForge:** with [NeoForge](https://neoforged.net/) 26.3.0.103 or later. Fabric API isn't needed.
+2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu) (on NeoForge, from Mods → Fontsys → Config). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
 3. Search for a font, pick a style, check the preview and press **Apply**. The preview also shows the next size down and up; click one to use it. The fonts you used last are listed first, marked **Recent**.
 4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
@@ -64,12 +66,17 @@ Settings are stored in `config/fontsys.json`. The font list cache is `config/fon
 Requires Java 25. The Gradle wrapper downloads everything else.
 
 ```sh
-./gradlew build                               # compile and run unit tests; jar in build/libs/
+./gradlew build                               # compile and run unit tests; the one jar, for Fabric and NeoForge, in build/libs/
 ./gradlew runClient                           # launch Minecraft with the mod
 ./gradlew runClientGameTest                   # boot the client and run the automated game tests
 ./gradlew runClientGameTest -PwithSodiumIris  # the same, with Sodium and Iris installed
 ./gradlew runClientGameTest --args="--graphicsBackend vulkan"  # the same, on the Vulkan renderer
+./gradlew runProductionClientGameTest         # the game tests against the built jar on a production-style Fabric client
+./gradlew :neoforge:runNeoforgeClient         # launch Minecraft on NeoForge
+./gradlew :neoforge:neoforgeSmokeTest         # boot the NeoForge client with the built jar, apply a font, check it and quit
 ```
+
+The jar carries both `fabric.mod.json` and `META-INF/neoforge.mods.toml`; each loader reads its own file. The `neoforge/` subproject supplies the NeoForge entry point and metadata, and compiles the shared code against NeoForge's Minecraft to check it is identical to the Fabric compile.
 
 Game test screenshots land in `build/run/clientGameTest/screenshots/`. Performance and memory measurements land in `build/reports/measurements/`.
 

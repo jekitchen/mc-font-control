@@ -49,7 +49,7 @@ dependencies {
 }
 
 // Fabric client game tests (PRD D17): src/gametest boots the real client.
-// Local: ./gradlew runClientGameTest   CI: ./gradlew runProductionClientGameTest
+// Local and CI: ./gradlew runClientGameTest (dev) and ./gradlew runProductionClientGameTest (the built jar)
 fabricApi {
 	configureTests {
 		createSourceSet = true
@@ -65,7 +65,19 @@ dependencies {
 	gametestCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
+// The game tests as a mod jar of their own, for the production-style run below.
+def gametestJar = tasks.register('gametestJar', Jar) {
+	from sourceSets.gametest.output
+	archiveClassifier = 'gametest'
+	destinationDirectory = layout.buildDirectory.dir('gametest-libs')
+}
+
+// The same game tests against the finished jar (the one that also carries the NeoForge parts,
+// PRD D54) on a production-style Fabric client: Fabric Loader's real launcher, mods loaded
+// from jars, no dev classpath. Loom adds the jar task's output and productionRuntimeMods.
 tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	mods.from(gametestJar)
+	runDir = layout.buildDirectory.dir('run/productionClientGameTest')
 	jvmArgs.add("-Dfabric.client.gametest")
 	// Known GitHub Actions issue with the network synchronizer (Fabric docs).
 	jvmArgs.add("-Dfabric.client.gametest.disableNetworkSynchronizer=true")
@@ -105,6 +117,61 @@ test {
 	testLogging.showStandardStreams = true
 }
 
+// One jar for both loaders (PRD D54). Fabric Loader reads fabric.mod.json and ignores the
+// rest; NeoForge reads META-INF/neoforge.mods.toml and only looks for fabric.mod.json when no
+// NeoForge metadata is present. The shared code is compiled here, against vanilla Minecraft;
+// the neoforge subproject adds its own package and neoforge.mods.toml (neoforge/build.gradle).
+def neoforgePartsScope = configurations.dependencyScope('neoforgeParts')
+def neoforgePartsFiles = configurations.resolvable('neoforgePartsFiles') { extendsFrom(neoforgePartsScope.get()) }
+def neoforgeSharedClassesScope = configurations.dependencyScope('neoforgeSharedClasses')
+def neoforgeSharedClassesFiles = configurations.resolvable('neoforgeSharedClassesFiles') { extendsFrom(neoforgeSharedClassesScope.get()) }
+dependencies {
+	neoforgeParts project(path: ':neoforge', configuration: 'neoforgeParts')
+	neoforgeSharedClasses project(path: ':neoforge', configuration: 'neoforgeSharedClasses')
+}
+
+// The jar ships the shared classes compiled against vanilla Minecraft to NeoForge too. That is
+// only safe while they compile to the same bytecode against NeoForge's patched Minecraft (a
+// NeoForge-only overload could make javac pick a different method). Fail the build if not.
+def fabricClassDirs = sourceSets.main.output.classesDirs
+def neoforgeClassDirs = files(neoforgeSharedClassesFiles)
+tasks.register('checkSharedBytecode') {
+	group = 'verification'
+	description = 'Checks that the shared classes compile identically for Fabric and NeoForge (PRD D54).'
+	inputs.files(fabricClassDirs).withPropertyName('fabricClasses')
+	inputs.files(neoforgeClassDirs).withPropertyName('neoforgeClasses')
+	def report = layout.buildDirectory.file('reports/checkSharedBytecode.txt')
+	outputs.file(report)
+	doLast {
+		def collect = { FileCollection dirs, String loaderPackage ->
+			def found = [:]
+			dirs.asFileTree.matching { include '**/*.class'; exclude "io/github/jekitchen/fontsys/${loaderPackage}/**" }.visit { d ->
+				if (!d.directory) {
+					found[d.relativePath.pathString] = d.file.bytes.encodeBase64().toString()
+				}
+			}
+			found
+		}
+		def fabric = collect(fabricClassDirs, 'fabric')
+		def neoforge = collect(neoforgeClassDirs, 'neoforge')
+		def problems = []
+		(fabric.keySet() + neoforge.keySet()).toSorted().each { path ->
+			if (!fabric.containsKey(path)) {
+				problems << "only in the NeoForge build: ${path}"
+			} else if (!neoforge.containsKey(path)) {
+				problems << "only in the Fabric build: ${path}"
+			} else if (fabric[path] != neoforge[path]) {
+				problems << "compiles differently against NeoForge's Minecraft: ${path}"
+			}
+		}
+		report.get().asFile.text = (problems ?: ["${fabric.size()} shared classes identical"]).join('\n') + '\n'
+		if (problems) {
+			throw new GradleException("The single jar would run Fabric-compiled code on NeoForge that differs from the NeoForge compile:\n  "
+				+ problems.join('\n  ') + "\nKeep shared code loader-neutral, or move the difference behind Platform.")
+		}
+	}
+}
+
 jar {
 	def projectName = project.name
 	inputs.property "projectName", projectName
@@ -112,4 +179,54 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_$projectName" }
 	}
+	// The NeoForge entry point package and META-INF/neoforge.mods.toml (PRD D54).
+	from(neoforgePartsFiles)
+	dependsOn 'checkSharedBytecode'
 }
+
+sourcesJar {
+	from(rootProject.file('neoforge/src/main/java'))
+	from(rootProject.file('neoforge/src/main/resources'))
+}
+
+// Both loaders' metadata, entry points and the shared mixin config are in the jar, with the
+// same version (PRD D54).
+def modJarFile = tasks.named('jar').flatMap { it.archiveFile }
+def expectedVersion = project.version.toString()
+tasks.register('checkModJar') {
+	group = 'verification'
+	description = 'Checks that the jar carries both Fabric and NeoForge metadata (PRD D54).'
+	inputs.file(modJarFile).withPropertyName('jar')
+	doLast {
+		def zip = new java.util.zip.ZipFile(modJarFile.get().asFile)
+		try {
+			def text = { String name ->
+				def entry = zip.getEntry(name)
+				if (entry == null) {
+					throw new GradleException("The jar is missing ${name}")
+				}
+				zip.getInputStream(entry).getText('UTF-8')
+			}
+			[
+				'io/github/jekitchen/fontsys/fabric/FontsysFabric.class',
+				'io/github/jekitchen/fontsys/neoforge/FontsysNeoForge.class',
+				'fontsys.mixins.json',
+			].each { text(it) }
+			def fabricJson = text('fabric.mod.json')
+			def toml = text('META-INF/neoforge.mods.toml')
+			if (!fabricJson.contains("\"version\": \"${expectedVersion}\"") || !toml.contains("version=\"${expectedVersion}\"")) {
+				throw new GradleException("fabric.mod.json and neoforge.mods.toml must both say version ${expectedVersion}")
+			}
+			if ((fabricJson + toml).contains('${')) {
+				throw new GradleException('The jar metadata has an unexpanded ${...} placeholder')
+			}
+		} finally {
+			zip.close()
+		}
+	}
+}
+tasks.named('check') { dependsOn 'checkModJar' }
+
+// The finished jar, for the NeoForge smoke test (neoforge/build.gradle).
+configurations.consumable('modJarElements')
+artifacts.add('modJarElements', tasks.named('jar'))

@@ -1,0 +1,173 @@
+// NeoForge side of Fontsys (PRD D51, D54).
+//
+// Fontsys ships as one jar for both loaders, built by the root project (D54). This project
+// supplies the NeoForge parts of it: the io.github.jekitchen.fontsys.neoforge package and
+// META-INF/neoforge.mods.toml. For NeoForge dev runs and the bytecode check it also compiles
+// the root project's src/main/java (everything except the fabric package) against NeoForge's
+// Minecraft; the loader-neutral code is not copied or moved.
+// Play:    ./gradlew :neoforge:runNeoforgeClient                (dev classes)
+// Check:   ./gradlew :neoforge:neoforgeSmokeTest     (boots the client with the built jar, applies a font, quits)
+plugins {
+	id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+version = "${project.mod_version}+${project.minecraft_version}"
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir rootProject.file('src/main/java')
+			// Fabric entry points and Mod Menu; everything else in src/main is loader-neutral.
+			exclude 'io/github/jekitchen/fontsys/fabric/**'
+		}
+		resources {
+			// Assets (lang, icon) and the shared mixin config, fontsys.mixins.json.
+			srcDir rootProject.file('src/main/resources')
+			exclude 'fabric.mod.json'
+		}
+	}
+	// A second, test-only mod that drives the client through a font change and quits (D51).
+	smokeTest
+}
+
+neoForge {
+	version = project.neoforge_version
+
+	addModdingDependenciesTo sourceSets.smokeTest
+
+	mods {
+		fontsys {
+			sourceSet sourceSets.main
+		}
+		fontsys_smoketest {
+			sourceSet sourceSets.smokeTest
+		}
+	}
+
+	runs {
+		// Named so that ./gradlew runClient keeps launching only the Fabric client.
+		neoforgeClient {
+			client()
+			loadedMods = [mods.fontsys]
+		}
+		// Fontsys comes from the built jar in the run's mods folder, not from dev classes, so
+		// this tests the file players get (D54).
+		neoforgeSmokeTest {
+			client()
+			sourceSet = sourceSets.smokeTest
+			loadedMods = [mods.fontsys_smoketest]
+			gameDirectory = project.file('build/run/smokeTest')
+			systemProperty 'fontsys.smokeTest', 'true'
+			systemProperty 'fontsys.smokeTest.expectJar', 'true'
+		}
+	}
+}
+
+dependencies {
+	// Compile against Fontsys; at run time it comes from the built jar (see installSmokeTestJar).
+	smokeTestCompileOnly sourceSets.main.output
+}
+
+// The NeoForge parts of the single jar (D54), picked up by the root project's jar task.
+def neoforgePartsTask = tasks.register('neoforgeParts', Sync) {
+	from(sourceSets.main.output) {
+		include 'io/github/jekitchen/fontsys/neoforge/**'
+		include 'META-INF/neoforge.mods.toml'
+	}
+	into layout.buildDirectory.dir('neoforgeParts')
+}
+configurations.consumable('neoforgeParts')
+artifacts.add('neoforgeParts', layout.buildDirectory.dir('neoforgeParts')) {
+	builtBy neoforgePartsTask
+}
+// This project's compile of the shared code, for the root project's checkSharedBytecode.
+configurations.consumable('neoforgeSharedClasses')
+artifacts.add('neoforgeSharedClasses', tasks.named('compileJava').flatMap { it.destinationDirectory }) {
+	builtBy tasks.named('compileJava')
+}
+
+// No separate NeoForge jar any more: the root project builds the one jar (D54).
+tasks.named('jar') {
+	enabled = false
+}
+
+// The built single jar, copied into the smoke test's mods folder.
+def modJarScope = configurations.dependencyScope('modJar')
+def modJarFiles = configurations.resolvable('modJarFiles') { extendsFrom(modJarScope.get()) }
+dependencies {
+	modJar project(path: ':', configuration: 'modJarElements')
+}
+def smokeRunDir = project.file('build/run/smokeTest')
+def installSmokeTestJar = tasks.register('installSmokeTestJar', Sync) {
+	from modJarFiles
+	into new File(smokeRunDir, 'mods')
+}
+
+// NeoForm Runtime (asset download, Minecraft setup) asks for a Java 21 toolchain by default.
+// The build already runs on Java 25, so use that instead of needing a second JDK.
+tasks.withType(net.neoforged.nfrtgradle.NeoFormRuntimeTask).configureEach {
+	javaExecutable = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }.map { it.executablePath.asFile.absolutePath }
+}
+
+// Runs the smoke test client and fails the build unless it passed (D51). CI wraps it in xvfb-run.
+tasks.register('neoforgeSmokeTest') {
+	group = 'verification'
+	description = 'Boots the NeoForge client with Fontsys, applies a font, checks it, and quits.'
+	dependsOn 'runNeoforgeSmokeTest'
+	def resultFile = new File(smokeRunDir, 'fontsys-smoketest.txt')
+	def logFile = new File(smokeRunDir, 'logs/latest.log')
+	doFirst {
+		if (!resultFile.isFile()) {
+			throw new GradleException("The smoke test wrote no result; see ${logFile}")
+		}
+		def lines = resultFile.readLines('UTF-8')
+		lines.each { println it }
+		// Fontsys logs one warning when a font falls back to vanilla; the smoke test expects none,
+		// and no mixin or Fontsys errors at all.
+		def problems = logFile.isFile() ? logFile.readLines('UTF-8').findAll {
+			(it.contains('/WARN]') || it.contains('/ERROR]')) && (it.contains('[Fontsys') || it.toLowerCase().contains('mixin'))
+		} : []
+		problems.each { println "LOG: ${it}" }
+		if (lines.last() != 'RESULT PASS' || !problems.isEmpty()) {
+			throw new GradleException("NeoForge smoke test failed; see ${resultFile} and ${logFile}")
+		}
+	}
+}
+
+tasks.named('runNeoforgeSmokeTest') {
+	dependsOn installSmokeTestJar
+	// Start from the vanilla font, and remove the last result so an old one can't pass for this run.
+	def stale = [new File(smokeRunDir, 'fontsys-smoketest.txt'), new File(smokeRunDir, 'config/fontsys.json')]
+	doFirst {
+		stale.each { it.delete() }
+	}
+}
+
+processResources {
+	def props = [
+		version          : project.version,
+		neoforge_version : project.neoforge_version,
+		minecraft_version: project.minecraft_version,
+	]
+	inputs.properties props
+
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+

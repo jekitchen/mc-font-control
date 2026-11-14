@@ -36,7 +36,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 
 ## Build and test
 
-- `./gradlew build` compiles and runs the unit tests (`src/test`, no game needed).
+- `./gradlew build` compiles and runs the unit tests (`src/test`, no game needed) and builds the one jar for both loaders in `build/libs/` (PRD D54). It fails if the shared classes compile differently against NeoForge's Minecraft than against vanilla (`checkSharedBytecode`), or if the jar lacks either loader's metadata (`checkModJar`).
 - `./gradlew runClient` launches the game with the mod.
 - `./gradlew runClientGameTest` boots the real client and runs the game tests in `src/gametest` (screenshots land in `build/run/clientGameTest/screenshots`). Add `-PwithSodiumIris` to repeat them with Sodium and Iris. CI runs both under `xvfb-run`.
 - Measurements (font scan, memory) are written to `build/reports/measurements/`, which the worktree cleanup keeps.
@@ -46,6 +46,9 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 - **Test world.** Every game test that opens a world builds the shared scene with `InWorldTextGameTest.buildScene(world)`: two signs (one with glow ink), a text display, and three sitting dogs named Asher, Ozzie and Ellie the Aussie. Use it for new tests too, so screenshots stay comparable; change the scene there, not per test.
 - `FONTSYS_STORE_SCREENSHOTS=1 ./gradlew runClientGameTest` also captures the store gallery screenshots into `build/store-screenshots/` (PRD D28; copy keepers to `docs/store/gallery/`).
 - `./gradlew genSources` decompiles vanilla for API checks; the sources jar lands under `.gradle/loom-cache/minecraftMaven/`.
+- `./gradlew runProductionClientGameTest` runs the game tests against the built jar on a production-style Fabric client (CI's `production-jar` job).
+- NeoForge (PRD D51, D54): the `neoforge/` subproject compiles the root `src/main` (minus the `fabric` package) plus `neoforge/src/main`, and hands its `neoforge` package and `neoforge.mods.toml` to the root jar. `./gradlew :neoforge:runNeoforgeClient` launches it from dev classes; `./gradlew :neoforge:neoforgeSmokeTest` boots the NeoForge client with the built jar in its `mods/` folder, checks the NeoForge wiring, applies a font and quits (CI runs it under `xvfb-run`). NeoForge's patched Minecraft sources land in `neoforge/build/moddev/artifacts/`.
+- Mixins go in the shared `fontsys.mixins.json`, which both loaders load; check a new mixin's target against NeoForge's patched sources too, and run the NeoForge smoke test.
 
 ## Worktrees
 
@@ -69,7 +72,7 @@ You are the lead engineer on **Fontsys**, a client-side Minecraft: Java Edition 
 - **Failure handling.** Anything that goes wrong with a font falls back to vanilla with one clear log warning; never crash, never spam the log.
 - **Privacy.** No telemetry, network calls or auto-updaters.
 - **Strings.** All user-facing strings go in the lang file. Write US English everywhere (color, gray, behavior, license), in strings, docs and comments (PRD D41).
-- **Loader split.** Keep loader-specific code in its own package so a later NeoForge port is cheap.
+- **Loader split.** Keep loader-specific code in its own package: `fabric` (root project) and `neoforge` (`neoforge/` subproject). Shared client wiring goes in `platform/ClientHooks` so both loaders behave the same.
 
 ## License
 

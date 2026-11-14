@@ -22,7 +22,7 @@ Checklist for a release (PRD D15, D29). Releases need the owner's go-ahead. Push
 ./gradlew clean build
 ```
 
-The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-sources` jar as the main file.
+The release jar is `build/libs/fontsys-<version>+26.3.jar`, one file for both Fabric and NeoForge (PRD D54). `build` checks that it carries both loaders' metadata with the same version. Don't publish the `-sources` jar as the main file.
 
 ## Publish
 
@@ -32,13 +32,15 @@ The release jar is `build/libs/fontsys-<version>+26.3.jar`. Don't publish the `-
    ```
    The `release` workflow checks that the tag matches `mod_version`, builds and tests, and creates a **draft** GitHub release with the jar and the changelog section as notes. Review it on GitHub and press Publish.
 2. Publishing the GitHub release runs the `publish` workflow (PRD D31). It uploads the release's jar to Modrinth and CurseForge as version `<mod_version>+<minecraft>` (e.g. `1.0.1+26.3`), named "Fontsys <version>", with the release notes as changelog:
-   - Loader: Fabric. Game versions: `publish_game_versions` in `gradle.properties`. Java 25.
-   - Dependencies: Fabric API (required), Mod Menu (optional).
+   - Loaders: Fabric and NeoForge, on the same file and version number. Game versions: `publish_game_versions` in `gradle.properties`. Java 25.
+   - Dependencies, which cover the whole file, not one loader (PRD D54):
+     - Modrinth: Fabric API required, Mod Menu optional. The Modrinth App and website skip a required dependency that has no version for the instance's loader, so NeoForge players don't get Fabric API.
+     - CurseForge: Fabric API optional, Mod Menu optional. The CurseForge app's handling of a required dependency with no NeoForge file isn't documented. Fabric Loader still refuses to start without Fabric API and names it.
    - It needs, in the repository's Actions settings: variables `MODRINTH_PROJECT_ID` and `CURSEFORGE_PROJECT_ID` (the numeric or base-62 project IDs shown on each project page, not the slug), and secrets `MODRINTH_TOKEN` (a Modrinth personal access token with the "Create versions" scope) and `CURSEFORGE_TOKEN` (a CurseForge API token from the account's API tokens page). A store whose project ID variable is empty is skipped.
    - The CurseForge upload runs even if the Modrinth one fails (PRD D46); the run is then marked failed. Fix the cause and rerun the failed store from Actions → publish → Run workflow, with the tag and that store only, so the other store doesn't get a duplicate.
 3. Check both project pages. The upload doesn't touch the project description: if `docs/store/description.md` changed, paste it into both sites by hand (on CurseForge, in the Markdown editor; see [`docs/store/`](store/README.md)). Modrinth's AI-content disclosures (D28) are project settings, so they carry over to new versions.
 
-Manual upload, if the workflow is unavailable: the same jar and metadata through each site's upload form (environment: client required, server unsupported).
+Manual upload, if the workflow is unavailable: the same jar and metadata through each site's upload form (loaders Fabric and NeoForge; environment: client required, server unsupported).
 
 ## Listing copy
 

@@ -17,8 +17,8 @@ Pick any font installed on your computer and Minecraft uses it for all of its te
 
 ## How to use
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api), then drop the Fontsys jar into your `mods` folder.
-2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu).
+1. Drop the Fontsys jar into your `mods` folder. The same file works on **Fabric**, with [Fabric API](https://modrinth.com/mod/fabric-api), and on **NeoForge** 26.3.0.103 or later, which doesn't need Fabric API.
+2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu) on Fabric (Mods → Fontsys → Config on NeoForge).
 3. Search for a font, pick a style, check the preview and press **Apply**. Press **Enter** or **Keep changes** to keep it.
 4. **Reset to vanilla** switches back to the normal font at any time.
 5. **Fonts folder** opens this instance's `fonts` folder. Fonts you put there are listed with an **Instance** tag.
