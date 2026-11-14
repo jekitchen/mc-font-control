@@ -30,7 +30,7 @@ A client-side Minecraft: Java Edition mod (26.3+, Fabric) that lets you pick any
    - **Fabric:** with [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api).
    - **NeoForge:** with [NeoForge](https://neoforged.net/) 26.3.0.103 or later. Fabric API isn't needed.
 2. Open the settings with **F7**, from **Fontsys Settings...** in Options → Language → Font Settings, or from [Mod Menu](https://modrinth.com/mod/modmenu) (on NeoForge, from Mods → Fontsys → Config). You can change the key under Options → Controls → Key Binds → Fontsys. On a Mac laptop, press **Fn + F7**.
-3. Search for a font, pick a style, check the preview and press **Apply**. The preview also shows the next size down and up; click one to use it. The fonts you used last are listed first, marked **Recent**.
+3. Search for a font, pick a style, check the preview and press **Apply**. The preview also shows the next size down and up; click one to use it. The fonts you used last are listed first, marked **Recent**, and each one remembers the settings you kept it with.
 4. The **Keep this font?** screen shows samples in your new font. Press **Enter** or **Keep changes** to keep it; otherwise it switches back after 30 seconds. If you press **Done** without applying, you're asked whether to apply or discard your changes.
 5. **Reset to vanilla** switches back to the normal font. **Rescan fonts** picks up fonts you installed while the game was running. Hover over a setting to see what it does.
 6. **Crisp edges** turns off smoothing for pixel-style fonts. While it's on, sharpness follows your GUI scale.

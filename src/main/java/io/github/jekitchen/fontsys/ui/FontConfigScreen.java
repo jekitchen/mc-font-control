@@ -4,6 +4,7 @@ import com.mojang.blaze3d.Blaze3D;
 import io.github.jekitchen.fontsys.Fontsys;
 import io.github.jekitchen.fontsys.apply.FontController;
 import io.github.jekitchen.fontsys.config.FontSettings;
+import io.github.jekitchen.fontsys.config.FontTuning;
 import io.github.jekitchen.fontsys.discovery.FaceInfo;
 import io.github.jekitchen.fontsys.config.RecentFont;
 import io.github.jekitchen.fontsys.discovery.FontFamily;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -84,6 +86,12 @@ public final class FontConfigScreen extends Screen {
 	private Button resetButton;
 	private ValueSlider sizeSlider;
 	private ValueSlider oversampleSlider;
+	private Checkbox crispBox;
+	/**
+	 * Tuning the player left behind on each family they browsed away from in this visit,
+	 * unapplied, so going back to a family brings it back (D55). Keyed by {@link #familyKey}.
+	 */
+	private final Map<String, FontTuning> browsed = new HashMap<>();
 	private Button advancedButton;
 	/** Widgets given a tooltip in {@link #init()}; read by the game tests. */
 	private final List<AbstractWidget> tooltipped = new ArrayList<>();
@@ -168,14 +176,12 @@ public final class FontConfigScreen extends Screen {
 		// Shift X, Shift Y and Replace Unicode font live on the Advanced screen (UI-19, D52).
 		advancedButton = addRenderableWidget(tip(Button.builder(Component.translatable("fontsys.screen.advanced"), b -> openAdvanced())
 			.bounds(rightX, TOP + 48, half, 20).build(), "fontsys.screen.advanced.tooltip"));
-		Checkbox crisp = addRenderableWidget(tip(Checkbox.builder(Component.translatable("fontsys.screen.crisp"), font)
-			.selected(draft.crispEdges())
-			.onValueChange((box, value) -> setCrispEdges(value))
-			.build(), "fontsys.screen.crisp.tooltip"));
+		Checkbox crisp = addRenderableWidget(crispCheckbox());
 		// Under the sliders (UI-9): beside the Advanced button when both fit, otherwise below it.
 		int crispX = rightX + rightWidth - crisp.getWidth();
 		boolean sameRow = crispX >= advancedButton.getRight() + 8;
 		crisp.setPosition(sameRow ? crispX : rightX, sameRow ? TOP + 48 + (20 - crisp.getHeight()) / 2 : TOP + 72);
+		crispBox = crisp;
 		updateOversampleSlider();
 
 		previewX0 = rightX;
@@ -387,10 +393,47 @@ public final class FontConfigScreen extends Screen {
 
 	public void selectFamily(FontFamily family) {
 		FaceInfo face = draft.styleName() == null ? family.defaultStyle() : family.findStyle(draft.styleName()).orElse(family.defaultStyle());
-		if (!family.holds(draft.familyName(), draft.fontPath())) {
+		boolean switching = !family.holds(draft.familyName(), draft.fontPath());
+		if (switching) {
 			face = family.defaultStyle();
+			if (draft.familyName() != null) {
+				browsed.put(familyKey(draft.familyName(), draft.fontPath()), FontTuning.of(draft));
+			}
 		}
 		selectFace(face);
+		if (switching) {
+			// Each font keeps its own tuning (D55): what the player left on it in this visit, else
+			// what it was last kept with, else the defaults for a font never kept.
+			FontTuning tuning = browsed.get(familyKey(face.family(), face.path()));
+			if (tuning == null) {
+				tuning = controller.rememberedTuning(face.family(), face.path());
+			}
+			applyTuning(tuning == null ? FontTuning.DEFAULTS : tuning);
+		}
+	}
+
+	/** Families with the same name but one an instance font count separately (FD-14), as in the recent list. */
+	private static String familyKey(String familyName, @Nullable String fontPath) {
+		return familyName.toLowerCase(Locale.ROOT) + (InstanceFonts.contains(fontPath) ? "|instance" : "|system");
+	}
+
+	/** Puts a font's tuning into the draft and the controls that show it (D55). */
+	private void applyTuning(FontTuning tuning) {
+		draft = tuning.applyTo(draft);
+		// The sliders write the draft back as they move; it already holds these values.
+		sizeSlider.setCurrent(draft.size());
+		oversampleSlider.setCurrent(draft.oversample());
+		if (crispBox.selected() != draft.crispEdges()) {
+			// A Checkbox can't be set from code in 26.3, so it is replaced in place.
+			Checkbox replacement = crispCheckbox();
+			replacement.setPosition(crispBox.getX(), crispBox.getY());
+			tooltipped.remove(crispBox);
+			removeWidget(crispBox);
+			crispBox = addRenderableWidget(replacement);
+		}
+		updateOversampleSlider();
+		preview.markDirty();
+		updateButtons();
 	}
 
 	private void selectFace(FaceInfo face) {
@@ -412,6 +455,13 @@ public final class FontConfigScreen extends Screen {
 			}
 		}
 		selectFace(styles.get(Math.floorMod(current + direction, styles.size())));
+	}
+
+	private Checkbox crispCheckbox() {
+		return tip(Checkbox.builder(Component.translatable("fontsys.screen.crisp"), font)
+			.selected(draft.crispEdges())
+			.onValueChange((box, value) -> setCrispEdges(value))
+			.build(), "fontsys.screen.crisp.tooltip");
 	}
 
 	/** Crisp mode (AP-10, D34): sharpness follows the GUI scale, so the slider steps aside. */

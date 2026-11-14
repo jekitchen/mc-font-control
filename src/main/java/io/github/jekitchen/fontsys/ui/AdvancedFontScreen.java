@@ -70,12 +70,12 @@ public final class AdvancedFontScreen extends Screen {
 		row(tip(new ValueSlider(MARGIN, 0, column, -FontSettings.MAX_SHIFT, FontSettings.MAX_SHIFT, 0.5, draft.shiftY(),
 			v -> Component.translatable("fontsys.screen.shift_y", format(v)),
 			v -> setShift(settings.draft().shiftX(), (float) v)), "fontsys.screen.shift_y.tooltip"));
+		row(hintingButton(draft));
 		row(tip(Checkbox.builder(Component.translatable("fontsys.screen.apply_to_uniform"), font)
 			.maxWidth(column)
 			.selected(draft.applyToUniform())
 			.onValueChange((box, value) -> change(settings.draft().withApplyToUniform(value)))
 			.build(), "fontsys.screen.apply_to_uniform.tooltip"));
-		row(hintingButton(draft));
 		noteY = nextY + 2;
 
 		previewX0 = MARGIN + column + MARGIN;

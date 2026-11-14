@@ -25,11 +25,12 @@ public final class AdvancedSettings {
 		if (settings.shiftY() != defaults.shiftY()) {
 			keys.add("fontsys.confirm.change.shift_y");
 		}
-		if (settings.applyToUniform() != defaults.applyToUniform()) {
-			keys.add("fontsys.screen.apply_to_uniform");
-		}
+		// In the Advanced screen's order: hinting above Replace Unicode font.
 		if (settings.hinting() != defaults.hinting()) {
 			keys.add("fontsys.confirm.change.hinting");
+		}
+		if (settings.applyToUniform() != defaults.applyToUniform()) {
+			keys.add("fontsys.screen.apply_to_uniform");
 		}
 		return keys;
 	}
