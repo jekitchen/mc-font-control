@@ -7,6 +7,8 @@
 // Minecraft; the loader-neutral code is not copied or moved.
 // Play:    ./gradlew :neoforge:runNeoforgeClient                (dev classes)
 // Check:   ./gradlew :neoforge:neoforgeSmokeTest     (boots the client with the built jar, applies a font, quits)
+//          ./gradlew :neoforge:neoforgeSmokeTest -PwithSodium       (the same with Sodium installed, D57)
+//          ./gradlew :neoforge:neoforgeSmokeTest -PwithSodiumIris   (with Sodium 0.9.2 and Iris 1.11.7, on an older NeoForge, D57)
 plugins {
 	id 'net.neoforged.moddev' version "${moddev_version}"
 }
@@ -17,6 +19,23 @@ group = project.maven_group
 base {
 	archivesName = project.archives_base_name
 }
+
+// Compatibility runs only (-PwithSodium, -PwithSodiumIris, PRD D57): Sodium and Iris for
+// NeoForge from Modrinth's Maven, as the Fabric game tests get theirs. Never bundled.
+repositories {
+	maven {
+		name = 'Modrinth'
+		url = 'https://api.modrinth.com/maven'
+		content { includeGroup 'maven.modrinth' }
+	}
+}
+def withSodiumIris = project.hasProperty('withSodiumIris')
+def withSodium = withSodiumIris || project.hasProperty('withSodium')
+// No Sodium and Iris pair loads on NeoForge 26.3.0.65-beta or later yet (see gradle.properties), so
+// -PwithSodiumIris builds and runs against the last NeoForge the release pair loads on. A
+// -Pneoforge_version on the command line still wins.
+def neoforgeVersion = withSodiumIris && !gradle.startParameter.projectProperties.containsKey('neoforge_version')
+	? project.neoforge_iris_version : project.neoforge_version
 
 sourceSets {
 	main {
@@ -32,11 +51,19 @@ sourceSets {
 		}
 	}
 	// A second, test-only mod that drives the client through a font change and quits (D51).
-	smokeTest
+	smokeTest {
+		java {
+			// The Fabric game tests' in-world scene (plain server commands), so both loaders
+			// render the same signs, text display and name tags (D57).
+			srcDir rootProject.file('src/gametest/java')
+			include 'io/github/jekitchen/fontsys/neoforge/smoketest/**'
+			include 'io/github/jekitchen/fontsys/gametest/InWorldScene.java'
+		}
+	}
 }
 
 neoForge {
-	version = project.neoforge_version
+	version = neoforgeVersion
 
 	addModdingDependenciesTo sourceSets.smokeTest
 
@@ -64,6 +91,8 @@ neoForge {
 			gameDirectory = project.file('build/run/smokeTest')
 			systemProperty 'fontsys.smokeTest', 'true'
 			systemProperty 'fontsys.smokeTest.expectJar', 'true'
+			// The smoke test checks these mods are loaded, so a missing download can't pass as a run with them.
+			systemProperty 'fontsys.smokeTest.expectMods', withSodiumIris ? 'sodium,iris' : withSodium ? 'sodium' : ''
 		}
 	}
 }
@@ -102,9 +131,25 @@ def modJarFiles = configurations.resolvable('modJarFiles') { extendsFrom(modJarS
 dependencies {
 	modJar project(path: ':', configuration: 'modJarElements')
 }
+// Sodium (-PwithSodium) or Sodium and Iris (-PwithSodiumIris) for NeoForge (D57); their jars only, no Maven dependencies.
+def compatModsScope = configurations.dependencyScope('compatMods')
+def compatModsFiles = configurations.resolvable('compatModsFiles') {
+	extendsFrom(compatModsScope.get())
+	transitive = false
+}
+dependencies {
+	if (withSodium) {
+		compatMods "maven.modrinth:sodium:${withSodiumIris ? project.sodium_iris_neoforge_version : project.sodium_neoforge_version}"
+	}
+	if (withSodiumIris) {
+		compatMods "maven.modrinth:iris:${project.iris_neoforge_version}"
+	}
+}
 def smokeRunDir = project.file('build/run/smokeTest')
+// Sync, so a run without -PwithSodium removes the jars a run with it left behind.
 def installSmokeTestJar = tasks.register('installSmokeTestJar', Sync) {
 	from modJarFiles
+	from compatModsFiles
 	into new File(smokeRunDir, 'mods')
 }
 
@@ -127,12 +172,22 @@ tasks.register('neoforgeSmokeTest') {
 		}
 		def lines = resultFile.readLines('UTF-8')
 		lines.each { println it }
-		// Fontsys logs one warning when a font falls back to vanilla; the smoke test expects none,
-		// and no mixin or Fontsys errors at all.
-		def problems = logFile.isFile() ? logFile.readLines('UTF-8').findAll {
-			(it.contains('/WARN]') || it.contains('/ERROR]')) && (it.contains('[Fontsys') || it.toLowerCase().contains('mixin'))
-		} : []
+		def log = logFile.isFile() ? logFile.readLines('UTF-8') : []
+		// Fails on: any Fontsys warning or error (a font that falls back to vanilla logs one; the
+		// smoke test expects none); any mixin error; and any mixin warning that names Fontsys or a
+		// conflict. With Sodium and Iris their mixins and Fontsys's may touch the same text and glyph
+		// code (D57). Other mods' own mixin warnings (Iris's refmap note, its optional targets in
+		// mods that aren't installed) are listed below, not failed on.
+		def problems = log.findAll {
+			def lower = it.toLowerCase()
+			def warnOrWorse = it.contains('/WARN]') || it.contains('/ERROR]') || it.contains('/FATAL]')
+			(warnOrWorse && it.contains('[Fontsys'))
+				|| ((it.contains('/ERROR]') || it.contains('/FATAL]')) && lower.contains('mixin'))
+				|| (warnOrWorse && lower.contains('mixin') && (lower.contains('fontsys') || lower.contains('conflict')))
+		}
 		problems.each { println "LOG: ${it}" }
+		// Every other warning and error, for review: printed, not failed on (other mods log their own).
+		log.findAll { (it.contains('/WARN]') || it.contains('/ERROR]') || it.contains('/FATAL]')) && !problems.contains(it) }.each { println "OTHER LOG: ${it}" }
 		if (lines.last() != 'RESULT PASS' || !problems.isEmpty()) {
 			throw new GradleException("NeoForge smoke test failed; see ${resultFile} and ${logFile}")
 		}
@@ -141,17 +196,19 @@ tasks.register('neoforgeSmokeTest') {
 
 tasks.named('runNeoforgeSmokeTest') {
 	dependsOn installSmokeTestJar
-	// Start from the vanilla font, and remove the last result so an old one can't pass for this run.
+	// Start from the vanilla font and a new world, and remove the last result so an old one can't pass for this run.
 	def stale = [new File(smokeRunDir, 'fontsys-smoketest.txt'), new File(smokeRunDir, 'config/fontsys.json')]
+	def saves = new File(smokeRunDir, 'saves')
 	doFirst {
 		stale.each { it.delete() }
+		saves.deleteDir()
 	}
 }
 
 processResources {
 	def props = [
 		version          : project.version,
-		neoforge_version : project.neoforge_version,
+		neoforge_version : neoforgeVersion,
 		minecraft_version: project.minecraft_version,
 	]
 	inputs.properties props
