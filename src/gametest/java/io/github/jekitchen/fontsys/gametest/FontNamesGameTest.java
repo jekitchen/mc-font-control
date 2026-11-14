@@ -68,7 +68,10 @@ public class FontNamesGameTest implements FabricClientGameTest {
 			int listed = context.computeOnClient(mc -> screen(mc).listedFamilies().size());
 			require(stats.peakSize() <= FamilyNameFonts.CAPACITY && FamilyNameFonts.openAtlases() <= FamilyNameFonts.CAPACITY,
 				"at most " + FamilyNameFonts.CAPACITY + " name fonts open: peak " + stats.peakSize() + ", open " + FamilyNameFonts.openAtlases());
-			require(stats.activations() <= FamilyNameFonts.CAPACITY || stats.evictions() > 0, "fonts were evicted once the cap was reached: " + stats);
+			// Eviction is only needed when more families are listed than the cap allows open. The
+			// three passes activate fonts again after the cache is cleared between them, so the
+			// activation count can pass the cap with nothing to evict (45 families on Ubuntu 26.04).
+			require(listed <= FamilyNameFonts.CAPACITY || stats.evictions() > 0, "fonts were evicted once the cap was reached: " + listed + " listed, " + stats);
 			require(stats.maxActivationsInAFrame() <= 2, "at most two fonts activated per frame: " + stats.maxActivationsInAFrame());
 
 			// Halfway down, settled, for the screenshot.
